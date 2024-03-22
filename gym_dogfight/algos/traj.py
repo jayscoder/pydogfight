@@ -45,11 +45,11 @@ class OptimalPathParam:
         :return:
         """
         if self.length == float('inf'):
-            return []
+            return
 
         turn_points_count = math.floor(self.turn_length / step)
         direct_points_count = math.floor(self.direct_length / step)
-        path = -1 * np.ones((turn_points_count + direct_points_count, 3))
+        # path = -1 * np.ones((turn_points_count + direct_points_count, 3))
 
         # 先生成拐弯的点
         if turn_points_count > 0:
@@ -59,20 +59,26 @@ class OptimalPathParam:
 
             for i in range(turn_points_count):
                 curr_turn_rad += turn_rad_step
-                path[i][0] = self.turn_center[0] + (self.turn_radius * math.cos(init_theta + curr_turn_rad))
-                path[i][1] = self.turn_center[1] + (self.turn_radius * math.sin(init_theta + curr_turn_rad))
-                path[i][2] = self.start.psi - math.degrees(curr_turn_rad)
+                path = [
+                    self.turn_center[0] + (self.turn_radius * math.cos(init_theta + curr_turn_rad)),
+                    self.turn_center[1] + (self.turn_radius * math.sin(init_theta + curr_turn_rad)),
+                    self.start.psi - math.degrees(curr_turn_rad)
+                ]
+                yield path
 
         # 生成直线点
         curr_direct_length = 0
         target_rad = math.radians(90 - self.target.psi)
         for i in range(turn_points_count, turn_points_count + direct_points_count):
             curr_direct_length += step
-            path[i][0] = self.turn_point[0] + curr_direct_length * math.cos(target_rad)
-            path[i][1] = self.turn_point[1] + curr_direct_length * math.sin(target_rad)
-            path[i][2] = self.target.psi
+            path = [
+                self.turn_point[0] + curr_direct_length * math.cos(target_rad),
+                self.turn_point[1] + curr_direct_length * math.sin(target_rad),
+                self.target.psi
+            ]
+            yield path
 
-        return path
+        return
 
 
 def calc_optimal_path(start: Waypoint, target: tuple[float, float], turn_radius: float) -> OptimalPathParam:
@@ -169,7 +175,7 @@ def main():
     target = (-12187, 7000)
     param = calc_optimal_path(start, target, 5000)
     if param.length != float('inf'):
-        path = param.generate_traj(step=100)
+        path = np.array(list(param.generate_traj(step=100)))
         print(param)
         print(path.shape[0])
         # Plot the results

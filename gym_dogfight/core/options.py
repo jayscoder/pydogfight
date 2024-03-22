@@ -19,8 +19,8 @@ class Options:
     ### 场景 ###
     max_duration = 60 * 30  # 一局对战最多时长30分钟，超过这个就会truncated
     screen_size = (800, 800)  # 屏幕宽度 屏幕高度
-    delta_time = 1 / 50  # 更新间隔时间
     simulation_rate = 20.0  # 仿真的速率倍数，越大代表越快
+    delta_time = 1 / 50  # 更新间隔时间
 
     ### 常量 ###
     g = 9.8  # 重力加速度 m/s
@@ -30,13 +30,12 @@ class Options:
     destroy_on_boundary_exit = True  # 飞出战场边界是否会摧毁飞机
 
     ### 飞机 ###
-
-    aircraft_collision_radius: float = 10  # 飞机的碰撞半径为10m，用来进行碰撞检查，设为0就不会检查碰撞了
     aircraft_missile_count: int = 100  # 飞机上装载的导弹数量
     aircraft_speed: float = 222  # 飞机飞行速度220m/s 800km/h
+    aircraft_collision_radius: float = max(15.0, aircraft_speed * delta_time * 5)  # 飞机的碰撞半径，用来进行碰撞检查，设为0就不会检查碰撞了
 
-    aircraft_fuel_capacity: float = 3200  # 飞机载油量 3200L
-    aircraft_fuel_consumption_rate: float = aircraft_fuel_capacity / 1800  # 飞机耗油速度，在这里飞机最多能飞1800秒
+    aircraft_fuel_consumption_rate: float = 1  # 飞机耗油速度，每秒消耗多少油
+    aircraft_fuel_capacity: float = aircraft_fuel_consumption_rate * 1800  # 飞机载油量，在这里飞机最多能飞1800秒
     aircraft_fuel_bingo_fuel = aircraft_fuel_capacity / 5  # 飞机bingo油量，留20%
 
     aircraft_max_centripetal_acceleration = 9 * g  # 飞机最大向心加速度
@@ -52,9 +51,14 @@ class Options:
     missile_no_escape_distance = 2e3  # 导弹不可躲避距离2km
 
     missile_max_centripetal_acceleration = 20 * g  # 导弹最大向心加速度
-    missile_render_duration: float = simulation_rate * 3  # 导弹画3秒
     missile_speed = aircraft_speed * 5  # 导弹速度是飞机速度的5倍
     missile_min_turn_radius = missile_speed ** 2 / missile_max_centripetal_acceleration  # 导弹最小转弯半径 6286m
+
+    missile_collision_radius = max(15.0, (missile_speed + aircraft_speed) * delta_time * 5)  # 导弹的碰撞半径
+
+    missile_fuel_consumption_rate = 1
+    missile_fuel_capacity = missile_fuel_consumption_rate * 30  # 导弹只能飞30秒
+    missile_reroute_interval = 1  # 导弹重新规划路径时间间隔
 
     ### 基地 ###
     home_area_radius = 2e3  # 基地范围半径
@@ -103,9 +107,12 @@ class Options:
             'missile_max_threat_distance'           : self.missile_max_threat_distance,
             'missile_no_escape_distance'            : self.missile_no_escape_distance,
             'missile_max_centripetal_acceleration'  : self.missile_max_centripetal_acceleration,
-            'missile_render_duration'               : self.missile_render_duration,
             'missile_speed'                         : self.missile_speed,
             'missile_min_turn_radius'               : self.missile_min_turn_radius,
+            'missile_collision_radius'              : self.missile_collision_radius,
+            'missile_fuel_consumption_rate'         : self.missile_fuel_consumption_rate,
+            'missile_fuel_capacity'                 : self.missile_fuel_capacity,
+            'missile_reroute_interval'              : self.missile_reroute_interval,
 
             'home_area_radius'                      : self.home_area_radius,
             'home_refuel'                           : self.home_refuel,
@@ -134,43 +141,6 @@ class Options:
     @property
     def agents(self) -> list[str]:
         return self.red_agents + self.blue_agents
-
-    from gym_dogfight.core.world_obj import Aircraft
-
-    def predict_missile_hit_prob(self, source: Aircraft, target: Aircraft):
-        """
-        预测导弹命中目标概率
-        根据距离来判断敌方被摧毁的概率，距离越远，被摧毁的概率越低（基于MISSILE_MAX_THREAT_DISTANCE和MISSILE_NO_ESCAPE_DISTANCE）
-        :param source: 发射导弹方
-        :param target: 被导弹攻击方
-        :return:
-        """
-        # 计算导弹发射轨迹
-        from gym_dogfight.algos.traj import calc_optimal_path
-        hit_point = source.predict_missile_intercept_point(enemy=target)
-
-        if hit_point is None:
-            return 0
-
-        param = calc_optimal_path(
-                start=source.waypoint,
-                target=(target.x, target.y),
-                turn_radius=self.missile_min_turn_radius
-        )
-
-        # 如果距离小于等于不可躲避距离，目标必定被摧毁
-        if param.length <= self.missile_no_escape_distance:
-            return 1
-
-        # 如果距离超出最大威胁距离，目标不会被摧毁
-        if param.length > self.missile_max_threat_distance:
-            return 0
-
-        # 在不可躲避距离和最大威胁距离之间，摧毁的概率随距离增加而减少
-        hit_prob = (self.missile_max_threat_distance - param.length) / (
-                self.missile_max_threat_distance - self.missile_no_escape_distance)
-
-        return hit_prob
 
     def generate_random_point(self) -> tuple[float, float]:
         x = (random.random() * self.game_size[0] - self.game_size[0] / 2) * 0.9
@@ -211,12 +181,24 @@ class Options:
 
         return x, y, psi
 
+    def calc_screen_length(self, game_length: float) -> float:
+        max_screen_size = max(self.screen_size)
+        max_game_size = max(self.game_size)
+        return (game_length / max_game_size) * max_screen_size
+
+    def calc_game_length(self, screen_length: float) -> float:
+        max_screen_size = max(self.screen_size)
+        max_game_size = max(self.game_size)
+        return (screen_length / max_screen_size) * max_game_size
+
 
 if __name__ == '__main__':
     import jsonpickle
+
     options = Options()
     # setattr(options, 'agents', 1)
-    # print(options.agents)
-    print(getattr(options, 'agents', None))
+    print(options.missile_collision_radius)
+    print(options.aircraft_collision_radius)
+    # print(getattr(options, 'agents', None))
     # for k in dir(options):
     #     print(k, type(getattr(options, k)))

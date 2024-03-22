@@ -50,6 +50,43 @@ def predict_intercept_point(
     return None
 
 
+
+# def predict_missile_hit_prob(self, source: Aircraft, target: Aircraft):
+#     """
+#     预测导弹命中目标概率
+#     根据距离来判断敌方被摧毁的概率，距离越远，被摧毁的概率越低（基于MISSILE_MAX_THREAT_DISTANCE和MISSILE_NO_ESCAPE_DISTANCE）
+#     :param source: 发射导弹方
+#     :param target: 被导弹攻击方
+#     :return:
+#     """
+#     # 计算导弹发射轨迹
+#     from gym_dogfight.algos.traj import calc_optimal_path
+#     hit_point = source.predict_missile_intercept_point(enemy=target)
+#
+#     if hit_point is None:
+#         return 0
+#
+#     param = calc_optimal_path(
+#             start=source.waypoint,
+#             target=(target.x, target.y),
+#             turn_radius=self.missile_min_turn_radius
+#     )
+#
+#     # 如果距离小于等于不可躲避距离，目标必定被摧毁
+#     if param.length <= self.missile_no_escape_distance:
+#         return 1
+#
+#     # 如果距离超出最大威胁距离，目标不会被摧毁
+#     if param.length > self.missile_max_threat_distance:
+#         return 0
+#
+#     # 在不可躲避距离和最大威胁距离之间，摧毁的概率随距离增加而减少
+#     hit_prob = (self.missile_max_threat_distance - param.length) / (
+#             self.missile_max_threat_distance - self.missile_no_escape_distance)
+#
+#     return hit_prob
+
+
 def _main():
     import matplotlib.pyplot as plt
     from gym_dogfight.algos.traj import calc_optimal_path
@@ -78,12 +115,12 @@ def _main():
         plt.plot(hit_point[0], hit_point[1], 'kx')
 
         hit_param = calc_optimal_path(missile, hit_point, missile_turn_radius)
-        hit_path = hit_param.generate_traj(1)
+        hit_path = np.array(list(hit_param.generate_traj(1)))
 
         plt.plot(hit_path[:, 0], hit_path[:, 1], 'b-')
 
         enemy_param = calc_optimal_path(enemy, hit_point, enemy_turn_radius)
-        enemy_path = enemy_param.generate_traj(1)
+        enemy_path = np.array(list(enemy_param.generate_traj(1)))
         plt.plot(enemy_path[:, 0], enemy_path[:, 1], 'b-')
 
         print('hit_path', hit_path.shape)

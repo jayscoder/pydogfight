@@ -40,7 +40,7 @@ class ManualControl:
             self.env.render_info['psi'] = f'{agent_obj.psi:.0f}'
             self.env.render_info['fuel'] = f'{agent_obj.fuel:.0f}'
             self.env.render_info['missile'] = f'{agent_obj.missile_count}'
-            self.env.render_info['destroy_enemy'] = f'{agent_obj.missile_destroyed_enemies}'
+            self.env.render_info['destroy_enemy'] = f'{agent_obj.missile_destroyed_agents}'
 
             event = pygame.event.poll()
             if event.type == pygame.QUIT:
@@ -80,16 +80,17 @@ class ManualControl:
                 actions[current_agent_index, 2] = position[1]
                 self.step(actions)
 
+            if self.env.should_update():
+                self.env.update()
+
             if self.env.should_render():
                 enemy = self.env.battle_area.find_nearest_enemy(agent_name)
                 if enemy is not None:
-                    hit_prob = self.env.options.predict_missile_hit_prob(agent_obj, enemy)
                     self.env.render_info['nearest enemy'] = enemy.name
                     self.env.render_info['nearest enemy distance'] = f'{agent_obj.distance(enemy):.0f}'
-                    self.env.render_info['missile hit prob'] = f'{hit_prob:.3f}'
                     hit_point = agent_obj.predict_missile_intercept_point(enemy=enemy)
                     if hit_point is not None:
-                        param = agent_obj.calc_optimal_path(target=enemy.position, turn_radius=agent_obj.turn_radius)
+                        param = agent_obj.calc_optimal_path(target=enemy.location, turn_radius=agent_obj.turn_radius)
                         self.env.render_info['nearest enemy predict hit distance'] = f'{param.length:.0f}'
                     else:
                         self.env.render_info['nearest enemy predict hit distance'] = f'inf'
@@ -98,13 +99,12 @@ class ManualControl:
                     self.env.render_info['nearest enemy distance'] = ''
                     self.env.render_info['missile hit prob'] = 0
 
-                self.env.update()
                 _, reward, terminated, truncated, info = self.env.step(self.env.empty_action())
                 self.env.render()
                 if terminated or truncated:
                     time.sleep(1)
                     self.reset(self.seed)
-                self.env.render()
+
 
     def step(self, action: Actions):
         _, reward, terminated, truncated, info = self.env.step(action)

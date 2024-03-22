@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from typing import Tuple, TYPE_CHECKING
+from typing import Tuple, TYPE_CHECKING, Union, Optional
+
+import numpy as np
+
 from gym_dogfight.core.constants import *
 from gym_dogfight.core.actions import *
 import random
@@ -12,6 +15,7 @@ from gym_dogfight.algos.intercept import predict_intercept_point
 import math
 from gym_dogfight.utils.rendering import *
 import weakref
+import json
 
 if TYPE_CHECKING:
     from gym_dogfight.core.options import Options
@@ -24,7 +28,7 @@ class WorldObj:
     """
 
     def __init__(self, name: str, options: Options, type: str, color: str = '', x: float = 0, y: float = 0,
-                 psi: float | None = None,
+                 psi: float = 0,
                  speed: float = 0, turn_radius: float = 0):
         assert speed >= 0
         self.name = name
@@ -33,27 +37,42 @@ class WorldObj:
         self.color = color
         self.speed = speed
         self.turn_radius = turn_radius
-        self.contains = None
         self.collision_radius = 0
 
         self.x = x
         self.y = y
-
-        self.curve: np.ndarray | None = None
-        self.curve_index: int = -1
+        self.psi = psi
 
         self.destroyed = False  # 是否已经被摧毁
 
-        if psi is not None:
-            self.psi = psi
-        else:
-            self.psi = random.randint(0, 359)
+        self.route: np.ndarray | None = None  # 需要遵循的轨迹
+        self.route_index: int = -1
 
         self.actions = Queue()  # 等待消费的行为，每一项是个列表
-        self._area = None
+        self._area = None  # 战场
         # (0, -, -) 0代表什么也不做
         # （1, x, y）飞到指定位置
         # (2, x, y) 朝目标点发射导弹
+
+    def to_dict(self):
+        return {
+            'name'            : self.name,
+            'type'            : self.type,
+            'color'           : self.color,
+            'speed'           : self.speed,
+            'turn_radius'     : self.turn_radius,
+            'collision_radius': self.collision_radius,
+            'x'               : self.x,
+            'y'               : self.y,
+            'psi'             : self.psi,
+            'destroyed'       : self.destroyed,
+        }
+
+    def __str__(self):
+        return json.dump(self.to_dict(), indent=4, ensure_ascii=False)
+
+    def __repr__(self):
+        return self.__str__()
 
     def put_action(self, action):
         if self.destroyed:
@@ -64,7 +83,7 @@ class WorldObj:
         self._area = weakref.ref(battle_area)
 
     @property
-    def area(self) -> 'BattleArea' | None:
+    def area(self) -> Optional['BattleArea']:
         if self._area is None:
             return None
         return self._area()
@@ -74,15 +93,24 @@ class WorldObj:
         return Waypoint(self.x, self.y, self.psi)
 
     @property
-    def position(self) -> tuple[float, float]:
+    def location(self) -> tuple[float, float]:
         return self.x, self.y
+
+    @property
+    def screen_position(self) -> tuple[float, float]:
+        return game_point_to_screen_point(
+                (self.x, self.y),
+                game_size=self.options.game_size,
+                screen_size=self.options.screen_size)
 
     def render(self, screen):
         """Draw this object with the given renderer"""
         raise NotImplementedError
 
-    def distance(self, to: WorldObj) -> float:
-        return ((self.x - to.x) ** 2 + (self.y - to.y) ** 2) ** 0.5
+    def distance(self, to: WorldObj | tuple[float, float]) -> float:
+        if isinstance(to, WorldObj):
+            to = to.location
+        return ((self.x - to[0]) ** 2 + (self.y - to[1]) ** 2) ** 0.5
 
     def check_collision(self, to: WorldObj):
         # 假设物体是圆形的，可以通过计算它们中心点的距离来检测碰撞
@@ -102,6 +130,63 @@ class WorldObj:
                 target=target,
                 turn_radius=turn_radius
         )
+
+    def on_collision(self, obj: WorldObj):
+        """
+        与另外一个物体碰撞了
+        :param obj: 碰撞的物体
+        :return:
+        """
+        pass
+
+    def check_in_game_range(self):
+        if self.options.destroy_on_boundary_exit:
+            # 检查是否跑出了游戏范围
+            game_x_range = (-self.options.game_size[0] / 2, self.options.game_size[0] / 2)
+            game_y_range = (-self.options.game_size[1] / 2, self.options.game_size[1] / 2)
+
+            if self.x < game_x_range[0] or self.x > game_x_range[1]:
+                self.destroyed = True
+            elif self.y < game_y_range[0] or self.y > game_y_range[1]:
+                self.destroyed = True
+
+    def follow_route(self, route) -> bool:
+        """
+        沿着轨迹运动
+        :param route: 轨迹
+        :return: 是否运动成功
+        """
+        if route is None:
+            return False
+        next_wpt = None
+        if isinstance(route, types.GeneratorType):
+            try:
+                next_wpt = next(route)
+            except StopIteration:
+                return False
+        elif len(route) > self.route_index >= 0:
+            next_wpt = route[self.route_index]
+
+        if next_wpt is None:
+            return False
+        self.route_index += 1
+        self.x = next_wpt[0]
+        self.y = next_wpt[1]
+        self.psi = next_wpt[2]
+        return True
+
+    def move_forward(self, delta_time: float):
+        # 朝着psi的方向移动, psi是航向角，0度指向正北，90度指向正东
+        # 将航向角从度转换为弧度
+        x_theta = self.waypoint.standard_rad
+        # 计算 x 和 y 方向上的速度分量
+        dx = self.speed * math.cos(x_theta) * delta_time  # 正东方向为正值
+        dy = self.speed * math.sin(x_theta) * delta_time  # 正北方向为正值
+
+        # 更新 obj 的位置
+        self.x += dx
+        self.y += dy
+
 
 class Aircraft(WorldObj):
 
@@ -127,7 +212,18 @@ class Aircraft(WorldObj):
         self.fuel = options.aircraft_fuel_capacity  # 飞机剩余油量
         self.fuel_consumption_rate = options.aircraft_fuel_consumption_rate
         self.radar_radius = options.aircraft_radar_radius
-        self.missile_destroyed_enemies = []  # 导弹摧毁的敌机
+        self.missile_destroyed_agents = []  # 导弹摧毁的敌机
+
+    def to_dict(self):
+        return {
+            **super().to_dict(),
+            'collision_radius'         : self.collision_radius,
+            'missile_count'            : self.missile_count,
+            'fuel'                     : self.fuel,
+            'fuel_consumption_rate'    : self.fuel_consumption_rate,
+            'radar_radius'             : self.radar_radius,
+            'missile_destroyed_enemies': self.missile_destroyed_agents
+        }
 
     def render(self, screen):
         try:
@@ -138,64 +234,29 @@ class Aircraft(WorldObj):
 
         assert screen is not None
 
-        # 加载飞机图像（确保路径正确）
-        aircraft_img = pygame_load_img(f'aircraft_{self.color}.svg').convert_alpha()
-        explosion_img = pygame_load_img(f'explosion.svg').convert_alpha()
-
-        # 可能需要根据飞机的当前位置和角度调整图像
-        # 如果psi是角度，确保它是以度为单位
-        aircraft_img = pygame.transform.rotate(aircraft_img, -self.psi)
-        # aircraft_img = pygame.transform.smoothscale(aircraft_img, (32, 32))
-        explosion_img = pygame.transform.smoothscale(explosion_img, (26, 26))
-
-        # 获取飞机图像的矩形区域
-        aircraft_img_rect = aircraft_img.get_rect()
-        explosion_img_rect = explosion_img.get_rect()
-
-        # 调整坐标系统：从游戏世界坐标转换为屏幕坐标
-        screen_x, screen_y = game_point_to_screen_point(
-                (self.x, self.y),
-                game_size=self.options.game_size,
-                screen_size=self.options.screen_size)
-
-        # 设置飞机图像的位置
-        aircraft_img_rect.center = (screen_x, screen_y)
-        explosion_img_rect.center = (screen_x, screen_y)
-
-        # 创建字体对象
-        font = pygame.font.Font(None, 16)  # 使用默认字体，大小为36
-
-        # 渲染文本到 Surface 对象
-        text_surface = font.render(self.name, True, (0, 0, 0))
-
-        # 获取文本区域的矩形
-        text_rect = text_surface.get_rect()
-        text_rect.center = [aircraft_img_rect.center[0], aircraft_img_rect.center[1] + 18]
+        render_img(options=self.options,
+                   screen=screen,
+                   position=self.location,
+                   img_path=f'aircraft_{self.color}.svg',
+                   label=self.name,
+                   rotate=-self.psi)
+        if self.destroyed:
+            render_img(options=self.options,
+                       screen=screen,
+                       img_path='explosion.svg',
+                       position=self.location)
 
         # 画出导航轨迹
-        if self.curve is not None:
-            for i in range(0, len(self.curve), 10):
-                cur = self.curve[i][:2]
-                pygame.draw.circle(screen, COLORS[self.color], game_point_to_screen_point(
-                        game_point=cur,
-                        game_size=self.options.game_size,
-                        screen_size=self.options.screen_size
-                ), 1)
+        render_route(options=self.options, screen=screen, route=self.route, color=self.color)
 
         # 画出雷达圆圈
-        if self.radar_radius > 0:
-            pygame.draw.circle(screen, COLORS['green'], (screen_x, screen_y),
-                               game_length_to_screen_length(
-                                       self.radar_radius,
-                                       game_size=self.options.game_size,
-                                       screen_size=self.options.screen_size
-                               ), 1)
-
-        # 将飞机图像绘制到屏幕上
-        screen.blit(aircraft_img, aircraft_img_rect)
-        if self.destroyed:
-            screen.blit(explosion_img, explosion_img_rect)
-        screen.blit(text_surface, text_rect)
+        render_circle(
+                options=self.options,
+                screen=screen,
+                position=self.location,
+                radius=self.radar_radius,
+                color='green'
+        )
 
     def update(self, delta_time: float):
         if self.destroyed:
@@ -205,16 +266,15 @@ class Aircraft(WorldObj):
             self.destroyed = True
             return
 
-        if not self.actions.empty():
+        while not self.actions.empty():
             # 先执行动作
             action = self.actions.get_nowait()
             action_type = int(action[0])
             if action_type == Actions.go_to_location:
                 # 需要移动
                 param = calc_optimal_path(self.waypoint, (action[1], action[2]), self.turn_radius)
-                path = param.generate_traj(delta_time * self.speed)
-                self.curve = path
-                self.curve_index = 0
+                self.route = np.array(list(param.generate_traj(delta_time * self.speed)))
+                self.route_index = 0
             elif action_type == Actions.fire_missile and self.missile_count > 0:
                 # 需要发射导弹，以一定概率将对方摧毁
                 # 寻找离目标点最近的飞机
@@ -230,45 +290,40 @@ class Aircraft(WorldObj):
 
                 if fire_enemy is not None:
                     self.missile_count -= 1
-                    if area.render_mode == 'human':
-                        area.add_obj(Missile(source=self, target=fire_enemy, time=area.duration))
-                    if random.random() < self.options.predict_missile_hit_prob(self, fire_enemy):
-                        fire_enemy.destroyed = True
-                        self.missile_destroyed_enemies.append(fire_enemy.name)
+                    area.add_obj(Missile(source=self, target=fire_enemy, time=area.duration))
+                    # if random.random() < self.options.predict_missile_hit_prob(self, fire_enemy):
+                    #     fire_enemy.destroyed = True
+                    #     self.missile_destroyed_agents.append(fire_enemy.name)
 
         # 执行移动
-        if self.curve is not None and self.curve.shape[0] > self.curve_index >= 0:
-            self.x = self.curve[self.curve_index, 0]
-            self.y = self.curve[self.curve_index, 1]
-            self.psi = self.curve[self.curve_index, 2]
-            self.curve_index += 1
-        else:
-            # 朝着psi的方向移动, psi是航向角，0度指向正北，90度指向正东
-            # 将航向角从度转换为弧度
-            x_theta = self.waypoint.standard_rad
-            # 计算 x 和 y 方向上的速度分量
-            dx = self.speed * math.cos(x_theta) * delta_time  # 正东方向为正值
-            dy = self.speed * math.sin(x_theta) * delta_time  # 正北方向为正值
+        if not self.follow_route(route=self.route):
+            self.move_forward(delta_time=delta_time)
 
-            # 更新 obj 的位置
-            self.x += dx
-            self.y += dy
-
+        # 消耗汽油
         self.fuel -= self.fuel_consumption_rate * delta_time
 
         # 检查剩余油量
         if self.fuel <= 0:
             self.destroyed = True
 
-        if self.options.destroy_on_boundary_exit:
-            # 检查是否跑出了游戏范围
-            game_x_range = (-self.options.game_size[0] / 2, self.options.game_size[0] / 2)
-            game_y_range = (-self.options.game_size[1] / 2, self.options.game_size[1] / 2)
+        self.check_in_game_range()
 
-            if self.x < game_x_range[0] or self.x > game_x_range[1]:
-                self.destroyed = True
-            elif self.y < game_y_range[0] or self.y > game_y_range[1]:
-                self.destroyed = True
+    def fire_missile(self, target: tuple[float, float]):
+        # 需要发射导弹，以一定概率将对方摧毁
+        # 寻找离目标点最近的飞机
+        min_dis = float('inf')
+        fire_enemy: Aircraft | None = None
+        for enemy in self.area.objs.values():
+            if isinstance(enemy, Aircraft) and enemy.color != self.color:
+                dis = enemy.distance(target)
+                if dis < min_dis and dis < self.radar_radius:
+                    # 只能朝雷达范围内的飞机发射导弹
+                    min_dis = dis
+                    fire_enemy = enemy
+
+        if fire_enemy is not None:
+            self.missile_count -= 1
+            self.area.add_obj(Missile(source=self, target=fire_enemy, time=self.area.duration))
 
     def predict_missile_intercept_point(self, enemy: Aircraft) -> tuple[float, float] | None:
         """
@@ -300,12 +355,17 @@ class Aircraft(WorldObj):
                         turn_radius=self.turn_radius
                 ).length)
 
+    def on_collision(self, obj: WorldObj):
+        if self.destroyed:
+            return
+        if isinstance(obj, Aircraft):
+            obj.destroyed = True
+            self.destroyed = True
+
 
 class Missile(WorldObj):
-
     def __init__(self, source: Aircraft, target: Aircraft, time: float):
         """
-
         :param source:
         :param target:
         """
@@ -318,41 +378,81 @@ class Missile(WorldObj):
                 turn_radius=source.options.missile_min_turn_radius,
                 x=source.x,
                 y=source.y,
+                psi=source.psi
         )
+        self.collision_radius = self.options.missile_collision_radius
+        self.turn_radius = self.options.missile_min_turn_radius
+        self.fire_time = time  # 发射的时间
+        self.source = source
+        self.target = target
+        self.fuel = self.options.missile_fuel_capacity
+        self.fuel_consumption_rate = self.options.missile_fuel_consumption_rate
 
-        self.time = time  # 发射的时间
-        from gym_dogfight.algos.traj import calc_optimal_path
-
-        hit_param = calc_optimal_path(
-                start=source.waypoint,
-                target=(target.x, target.y),
-                turn_radius=self.turn_radius
-        )
-        self.traj = hit_param.generate_traj(step=hit_param.length / 10)  # 生成十个点的轨迹
+        self._last_generate_route_time = 0
 
     def render(self, screen):
+        print('render missile', self.name, self.screen_position, self.destroyed)
         if self.destroyed:
             return
-        try:
-            import pygame
-            from pygame import gfxdraw
-        except ImportError as e:
-            raise e
 
-        if self.traj is not None:
-            for point in self.traj:
-                # 绘制轨迹
-                screen_p = game_point_to_screen_point(
-                        game_point=(point[0], point[1]),
-                        game_size=self.options.game_size,
-                        screen_size=self.options.screen_size
-                )
-                pygame.draw.circle(screen, COLORS[self.color], screen_p, 1)  # 绘制轨迹点
+        render_img(
+                options=self.options,
+                screen=screen,
+                position=self.location,
+                img_path=f'missile_{self.color}.svg',
+                # label=self.name,
+                rotate=270 - self.psi,
+        )
+
+        render_route(
+                options=self.options,
+                screen=screen,
+                route=self.route,
+                color=self.color,
+                count=20
+        )
+
 
     def update(self, delta_time: float):
-        # if area.duration - self.time > self.options.missile_render_duration:
-        #     self.destroyed = True
-        pass
+        if self.destroyed:
+            self.area.remove_obj(self)
+            return
+
+        self.fuel -= self.fuel_consumption_rate * delta_time
+
+        if self.fuel <= 0:
+            self.destroyed = True
+            return
+
+        if self.area.duration - self._last_generate_route_time > self.options.missile_reroute_interval:
+            self._last_generate_route_time = self.area.duration
+            # 每隔1秒重新生成一次轨迹
+            hit_param = calc_optimal_path(
+                    start=self.waypoint,
+                    target=self.target.location,
+                    turn_radius=self.turn_radius
+            )
+            if hit_param.length != float('inf'):
+                self.route = hit_param.generate_traj(step=delta_time * self.speed)  # 生成轨迹
+                if self.area.render_mode == 'human':
+                    self.route = list(self.route)  # 生成轨迹
+                self.route_index = 0
+
+        if not self.follow_route(route=self.route):
+            self.move_forward(delta_time=delta_time)
+
+        self.check_in_game_range()
+
+    def on_collision(self, obj: WorldObj):
+        if self.destroyed:
+            return
+
+        if isinstance(obj, Aircraft):
+            if obj == self.source:
+                return
+            self.destroyed = True
+            obj.destroyed = True
+            self.source.missile_destroyed_agents.append(obj.name)
 
 
 class Home(WorldObj):
@@ -361,42 +461,13 @@ class Home(WorldObj):
         self.radius = options.home_area_radius
 
     def render(self, screen):
-        # 加载基地图像（确保路径正确）
-        home_img = pygame_load_img(f'home_{self.color}.svg').convert_alpha()
-
-        # 获取飞机图像的矩形区域
-        home_img_rect = home_img.get_rect()
-
-        # 调整坐标系统：从游戏世界坐标转换为屏幕坐标
-        screen_x, screen_y = game_point_to_screen_point(
-                (self.x, self.y),
-                game_size=self.options.game_size,
-                screen_size=self.options.screen_size)
-
-        home_img_rect.center = (screen_x, screen_y)
-
-        # 创建字体对象
-        font = pygame.font.Font(None, 16)  # 使用默认字体，大小为36
-
-        # 渲染文本到 Surface 对象
-        text_surface = font.render(self.name, True, (0, 0, 0))
-
-        # 获取文本区域的矩形
-        text_rect = text_surface.get_rect()
-        text_rect.center = [home_img_rect.center[0], home_img_rect.center[1] + 22]
-
+        render_img(options=self.options,
+                   screen=screen,
+                   position=self.location,
+                   img_path=f'home_{self.color}.svg',
+                   label=self.name)
         # 画出安全圆圈
-        if self.radius > 0:
-            pygame.draw.circle(screen, COLORS['green'], (screen_x, screen_y),
-                               game_length_to_screen_length(
-                                       self.radius,
-                                       game_size=self.options.game_size,
-                                       screen_size=self.options.screen_size
-                               ), 1)
-
-        # 将飞机图像绘制到屏幕上
-        screen.blit(home_img, home_img_rect)
-        screen.blit(text_surface, text_rect)
+        render_circle(options=self.options, screen=screen, position=self.location, radius=self.radius, color='green')
 
     def update(self, delta_time: float):
         # 查看哪些飞机飞到了基地附近

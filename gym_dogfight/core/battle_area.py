@@ -104,9 +104,8 @@ class BattleArea:
                 if obj_list[i].destroyed or obj_list[j].destroyed:
                     continue
                 if obj_list[i].check_collision(obj_list[j]):
-                    obj_list[i].destroyed = True
-                    obj_list[j].destroyed = True
-
+                    obj_list[i].on_collision(obj_list[j])
+                    obj_list[j].on_collision(obj_list[i])
 
         self.duration += delta_time
 

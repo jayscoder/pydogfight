@@ -46,6 +46,7 @@ class Dogfight2dEnv(gym.Env):
         self.battle_area = BattleArea(options=options, render_mode=self.render_mode)
 
         self.last_render_time = 0
+        self.last_update_time = 0
         self.step_count = 0
 
         self.render_info = { }
@@ -73,8 +74,9 @@ class Dogfight2dEnv(gym.Env):
             if self.screen is None:
                 pygame.init()
                 pygame.display.init()
-                self.screen = pygame.display.set_mode(self.options.screen_size,
-                                                      pygame.HWSURFACE | pygame.DOUBLEBUF)
+                self.screen = pygame.display.set_mode(
+                        self.options.screen_size,
+                        pygame.HWSURFACE | pygame.DOUBLEBUF)
                 self.screen.fill((255, 255, 255))
                 pygame.display.set_caption("dogfight")
             if self.clock is None:
@@ -135,14 +137,9 @@ class Dogfight2dEnv(gym.Env):
             agent.put_action(act)
 
     def update(self):
-        # if delta_time is None:
-        #     if self.render_mode == 'human':
-        #         delta_time = (pygame.time.get_ticks() - self.last_render_time) * self.options.simulation_rate / 1000
-        #     else:
-        #         delta_time = 1
-        # # if delta_time is None:
-        # #     delta_time = (self.options.render_speed / self.metadata['render_fps'])
-        self.battle_area.update(delta_time=self.options.delta_time * self.options.simulation_rate)
+        if self.render_mode == 'human':
+            self.last_update_time = pygame.time.get_ticks()
+        self.battle_area.update(delta_time=self.options.delta_time)
 
     def step(
             self, action: ActType
@@ -214,6 +211,13 @@ class Dogfight2dEnv(gym.Env):
             return time_passed > (1000 / self.metadata["render_fps"])
         else:
             return False
+
+    def should_update(self):
+        if self.render_mode == 'human':
+            time_passed = pygame.time.get_ticks() - self.last_update_time
+            return time_passed > self.options.delta_time
+        else:
+            return True
 
     def close(self):
         if self.screen is not None:
