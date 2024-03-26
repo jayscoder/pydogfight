@@ -5,7 +5,7 @@ import gym_dogfight.utils.common as common_utils
 
 class Waypoint:
 
-    def __init__(self, x, y, psi):
+    def __init__(self, x = 0, y = 0, psi = 0):
         """
         航迹点
         :param x:
@@ -22,6 +22,9 @@ class Waypoint:
     def to_dict(self):
         return { "x": self.x, "y": self.y, "psi": self.psi }
 
+    def to_tuple(self):
+        return self.x, self.y, self.psi
+
     @property
     def standard_rad(self):
         """
@@ -37,3 +40,5 @@ class Waypoint:
         dx = other.x - self.x
         dy = other.y - self
         return (dx * dx + dy * dy) ** 0.5
+
+

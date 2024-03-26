@@ -46,9 +46,9 @@ COLOR_TO_IDX = {
 OBJECT_TO_IDX = {
     "unseen"  : 0,
     "empty"   : 1,
-    "wall"    : 2,
-    'aircraft': 3,
-    "missile" : 4,
+    "aircraft": 2,
+    "missile" : 3,
+    'home'    : 4
 }
 
 IDX_TO_OBJECT = dict(zip(OBJECT_TO_IDX.values(), OBJECT_TO_IDX.keys()))

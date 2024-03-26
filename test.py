@@ -17,7 +17,7 @@ if __name__ == '__main__':
 
     for i in range(100):
         env.step(None)
-        print(env.battle_area.duration)
+        print(env.battle_area.time)
 
 # import pygame
 # import sys

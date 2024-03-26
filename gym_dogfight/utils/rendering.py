@@ -101,7 +101,10 @@ def render_route(options: Options, screen, route, color: str, count: int = 20):
     if route is not None:
         if isinstance(route, types.GeneratorType):
             route = list(route)
-        for i in range(0, len(route), int(math.ceil(len(route) / count))):
+        gap = int(math.ceil(len(route) / count))
+        if gap < 1:
+            gap = 1
+        for i in range(0, len(route), gap):
             pygame.draw.circle(screen, COLORS[color], game_point_to_screen_point(
                     game_point=route[i][:2],
                     game_size=options.game_size,
@@ -121,3 +124,13 @@ def render_circle(options: Options, screen, radius: float, position: tuple[float
             game_size=options.game_size,
             screen_size=options.screen_size
     ), width)
+
+
+def render_text(screen, text: str, topleft: tuple[float, float], text_size: int = 18, color='black'):
+    info_font = pygame.font.Font(None, text_size)
+    # 渲染文本到 Surface 对象
+    text_surface = info_font.render(text, True, COLORS[color])
+    # 获取文本区域的矩形
+    text_rect = text_surface.get_rect()
+    text_rect.topleft = topleft
+    screen.blit(text_surface, text_rect)  # 绘制文本到屏幕上

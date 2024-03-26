@@ -3,16 +3,40 @@ from __future__ import annotations
 from gym_dogfight.core.models import Waypoint
 from typing import List, Callable, Tuple
 import numpy as np
+import json
+
+
+class InterceptPointResult:
+    point: tuple[float, float] = (0, 0)
+    time: float = float('inf')  # 花费时间
+    self_distance: float = float('inf')  # 我方距离
+    target_distance: float = float('inf')  # 敌方距离
+
+    def __init__(self, point: tuple[float, float], time: float, self_distance: float, target_distance: float):
+        self.point = point
+        self.time = time
+        self.self_distance = self_distance
+        self.target_distance = target_distance
+
+    def to_dict(self):
+        return {
+            "point"          : self.point,
+            "time"           : self.time,
+            "self_distance"  : self.self_distance,
+            "target_distance": self.target_distance
+        }
+
+    def __str__(self):
+        return json.dumps(self.to_dict(), indent=4, ensure_ascii=False)
 
 
 def predict_intercept_point(
-        target: Waypoint,
+        target: Waypoint | tuple[float, float, float],
         target_speed: float,
         self_speed: float,
         calc_optimal_dis: Callable[[Tuple[float, float]], float],
         precision: float = 0.5
-) -> Tuple[
-         float, float] | None:
+) -> InterceptPointResult | None:
     """
     预测拦截目标点
     :param target:
@@ -20,8 +44,10 @@ def predict_intercept_point(
     :param self_speed: 我方的速度 m/s
     :param calc_optimal_dis: 计算我方飞到目标点的距离函数（黑盒函数）
     :param precision: 计算精度，拦截误差小于precision即可认为拦截成功，单位m
-    :return: Tuple[float, float]
+    :return: InterceptResult
     """
+    if not isinstance(target, Waypoint):
+        target = Waypoint(x=target[0], y=target[1], psi=target[2])
 
     def _calc(d: float):
         # 最多尝试100次
@@ -39,7 +65,12 @@ def predict_intercept_point(
             return None
         diff_t = abs(mt - et)
         if diff_t * (target_speed + self_speed) < precision:
-            return hit_point
+            return InterceptPointResult(
+                    point=hit_point,
+                    time=mt,
+                    self_distance=self_speed * mt,
+                    target_distance=target_speed * et
+            )
         if mt > et:
             # 敌人先到目标点，d需要增大
             d += diff_t * target_speed
@@ -48,7 +79,6 @@ def predict_intercept_point(
             d -= diff_t * target_speed
 
     return None
-
 
 
 # def predict_missile_hit_prob(self, source: Aircraft, target: Aircraft):
@@ -112,15 +142,15 @@ def _main():
                label="Missile")
 
     if hit_point is not None:
-        plt.plot(hit_point[0], hit_point[1], 'kx')
+        plt.plot(hit_point.point[0], hit_point.point[1], 'kx')
 
-        hit_param = calc_optimal_path(missile, hit_point, missile_turn_radius)
-        hit_path = np.array(list(hit_param.generate_traj(1)))
+        hit_param = calc_optimal_path(missile, hit_point.point, missile_turn_radius)
+        hit_path = hit_param.generate_traj(1)
 
         plt.plot(hit_path[:, 0], hit_path[:, 1], 'b-')
 
-        enemy_param = calc_optimal_path(enemy, hit_point, enemy_turn_radius)
-        enemy_path = np.array(list(enemy_param.generate_traj(1)))
+        enemy_param = calc_optimal_path(enemy, hit_point.point, enemy_turn_radius)
+        enemy_path = enemy_param.generate_traj(1)
         plt.plot(enemy_path[:, 0], enemy_path[:, 1], 'b-')
 
         print('hit_path', hit_path.shape)

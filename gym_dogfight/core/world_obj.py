@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import types
 from typing import Tuple, TYPE_CHECKING, Union, Optional
 
 import numpy as np
@@ -11,7 +12,7 @@ from queue import Queue
 from gym_dogfight.utils.rendering import pygame_load_img
 from gym_dogfight.core.models import Waypoint
 from gym_dogfight.algos.traj import calc_optimal_path, OptimalPathParam
-from gym_dogfight.algos.intercept import predict_intercept_point
+from gym_dogfight.algos.intercept import predict_intercept_point, InterceptPointResult
 import math
 from gym_dogfight.utils.rendering import *
 import weakref
@@ -29,7 +30,8 @@ class WorldObj:
 
     def __init__(self, name: str, options: Options, type: str, color: str = '', x: float = 0, y: float = 0,
                  psi: float = 0,
-                 speed: float = 0, turn_radius: float = 0):
+                 speed: float = 0, turn_radius: float = 0,
+                 collision_radius: float = 0):
         assert speed >= 0
         self.name = name
         self.options = options
@@ -37,7 +39,7 @@ class WorldObj:
         self.color = color
         self.speed = speed
         self.turn_radius = turn_radius
-        self.collision_radius = 0
+        self.collision_radius = collision_radius
 
         self.x = x
         self.y = y
@@ -54,6 +56,23 @@ class WorldObj:
         # （1, x, y）飞到指定位置
         # (2, x, y) 朝目标点发射导弹
 
+    def __copy__(self):
+        obj = self.__class__(
+                name=self.name,
+                options=self.options,
+                type=self.type,
+                color=self.color,
+                x=self.x,
+                y=self.y,
+                psi=self.psi,
+                speed=self.speed,
+                turn_radius=self.turn_radius)
+        obj.destroyed = self.destroyed
+        obj.route = self.route
+        obj.route_index = self.route_index
+        obj._area = self._area
+        return obj
+
     def to_dict(self):
         return {
             'name'            : self.name,
@@ -66,6 +85,8 @@ class WorldObj:
             'y'               : self.y,
             'psi'             : self.psi,
             'destroyed'       : self.destroyed,
+            'route'           : list(self.route),
+            'route_index'     : self.route_index
         }
 
     def __str__(self):
@@ -163,11 +184,15 @@ class WorldObj:
             try:
                 next_wpt = next(route)
             except StopIteration:
+                self.route = None
+                self.route_index = -1
                 return False
         elif len(route) > self.route_index >= 0:
             next_wpt = route[self.route_index]
 
         if next_wpt is None:
+            self.route = None
+            self.route_index = -1
             return False
         self.route_index += 1
         self.x = next_wpt[0]
@@ -187,6 +212,37 @@ class WorldObj:
         self.x += dx
         self.y += dy
 
+    def move_toward(self, target: tuple[float, float], delta_time: float):
+        next_wpt = calc_optimal_path(
+                start=self.waypoint,
+                target=target,
+                turn_radius=self.turn_radius
+        ).next_wpt(step=delta_time * self.speed)
+        if next_wpt is None:
+            return False
+        self.x = next_wpt.x
+        self.y = next_wpt.y
+        self.psi = next_wpt.psi
+        return True
+
+    def generate_test_moves(self, angles: list, delta_time: float):
+        """
+        生成测试的实体（在不同方向上假设实体飞到对应点上）
+        :param angles: 测试的不同角度
+        :param delta_time:
+        :return:
+        """
+        objs = []
+        for angle in angles:
+            obj_tmp = self.__copy__()
+            target_point = (
+                self.x + math.cos(math.radians(angle)) * delta_time * self.speed,
+                self.y + math.sin(math.radians(angle)) * delta_time * self.speed,
+            )
+            obj_tmp.move_toward(target=target_point, delta_time=delta_time)
+            objs.append(obj_tmp)
+        return objs
+
 
 class Aircraft(WorldObj):
 
@@ -198,21 +254,43 @@ class Aircraft(WorldObj):
                  y: float = 0,
                  psi: float | None = None,
                  ):
-        super().__init__(name=name,
-                         options=options,
-                         type='aircraft',
-                         color=color,
-                         speed=options.aircraft_speed,
-                         turn_radius=options.aircraft_min_turn_radius,
-                         x=x,
-                         y=y,
-                         psi=psi)
-        self.collision_radius = options.aircraft_missile_count
+        super().__init__(
+                name=name,
+                options=options,
+                type='aircraft',
+                color=color,
+                speed=options.aircraft_speed,
+                turn_radius=options.aircraft_min_turn_radius,
+                x=x,
+                y=y,
+                psi=psi,
+                collision_radius=options.aircraft_missile_count
+        )
+
         self.missile_count = options.aircraft_missile_count  # 剩余的导弹数
         self.fuel = options.aircraft_fuel_capacity  # 飞机剩余油量
         self.fuel_consumption_rate = options.aircraft_fuel_consumption_rate
         self.radar_radius = options.aircraft_radar_radius
         self.missile_destroyed_agents = []  # 导弹摧毁的敌机
+
+    def __copy__(self):
+        obj = Aircraft(
+                name=self.name,
+                options=self.options,
+                color=self.color,
+                x=self.x,
+                y=self.y,
+                psi=self.psi)
+        obj.destroyed = self.destroyed
+        obj.missile_count = self.missile_count
+        obj.fuel = self.fuel
+        obj.fuel_consumption_rate = self.fuel_consumption_rate
+        obj.radar_radius = self.radar_radius
+        obj.route = self.route
+        obj.route_index = self.route_index
+        obj._area = self._area
+        obj.missile_destroyed_agents = self.missile_destroyed_agents
+        return obj
 
     def to_dict(self):
         return {
@@ -270,10 +348,11 @@ class Aircraft(WorldObj):
             # 先执行动作
             action = self.actions.get_nowait()
             action_type = int(action[0])
+            # print(f'{self.name} 执行动作', Actions(action_type).name)
             if action_type == Actions.go_to_location:
                 # 需要移动
                 param = calc_optimal_path(self.waypoint, (action[1], action[2]), self.turn_radius)
-                self.route = np.array(list(param.generate_traj(delta_time * self.speed)))
+                self.route = param.generate_traj(delta_time * self.speed)
                 self.route_index = 0
             elif action_type == Actions.fire_missile and self.missile_count > 0:
                 # 需要发射导弹，以一定概率将对方摧毁
@@ -290,7 +369,7 @@ class Aircraft(WorldObj):
 
                 if fire_enemy is not None:
                     self.missile_count -= 1
-                    area.add_obj(Missile(source=self, target=fire_enemy, time=area.duration))
+                    area.add_obj(Missile(source=self, target=fire_enemy, time=area.time))
                     # if random.random() < self.options.predict_missile_hit_prob(self, fire_enemy):
                     #     fire_enemy.destroyed = True
                     #     self.missile_destroyed_agents.append(fire_enemy.name)
@@ -323,35 +402,35 @@ class Aircraft(WorldObj):
 
         if fire_enemy is not None:
             self.missile_count -= 1
-            self.area.add_obj(Missile(source=self, target=fire_enemy, time=self.area.duration))
+            self.area.add_obj(Missile(source=self, target=fire_enemy, time=self.area.time))
 
-    def predict_missile_intercept_point(self, enemy: Aircraft) -> tuple[float, float] | None:
+    def predict_missile_intercept_point(self, target: Aircraft) -> InterceptPointResult | None:
         """
         预测自己发射的导弹拦截对方的目标点
-        :param enemy:
+        :param target:
         :return:
         """
         return predict_intercept_point(
-                target=enemy.waypoint, target_speed=enemy.speed,
+                target=target.waypoint, target_speed=target.speed,
                 self_speed=self.options.missile_speed,
                 calc_optimal_dis=lambda p: calc_optimal_path(
                         start=self.waypoint,
-                        target=(enemy.x, enemy.y),
+                        target=(target.x, target.y),
                         turn_radius=self.options.missile_min_turn_radius
                 ).length)
 
-    def predict_aircraft_intercept_point(self, enemy: Aircraft) -> tuple[float, float] | None:
+    def predict_aircraft_intercept_point(self, target: Aircraft) -> InterceptPointResult | None:
         """
         预测自己拦截敌方的目标点
-        :param enemy:
+        :param target: 自己是飞机
         :return:
         """
         return predict_intercept_point(
-                target=enemy.waypoint, target_speed=enemy.speed,
+                target=target.waypoint, target_speed=target.speed,
                 self_speed=self.speed,
                 calc_optimal_dis=lambda p: calc_optimal_path(
                         start=self.waypoint,
-                        target=(enemy.x, enemy.y),
+                        target=(target.x, target.y),
                         turn_radius=self.turn_radius
                 ).length)
 
@@ -361,6 +440,14 @@ class Aircraft(WorldObj):
         if isinstance(obj, Aircraft):
             obj.destroyed = True
             self.destroyed = True
+
+    def in_radar_range(self, obj: WorldObj) -> bool:
+        """
+        obj是否在雷达范围内
+        :param obj:
+        :return:
+        """
+        return self.distance(obj) <= self.radar_radius
 
 
 class Missile(WorldObj):
@@ -412,7 +499,6 @@ class Missile(WorldObj):
                 count=20
         )
 
-
     def update(self, delta_time: float):
         if self.destroyed:
             self.area.remove_obj(self)
@@ -424,8 +510,8 @@ class Missile(WorldObj):
             self.destroyed = True
             return
 
-        if self.area.duration - self._last_generate_route_time > self.options.missile_reroute_interval:
-            self._last_generate_route_time = self.area.duration
+        if self.area.time - self._last_generate_route_time > self.options.missile_reroute_interval:
+            self._last_generate_route_time = self.area.time
             # 每隔1秒重新生成一次轨迹
             hit_param = calc_optimal_path(
                     start=self.waypoint,
@@ -434,8 +520,6 @@ class Missile(WorldObj):
             )
             if hit_param.length != float('inf'):
                 self.route = hit_param.generate_traj(step=delta_time * self.speed)  # 生成轨迹
-                if self.area.render_mode == 'human':
-                    self.route = list(self.route)  # 生成轨迹
                 self.route_index = 0
 
         if not self.follow_route(route=self.route):
@@ -453,6 +537,21 @@ class Missile(WorldObj):
             self.destroyed = True
             obj.destroyed = True
             self.source.missile_destroyed_agents.append(obj.name)
+
+    def predict_aircraft_intercept_point(self, target: Aircraft) -> InterceptPointResult | None:
+        """
+        预测自己拦截敌方的目标点（自己是导弹）
+        :param target: 需要攻击的目标飞机
+        :return:
+        """
+        return predict_intercept_point(
+                target=target.waypoint, target_speed=target.speed,
+                self_speed=self.speed,
+                calc_optimal_dis=lambda p: calc_optimal_path(
+                        start=self.waypoint,
+                        target=target.location,
+                        turn_radius=self.turn_radius
+                ).length)
 
 
 class Home(WorldObj):

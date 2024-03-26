@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import time
+
 from gym_dogfight.core.models import Waypoint
 import math
 import numpy as np
@@ -38,7 +40,39 @@ class OptimalPathParam:
             f'direct_length: {self.direct_length}',
         ])
 
-    def generate_traj(self, step: float):
+    def next_wpt(self, step: float) -> Waypoint | None:
+        """
+        生成下一步的航迹
+        :param step: 步长
+        :return:
+        """
+        if self.length == float('inf'):
+            return None
+
+        turn_points_count = int(np.floor(self.turn_length / step))
+        direct_points_count = int(np.floor(self.direct_length / step))
+
+        # 先生成拐弯的点
+        if turn_points_count > 0:
+            init_theta = math.atan2(self.start.y - self.turn_center[1], self.start.x - self.turn_center[0])
+            curr_turn_rad = np.deg2rad(self.turn_angle) / turn_points_count
+            x = self.turn_center[0] + (self.turn_radius * np.cos(init_theta + curr_turn_rad))
+            y = self.turn_center[1] + (self.turn_radius * np.sin(init_theta + curr_turn_rad))
+            psi = self.start.psi - np.rad2deg(curr_turn_rad)
+            return Waypoint(x=x, y=y, psi=psi)
+
+        # 生成直线点
+        if direct_points_count > 0:
+            curr_direct_length = self.direct_length / direct_points_count
+            target_rad = np.deg2rad(90 - self.target.psi)
+            x = self.turn_point[0] + curr_direct_length * np.cos(target_rad)
+            y = self.turn_point[1] + curr_direct_length * np.sin(target_rad)
+            psi = self.target.psi
+            return Waypoint(x=x, y=y, psi=psi)
+
+        return None
+
+    def generate_traj(self, step: float) -> np.ndarray | None:
         """
         生成最优航迹
         :param step: 每一步的长度
@@ -47,41 +81,40 @@ class OptimalPathParam:
         if self.length == float('inf'):
             return
 
-        turn_points_count = math.floor(self.turn_length / step)
-        direct_points_count = math.floor(self.direct_length / step)
-        # path = -1 * np.ones((turn_points_count + direct_points_count, 3))
+        turn_points_count = int(np.floor(self.turn_length / step))
+        direct_points_count = int(np.floor(self.direct_length / step))
+        traj = []
 
         # 先生成拐弯的点
         if turn_points_count > 0:
-            turn_rad_step = math.radians(self.turn_angle) / turn_points_count
-            curr_turn_rad = 0
             init_theta = math.atan2(self.start.y - self.turn_center[1], self.start.x - self.turn_center[0])
-
-            for i in range(turn_points_count):
-                curr_turn_rad += turn_rad_step
-                path = [
-                    self.turn_center[0] + (self.turn_radius * math.cos(init_theta + curr_turn_rad)),
-                    self.turn_center[1] + (self.turn_radius * math.sin(init_theta + curr_turn_rad)),
-                    self.start.psi - math.degrees(curr_turn_rad)
-                ]
-                yield path
+            curr_turn_rad = np.linspace(0, np.deg2rad(self.turn_angle), turn_points_count)
+            x = self.turn_center[0] + (self.turn_radius * np.cos(init_theta + curr_turn_rad))
+            y = self.turn_center[1] + (self.turn_radius * np.sin(init_theta + curr_turn_rad))
+            psi = self.start.psi - np.rad2deg(curr_turn_rad)
+            turn_traj = np.stack([x, y, psi], axis=1)
+            traj.append(turn_traj)
 
         # 生成直线点
-        curr_direct_length = 0
-        target_rad = math.radians(90 - self.target.psi)
-        for i in range(turn_points_count, turn_points_count + direct_points_count):
-            curr_direct_length += step
-            path = [
-                self.turn_point[0] + curr_direct_length * math.cos(target_rad),
-                self.turn_point[1] + curr_direct_length * math.sin(target_rad),
-                self.target.psi
-            ]
-            yield path
+        if direct_points_count > 0:
+            curr_direct_length = np.linspace(0, self.direct_length, direct_points_count)
+            target_rad = np.deg2rad(90 - self.target.psi)
+            x = self.turn_point[0] + curr_direct_length * np.cos(target_rad)
+            y = self.turn_point[1] + curr_direct_length * np.sin(target_rad)
+            psi = self.target.psi * np.ones_like(curr_direct_length)
+            direct_traj = np.stack([x, y, psi], axis=1)
+            traj.append(direct_traj)
 
-        return
+        if len(traj) == 0:
+            return None
+
+        return np.concatenate(traj, axis=0)
 
 
-def calc_optimal_path(start: Waypoint, target: tuple[float, float], turn_radius: float) -> OptimalPathParam:
+def calc_optimal_path(
+        start: Waypoint | tuple[float, float, float],
+        target: Waypoint | tuple[float, float],
+        turn_radius: float) -> OptimalPathParam:
     """
     计算最短航迹
     psi: 航向角（角度），0代表正北，90代表正东
@@ -90,12 +123,16 @@ def calc_optimal_path(start: Waypoint, target: tuple[float, float], turn_radius:
     :param turn_radius: 转弯半径
     :return:
     """
+    if not isinstance(start, Waypoint):
+        start = Waypoint(x=start[0], y=start[1], psi=start[2])
+    if not isinstance(target, Waypoint):
+        target = Waypoint(x=target[0], y=target[1], psi=0)
 
     # 将角度从度转换为弧度，且是与x轴正方向的夹角
-    param = OptimalPathParam(start=start, target=Waypoint(target[0], target[1], 0), turn_radius=turn_radius)
+    param = OptimalPathParam(start=start, target=target, turn_radius=turn_radius)
     param.turn_radius = turn_radius
 
-    start_target_distance = math.sqrt((target[0] - start.x) ** 2 + (target[1] - start.y) ** 2)
+    start_target_distance = np.sqrt((target.x - start.x) ** 2 + (target.y - start.y) ** 2)
 
     if start_target_distance == 0:
         param.length = 0
@@ -104,7 +141,7 @@ def calc_optimal_path(start: Waypoint, target: tuple[float, float], turn_radius:
         param.turn_point = (param.start.x, param.start.y)
         return param
 
-    start_to_target_theta = math.atan2(target[1] - start.y, target[0] - start.x)  # 终点到起点连线与x轴的夹角
+    start_to_target_theta = math.atan2(target.y - start.y, target.x - start.x)  # 终点到起点连线与x轴的夹角
 
     if start_to_target_theta == start.standard_rad:
         # 直接沿着直线飞行
@@ -131,28 +168,21 @@ def calc_optimal_path(start: Waypoint, target: tuple[float, float], turn_radius:
                 x0=circle_center[0],
                 y0=circle_center[1],
                 r=turn_radius,
-                x1=target[0],
-                y1=target[1])
+                x1=target.x,
+                y1=target.y)
         for point in tangent_points:
             center_to_point_vector = (point[0] - circle_center[0], point[1] - circle_center[1])  # 圆心到拐点的向量
-            point_to_target_vector = (target[0] - point[0], target[1] - point[1])  # 拐点到目标点向量
+            point_to_target_vector = (target.x - point[0], target.y - point[1])  # 拐点到目标点向量
             point_to_target_vector_rotate_sign = sign(
                     cross(center_to_point_vector, point_to_target_vector))  # 拐点旋转方向（正代表逆时针，负代表顺时针）
             if start_vector_rotate_sign != point_to_target_vector_rotate_sign:
                 # 起始的旋转方向必须和最终的旋转方向一致
                 continue
 
-            direct_length = math.sqrt((target[0] - point[0]) ** 2 + (target[1] - point[1]) ** 2)
-            point_to_target_theta = math.atan2(target[1] - point[1], target[0] - point[0])
+            direct_length = math.sqrt((target.x - point[0]) ** 2 + (target.y - point[1]) ** 2)
+            point_to_target_theta = math.atan2(target.y - point[1], target.x - point[0])
 
             turn_rad = clockwise_rotation_rad(start_vector_rotate_sign, center_to_start_vector, center_to_point_vector)
-            # if start_vector_rotate_sign > 0 > turn_rad:
-            #     # 起始方向是逆时针旋转
-            #     turn_rad = math.pi * 2 - abs(turn_rad)
-            # elif start_vector_rotate_sign < 0 < turn_rad:
-            #     # 起始方向是顺时针旋转
-            #     turn_rad = math.pi * 2 - turn_rad
-
             turn_length = abs(math.pi * turn_rad * turn_radius)
             total_length = direct_length + turn_length
             if total_length < param.length:
@@ -167,42 +197,51 @@ def calc_optimal_path(start: Waypoint, target: tuple[float, float], turn_radius:
     return param
 
 
-def main():
+def test_bench():
+    N = 10
+    start_time = time.time()
+    for i in range(N):
+        start = Waypoint(16045.390142119586, 14000.726933966973, 117)
+        target = (-12187, 7000)
+        param = calc_optimal_path(start, target, 5000)
+        param.generate_traj(step=1)
+    end_time = time.time()
+    cost_time = end_time - start_time
+    print("One Time: " + str(cost_time / N))  # v1: 0.065 v2: 0.032 v3: 0.0008
+    print("Total time: " + str(cost_time))
+
+
+def test_main():
     import matplotlib.pyplot as plt
     # User's waypoints: [x, y, heading (degrees)]
 
-    start = Waypoint(16045.390142119586, 14000.726933966973, 117)
-    target = (-12187, 7000)
-    param = calc_optimal_path(start, target, 5000)
+    start = Waypoint(0, 0, 0)
+    target = (100, 0)
+    param = calc_optimal_path(start, target, 100)
     if param.length != float('inf'):
-        path = np.array(list(param.generate_traj(step=100)))
+        path = param.generate_traj(step=1)
         print(param)
-        print(path.shape[0])
+        print('path shape', path.shape)
         # Plot the results
 
-        circle = plt.Circle(param.turn_center, param.turn_radius, fill=False)
-        fig, ax = plt.subplots()
-        ax.add_patch(circle)
+        if param.turn_center is not None:
+            fig, ax = plt.subplots()
+            circle = plt.Circle(param.turn_center, param.turn_radius, fill=False)
+            ax.add_patch(circle)
+            plt.plot(param.turn_center[0], param.turn_center[1], 'kx')
+
+        if param.turn_point is not None:
+            plt.plot(param.turn_point[0], param.turn_point[1], 'kx')
+            plt.quiver(param.turn_point[0], param.turn_point[1], np.cos(param.target.standard_rad),
+                       np.sin(param.target.standard_rad),
+                       scale=10, color='green',
+                       label="Turn Direction")
 
         plt.plot(start.x, start.y, 'kx')
         plt.plot(target[0], target[1], 'kx')
-        plt.plot(param.turn_center[0], param.turn_center[1], 'kx')
-        if param.target is not None:
-            plt.plot(param.turn_point[0], param.turn_point[1], 'kx')
 
         plt.quiver(start.x, start.y, np.cos(start.standard_rad), np.sin(start.standard_rad), scale=10, color='green',
                    label="Initial Direction")
-
-        plt.quiver(param.turn_point[0], param.turn_point[1], np.cos(param.target.standard_rad),
-                   np.sin(param.target.standard_rad),
-                   scale=10, color='green',
-                   label="Turn Direction")
-
-        # for point in path:
-        #     plt.quiver(point[0], point[1], np.cos(math.radians(90 - point[2])),
-        #                np.sin(math.radians(90 - point[2])),
-        #                scale=10, color='green',
-        #                label="")
 
         plt.plot(path[:, 0], path[:, 1], 'b-')
         plt.grid(True)
@@ -214,4 +253,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    test_main()

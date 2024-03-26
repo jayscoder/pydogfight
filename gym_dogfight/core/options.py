@@ -19,8 +19,10 @@ class Options:
     ### 场景 ###
     max_duration = 60 * 30  # 一局对战最多时长30分钟，超过这个就会truncated
     screen_size = (800, 800)  # 屏幕宽度 屏幕高度
-    simulation_rate = 20.0  # 仿真的速率倍数，越大代表越快
-    delta_time = 1 / 50  # 更新间隔时间
+    render_fps = 50  # 渲染的fps
+    delta_time = 0.1  # 更新步长
+    update_interval = 1  # 每次env更新的时间间隔
+    simulation_rate = 100.0  # 仿真的速率倍数，越大代表越快，update_interval内更新几次（仅在render模式下生效）
 
     ### 常量 ###
     g = 9.8  # 重力加速度 m/s
@@ -73,8 +75,7 @@ class Options:
     win_reward = 1000
     lose_reward = -1000
     draw_reward = -500
-    step_punish_reward = -1
-    step_update_delta_time = 0
+    time_punish_reward = -1  # 时间惩罚（每s惩罚多少分）
 
     def to_dict(self):
         return {
@@ -88,6 +89,8 @@ class Options:
             'screen_size'                           : self.screen_size,
             'delta_time'                            : self.delta_time,
             'simulation_rate'                       : self.simulation_rate,
+            'render_fps'                            : self.render_fps,
+            'update_interval'                       : self.update_interval,
 
             'g'                                     : self.g,
             'game_size'                             : self.game_size,
@@ -124,8 +127,7 @@ class Options:
             'win_reward'                            : self.win_reward,
             'lose_reward'                           : self.lose_reward,
             'draw_reward'                           : self.draw_reward,
-            'step_punish_reward'                    : self.step_punish_reward,
-            'step_update_delta_time'                : self.step_update_delta_time
+            'step_punish_reward'                    : self.time_punish_reward,
         }
 
     def from_dict(self, d: dict):

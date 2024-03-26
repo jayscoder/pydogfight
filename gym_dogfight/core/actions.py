@@ -9,3 +9,4 @@ class Actions(IntEnum):
     keep = 0  # 什么也不做，保持原来的状态
     go_to_location = 1  # 飞到指定位置 (x, y)
     fire_missile = 2  # 朝目标点发射导弹 (x, y)
+

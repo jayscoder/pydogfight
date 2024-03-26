@@ -5,18 +5,19 @@ from gym_dogfight.algos.traj import calc_optimal_path, Waypoint
 from gym_dogfight.core.options import Options
 from gym_dogfight.core.actions import Actions
 import math
+from collections import defaultdict
 
 
 class BattleArea:
     def __init__(self, options: Options, render_mode: str = 'rgb_array'):
         self.options = options
         self.size = options.game_size
-        self.duration = 0  # 对战累积时长
+        self.time = 0  # 对战累积时长
         self.objs: dict[str, WorldObj] = { }
         self.render_mode = render_mode
 
     def reset(self):
-        self.duration = 0
+        self.time = 0
         self.objs = { }
 
         home_position = self.options.generate_home_init_position()
@@ -107,25 +108,26 @@ class BattleArea:
                     obj_list[i].on_collision(obj_list[j])
                     obj_list[j].on_collision(obj_list[i])
 
-        self.duration += delta_time
+        self.time += delta_time
 
     @property
-    def remain_count(self) -> (int, int):
+    def remain_count(self) -> dict:
         """
-        获取双方剩余战机数量
+        获取剩余实体数量
         :return:
         """
-        red_count = 0
-        blue_count = 0
-
-        for agent in self.agents:
-            if agent.destroyed:
+        count = {
+            'aircraft': defaultdict(int),
+            'missile' : defaultdict(int),
+            'home'    : defaultdict(int)
+        }
+        for obj in self.objs.values():
+            if obj.destroyed:
                 continue
-            if agent.color == 'red':
-                red_count += 1
-            elif agent.color == 'blue':
-                blue_count += 1
-        return red_count, blue_count
+            if obj.type not in count:
+                count[obj.type] = defaultdict(int)
+            count[obj.type][obj.color] += 1
+        return count
 
     def find_nearest_enemy(self, agent_name: str, ignore_radar: bool = False) -> Aircraft | None:
         """
