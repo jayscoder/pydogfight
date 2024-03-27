@@ -1,0 +1,17 @@
+<Sequence name="Greedy">
+    <InitGreedy memory_gap="1000"/>
+    <Parallel>
+        <AttackNearestEnemy/>
+        <Selector>
+            <Sequence>
+                <InSafeArea/>
+                <Selector>
+                    <EvadeMissile/>
+                    <PursueNearestEnemy/>
+                    <Explore/>
+                </Selector>
+            </Sequence>
+            <GoToCenter/>
+        </Selector>
+    </Parallel>
+</Sequence>

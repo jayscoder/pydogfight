@@ -1,11 +1,11 @@
 import math
 import time
 
-import gym_dogfight
+import pydogfight
 import gymnasium as gym
 import pygame
-from gym_dogfight import Options, Dogfight2dEnv
-from gym_dogfight.manual_control import ManualControl
+from pydogfight import Options, Dogfight2dEnv
+from pydogfight.manual_control import ManualControl
 
 # Use the parameter env_id to make the environment
 # env = gym.make(env_id, render_mode='human')

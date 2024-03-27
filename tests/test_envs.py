@@ -4,7 +4,7 @@ import time
 
 import gymnasium as gym
 import pytest
-import gym_dogfight
+import pydogfight
 
 def test_dogfight_env(env_id):
     # Use the parameter env_id to make the environment

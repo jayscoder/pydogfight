@@ -2,7 +2,7 @@ import numpy as np
 import os
 from matplotlib import pyplot as plt
 import math
-from gym_dogfight.algos.geometry import *
+from pydogfight.algos.geometry import *
 
 
 def plot_tangent_circles(x0, y0, angle, radius):
