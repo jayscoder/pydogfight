@@ -55,13 +55,20 @@ class Dogfight2dEnv(gym.Env):
         self.last_render_time = 0
         self.last_update_time = 0
         self.step_count = 0
-        self.round = 0 # 对战轮次（每次reset都会加1）
         self.accum_reward = {
             'red' : 0,
             'blue': 0
         }  # 累积奖励
-        self.render_info = { }
+        self.render_info = { } # 渲染在屏幕上的信息
 
+        self.game_info = {
+            'red_wins'   : 0,
+            'blue_wins'  : 0,
+            'red_reward' : 0,
+            'blue_reward': 0,
+            'draw'       : 0,
+            'round': 0, # 第几轮
+        }  # 游戏对战累积数据，在reset的时候更新
         # TODO 敌人的heatmap
 
     @property
@@ -72,7 +79,7 @@ class Dogfight2dEnv(gym.Env):
         obj = self.battle_area.get_obj(name)
         assert isinstance(obj, Aircraft)
         return obj
-    
+
     def get_home(self, color) -> Home:
         if color == 'red':
             obj = self.battle_area.get_obj(self.options.red_home)
@@ -87,13 +94,26 @@ class Dogfight2dEnv(gym.Env):
             seed: int | None = None,
             options: dict[str, Any] | None = None,
     ) -> tuple[ObsType, dict[str, Any]]:
+        info = self.gen_info()
+        if info['winner'] == 'red':
+            self.game_info['red_wins'] += 1
+        elif info['winner'] == 'blue':
+            self.game_info['blue_wins'] += 1
+        elif info['winner'] == 'draw':
+            self.game_info['draw'] += 1
+
+        self.game_info['red_reward'] += self.accum_reward['red']
+        self.game_info['blue_reward'] += self.accum_reward['blue']
+        self.game_info['round'] += 1
+
         super().reset(seed=seed)
+
         self.step_count = 0
-        self.round += 1
         self.accum_reward = {
             'red' : 0,
             'blue': 0
         }
+
         self.battle_area.reset()
         self.render_info['reward'] = 0
 
@@ -110,7 +130,7 @@ class Dogfight2dEnv(gym.Env):
             # if self.clock is None:
             #     self.clock = pygame.time.Clock()
             self.render()
-        return self.gen_obs(), { }
+        return self.gen_obs(), self.gen_info()
 
     def gen_obs(self):
         obs = np.zeros(self.observation_space.shape)
@@ -336,11 +356,10 @@ class Dogfight2dEnv(gym.Env):
             color = self.options.self_side
         info = self.gen_info()
         reward = (self.options.time_punish_reward * self.time) - self.accum_reward[color]
-        self.accum_reward[color] += reward
 
         if info['winner'] != '':
             # 某一方获胜了
-            if self.options.self_side == info['winner']:
+            if color == info['winner']:
                 reward = self.options.win_reward
             elif info['winner'] == 'draw':
                 reward = self.options.draw_reward
@@ -351,4 +370,5 @@ class Dogfight2dEnv(gym.Env):
             for c in ['red', 'blue']:
                 self.render_info[f'reward_{c}'] = self.accum_reward[c]
 
+        self.accum_reward[color] += reward
         return reward

@@ -103,16 +103,19 @@ def render_img(
 
 def render_route(options: Options, screen, route, color: str, count: int = 20):
     import pygame
-    if route is not None:
-        if isinstance(route, types.GeneratorType):
-            route = list(route)
+    if route is not None and len(route) > 0:
         gap = max(1, int(math.ceil(len(route) / count)))
-        for i in range(0, len(route), gap):
+        for i in range(0, len(route) - 1, gap):
             pygame.draw.circle(screen, COLORS[color], game_point_to_screen_point(
                     game_point=route[i][:2],
                     game_size=options.game_size,
                     screen_size=options.screen_size
             ), 1)
+        pygame.draw.circle(screen, COLORS[color], game_point_to_screen_point(
+                game_point=route[-1][:2],
+                game_size=options.game_size,
+                screen_size=options.screen_size
+        ), 3)
 
 
 def render_circle(options: Options, screen, radius: float, position: tuple[float, float], color: str, width: int = 1):

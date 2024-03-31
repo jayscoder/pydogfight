@@ -244,6 +244,10 @@ def test_main():
                    label="Initial Direction")
 
         plt.plot(path[:, 0], path[:, 1], 'b-')
+
+        print('target', target)
+        print('final path', path[-1, :])
+
         plt.grid(True)
         plt.axis("equal")
         plt.title('Optimal Trajectory Generation')

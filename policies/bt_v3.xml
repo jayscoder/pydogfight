@@ -1,4 +1,5 @@
 <Sequence>
 <!--    <InitGreedyPolicy memory_gap="500"/>-->
-    <FollowRoute route="[[-10000, -10000],[-10000, 10000],[10000, 10000],[10000, -10000]]" recursive="true"/>
+<!--    <FollowRoute route="[[-10000, -10000],[-10000, 10000],[10000, 10000],[10000, -10000]]" recursive="true"/>-->
+    <FollowRoute route="[[0, 0]]" recursive="true"/>
 </Sequence>

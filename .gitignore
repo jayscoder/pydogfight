@@ -154,3 +154,5 @@ cython_debug/
 
 /tensorboard/
 /results/
+logs/*
+models/*

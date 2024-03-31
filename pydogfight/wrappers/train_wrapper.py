@@ -1,6 +1,6 @@
-from .agent_wrapper import AgentWrapper
-from ..policy import *
-from ..policy import Policy
+from pydogfight.wrappers.agent_wrapper import AgentWrapper
+from pydogfight.policy import *
+
 
 class ModelTrainWrapper(AgentWrapper):
     """
@@ -30,7 +30,7 @@ class TeacherTrainWrapper(ModelTrainWrapper):
     def __init__(self, teacher: Policy, policies: List[Policy], env: Dogfight2dEnv, agent_name: str = ''):
         super().__init__(policies=policies, env=env, agent_name=agent_name)
         self.teacher = teacher
-    
+
     def step(self, action):
         t_reward = self.teacher_reward(action)
         obs, reward, terminated, truncated, info = super().step(action)

@@ -17,6 +17,7 @@ class Options:
     delta_time = 0.1  # 更新步长
     update_interval = 1  # 每次env更新的时间间隔
     simulation_rate = 10.0  # 仿真的速率倍数，越大代表越快，update_interval内更新几次（仅在render模式下生效）
+    policy_interval = 0.5 # 每次策略的处理间隔时长
     reach_location_scale = 3 # 用来判断是否接近目标点的时间片尺度（乘以delta_time*速度后就能得出距离多近就算到达目标点）
     ### 常量 ###
     g = 9.8  # 重力加速度 m/s
@@ -68,8 +69,9 @@ class Options:
     ### 训练 ###
     win_reward = 1000
     lose_reward = -1000
-    draw_reward = -500
+    draw_reward = -100
     time_punish_reward = -1  # 时间惩罚（每s惩罚多少分）
+    train = True # 是否是训练模式
 
     ### 策略 ###
     safe_boundary_distance = aircraft_speed * 20  # 距离边界的安全距离

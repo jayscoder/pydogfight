@@ -240,8 +240,9 @@ class WorldObj:
             # 当前还有未完成的路由
             route_target = self.route[-1][:2]
             target_distance = np.linalg.norm(route_target - np.array(target))
-            print(f'{self.name} target_distance', target_distance)
-            if target_distance <= self.speed * self.options.delta_time * 3:
+            # print(f'{self.name} target_distance', target_distance)
+            if target_distance <= 1:
+                # print('目标点和自己当前的路由终点很接近，就不再重复导航')
                 # 如果目标点和自己当前的路由终点很接近，就不再重复导航了
                 return
 

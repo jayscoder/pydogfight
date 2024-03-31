@@ -7,15 +7,19 @@ import json
 from tqdm import tqdm
 import os
 
-POLICY_UPDATE_INTERVAL = 1
 RENDER_MODE = 'human'
 # RENDER_MODE = 'rgb_array'
 BT_BOARD_TRACK = True
 MAX_ROUND = 100  # 对战轮次
 
+options = pydogfight.Options()
+options.delta_time = 0.05
+options.simulation_rate = 50
+options.update_interval = 0.3
+
 
 def create_greedy_policy(env: Dogfight2dEnv, agent_name: str):
-    return pydogfight.policy.GreedyPolicy(env=env, agent_name=agent_name, update_interval=POLICY_UPDATE_INTERVAL)
+    return pydogfight.policy.GreedyPolicy(env=env, agent_name=agent_name, update_interval=options.policy_interval)
 
 
 def create_bt_greedy_policy(env: Dogfight2dEnv, agent_name: str, filepath: str):
@@ -27,24 +31,21 @@ def create_bt_greedy_policy(env: Dogfight2dEnv, agent_name: str, filepath: str):
             env=env,
             tree=tree,
             agent_name=agent_name,
-            update_interval=POLICY_UPDATE_INTERVAL,
+            update_interval=options.policy_interval
     )
 
     if BT_BOARD_TRACK:
         board = pybts.Board(tree=policy.tree, log_dir='logs')
         tree.add_post_tick_handler(lambda t: board.track({
             'env_time': env.time,
-            **env.render_info
+            **env.render_info,
+            'red_1'   : env.get_agent('red_1').to_dict(),
         }))
         board.clear()
     return policy
 
 
 def policy_main():
-    options = pydogfight.Options()
-    options.delta_time = 0.05
-    options.simulation_rate = 50
-    options.update_interval = 0.3
     # options.aircraft_radar_radius = options.game_size[0]
     env = Dogfight2dEnv(options=options, render_mode=RENDER_MODE)
 
@@ -52,10 +53,10 @@ def policy_main():
             # ManualPolicy(env=env, control_agents=options.agents, update_interval=0),
             # create_bt_greedy_policy(env=env, agent_name=options.red_agents[0],
             #                         filepath='./policies/bt_greedy_policy_default.xml'),
-            create_bt_greedy_policy(
-                    env=env,
-                    agent_name=options.red_agents[0],
-                    filepath='./policies/bt_v4.xml'),
+            # create_bt_greedy_policy(
+            #         env=env,
+            #         agent_name=options.red_agents[0],
+            #         filepath='./policies/follow_route.xml'),
             # create_bt_greedy_policy(env=env, agent_name=options.red_agents[0],
             #                         filepath='./policies/bt_greedy_chatgpt_v1.xml'),
             # create_bt_greedy_policy(env=env, agent_name=options.blue_agents[0],
@@ -66,7 +67,7 @@ def policy_main():
             create_bt_greedy_policy(
                     env=env,
                     agent_name=options.blue_agents[0],
-                    filepath='./policies/bt_v3.xml'),
+                    filepath='./policies/follow_route.xml'),
     )
 
     win_count = {

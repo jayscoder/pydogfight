@@ -10,7 +10,7 @@ POINT = Union[Tuple[float, float], List[float]]
 
 class Waypoint:
 
-    def __init__(self, x=0, y=0, psi=0):
+    def __init__(self, x: float = 0, y: float = 0, psi: float = 0):
         """
         航迹点
         :param x:
@@ -46,6 +46,13 @@ class Waypoint:
         dx = other.x - self.x
         dy = other.y - self.y
         return (dx * dx + dy * dy) ** 0.5
+
+    def relative_waypoint(self, dx: float, dy: float) -> Waypoint:
+        """以自身为原点的相对位置"""
+        rad = self.standard_rad
+        x = self.x + dx * math.cos(rad)
+        y = self.y + dy * math.sin(rad)
+        return Waypoint(x=x, y=y, psi=self.psi)
 
 
 class BoundingBox(object):
