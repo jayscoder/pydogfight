@@ -1,0 +1,37 @@
+<Sequence>
+    <InitGreedyPolicy memory_gap="500"/>
+    <Parallel success_threshold="1">
+        <Selector>
+            <Sequence>
+                <EnemyDetected/>
+                <AttackNearestEnemy/>
+            </Sequence>
+            <Sequence>
+                <MissileThreatDetected/>
+                <EvadeMissile/>
+            </Sequence>
+            <GoHome condition="IsMissileDepleted or IsFuelBingo"/>
+        </Selector>
+        <Sequence>
+            <IsInSafeArea/>
+            <Selector>
+                <Sequence>
+                    <IsOnActiveRoute/>
+                    <PursueNearestEnemy attack_ratio="1" evade_ratio="0"/>
+                </Sequence>
+                <Explore memory_sep="200"/>
+            </Selector>
+        </Sequence>
+    </Parallel>
+    <Selector>
+        <Sequence>
+            <IsMissileDepleted/>
+            <GoHome/>
+        </Sequence>
+        <Sequence>
+            <IsFuelBingo/>
+            <GoHome/>
+        </Sequence>
+        <GoToCenter/>
+    </Selector>
+</Sequence>

@@ -1,13 +1,10 @@
 from __future__ import annotations
-import math
-
-from pydogfight.core.actions import Actions
-from pydogfight import *
-import numpy as np
-from queue import Queue
 from collections import defaultdict
 import random
 from pydogfight.policy.policy import AgentPolicy
+from pydogfight.envs import Dogfight2dEnv
+from pydogfight.core.world_obj import Missile, Aircraft
+from pydogfight.core.actions import Actions
 
 
 class GreedyPolicy(AgentPolicy):

@@ -1,0 +1,97 @@
+{
+    "id": 198,
+    "step": 197,
+    "round": 1,
+    "stage": "1-197",
+    "info": {
+        "env_time": 218.50000000001543,
+        "red_wins": 0,
+        "blue_wins": 0,
+        "draw": 0,
+        "reward": 0,
+        "time": 218.50000000001543
+    },
+    "tree": {
+        "tag": "Sequence",
+        "children": [
+            {
+                "tag": "FollowRoute",
+                "children": [],
+                "data": {
+                    "id": "dbdc99d195864132998bb995263676d4",
+                    "status": "SUCCESS",
+                    "type": "action",
+                    "tag": "FollowRoute",
+                    "feedback_message": "",
+                    "name": "FollowRoute",
+                    "children_count": 0,
+                    "_reset_count": 1,
+                    "_initialise_count": 198,
+                    "_tick_count": 198,
+                    "_update_count": 0,
+                    "_terminate_count": 198,
+                    "actions": [
+                        "(<Actions.go_to_location: 1>, -10000, -10000)"
+                    ],
+                    "agent_name": "blue_1",
+                    "update_messages": [],
+                    "route": [
+                        "[-10000, -10000]",
+                        "[-10000, 10000]",
+                        "[10000, 10000]",
+                        "[10000, -10000]"
+                    ],
+                    "route_index": 0,
+                    "recursive": true,
+                    "agent": {
+                        "name": "blue_1",
+                        "type": "aircraft",
+                        "color": "blue",
+                        "speed": 222,
+                        "turn_radius": 558.7755102040816,
+                        "collision_radius": 10,
+                        "x": -9165.69262929484,
+                        "y": -9322.116244599878,
+                        "psi": 163.2542379659185,
+                        "destroyed": false,
+                        "destroyed_reason": "",
+                        "route": 898,
+                        "route_index": 559,
+                        "waiting_actions": [],
+                        "consumed_actions": [
+                            "(209, (<Actions.go_to_location: 1>, -10000, -10000))",
+                            "(210, (<Actions.go_to_location: 1>, -10000, -10000))",
+                            "(211, (<Actions.go_to_location: 1>, -10000, -10000))",
+                            "(212, (<Actions.go_to_location: 1>, -10000, -10000))",
+                            "(213, (<Actions.go_to_location: 1>, -10000, -10000))",
+                            "(214, (<Actions.go_to_location: 1>, -10000, -10000))",
+                            "(215, (<Actions.go_to_location: 1>, -10000, -10000))",
+                            "(216, (<Actions.go_to_location: 1>, -10000, -10000))",
+                            "(217, (<Actions.go_to_location: 1>, -10000, -10000))",
+                            "(218, (<Actions.go_to_location: 1>, -10000, -10000))"
+                        ],
+                        "missile_count": 10,
+                        "fuel": 1581.5000000001987,
+                        "fuel_consumption_rate": 1,
+                        "radar_radius": 10000.0,
+                        "missile_destroyed_enemies": []
+                    }
+                }
+            }
+        ],
+        "data": {
+            "id": "ca060f686aee4f0e8b670cb6f30b827b",
+            "status": "SUCCESS",
+            "type": "action",
+            "tag": "Sequence",
+            "feedback_message": "",
+            "name": "Sequence",
+            "children_count": 1,
+            "_reset_count": 1,
+            "_initialise_count": 0,
+            "_tick_count": 198,
+            "_update_count": 0,
+            "_terminate_count": 0
+        }
+    }
+}

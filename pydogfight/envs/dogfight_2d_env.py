@@ -3,13 +3,12 @@ from __future__ import annotations
 from typing import Any, Optional, SupportsFloat, Tuple, Union
 
 import gymnasium as gym
-import numpy as np
-import pygame.time
-from gymnasium.core import ActType, ObsType, RenderFrame
+from gymnasium.core import ActType, ObsType
 from gymnasium.error import DependencyNotInstalled
 from pydogfight.core.world_obj import *
 from pydogfight.core.options import Options
 from pydogfight.core.battle_area import BattleArea
+from pydogfight.core.actions import Actions
 import time
 
 
@@ -47,14 +46,16 @@ class Dogfight2dEnv(gym.Env):
                 dtype=np.float32)
 
         self.screen = None
-        self.clock: pygame.time.Clock | None = None
+        # self.clock # pygame.time.Clock
         self.isopen = True
+        self.paused = False  # 是否暂停
 
         self.battle_area = BattleArea(options=options, render_mode=self.render_mode)
 
         self.last_render_time = 0
         self.last_update_time = 0
         self.step_count = 0
+        self.round = 0 # 对战轮次（每次reset都会加1）
         self.accum_reward = {
             'red' : 0,
             'blue': 0
@@ -71,6 +72,14 @@ class Dogfight2dEnv(gym.Env):
         obj = self.battle_area.get_obj(name)
         assert isinstance(obj, Aircraft)
         return obj
+    
+    def get_home(self, color) -> Home:
+        if color == 'red':
+            obj = self.battle_area.get_obj(self.options.red_home)
+        else:
+            obj = self.battle_area.get_obj(self.options.blue_home)
+        assert isinstance(obj, Home)
+        return obj
 
     def reset(
             self,
@@ -80,6 +89,7 @@ class Dogfight2dEnv(gym.Env):
     ) -> tuple[ObsType, dict[str, Any]]:
         super().reset(seed=seed)
         self.step_count = 0
+        self.round += 1
         self.accum_reward = {
             'red' : 0,
             'blue': 0
@@ -88,16 +98,17 @@ class Dogfight2dEnv(gym.Env):
         self.render_info['reward'] = 0
 
         if self.render_mode == "human":
+            import pygame
             if self.screen is None:
                 pygame.init()
                 pygame.display.init()
                 self.screen = pygame.display.set_mode(
                         self.options.screen_size,
-                        self.options.pygame_mode)
+                        pygame.HWSURFACE | pygame.DOUBLEBUF | pygame.RESIZABLE)
                 self.screen.fill((255, 255, 255))
                 pygame.display.set_caption("dogfight")
-            if self.clock is None:
-                self.clock = pygame.time.Clock()
+            # if self.clock is None:
+            #     self.clock = pygame.time.Clock()
             self.render()
         return self.gen_obs(), { }
 
@@ -258,13 +269,22 @@ class Dogfight2dEnv(gym.Env):
         self.last_render_time = time.time()
 
         if self.render_mode == "human":
+            self.screen.fill((255, 255, 255))
+
+            play_pause_img = pygame_load_img('play.svg' if self.paused else 'pause.svg').convert_alpha()
+            play_pause_img_rect = play_pause_img.get_rect()
+            play_pause_img_rect.right = self.options.screen_size[0] - 10
+            play_pause_img_rect.top = 10
+
             event = pygame.event.poll()
             if event is not None:
                 if event.type == pygame.VIDEORESIZE:
                     self.options.screen_size = event.size
                     # 调整尺寸
-
-            self.screen.fill((255, 255, 255))
+                # 检测鼠标点击
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    if play_pause_img_rect.collidepoint(event.pos):
+                        self.paused = not self.paused  # 切换暂停状态
 
             render_info_y = 10
             for key in self.render_info:
@@ -279,7 +299,7 @@ class Dogfight2dEnv(gym.Env):
 
             # 渲染安全区域
             render_rect(self.options, screen=self.screen, rect=self.options.safe_boundary, color='grey')
-
+            self.screen.blit(play_pause_img, play_pause_img_rect)
             self.battle_area.render(self.screen)
             pygame.event.pump()
             # self.clock.tick(self.options.render_fps)
@@ -294,6 +314,8 @@ class Dogfight2dEnv(gym.Env):
             return False
 
     def should_update(self):
+        if self.paused:
+            return
         if self.render_mode == 'human':
             time_passed = (time.time() - self.last_update_time) * self.options.simulation_rate
             # print('should_update', time_passed, 'seconds')

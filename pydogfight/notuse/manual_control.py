@@ -5,7 +5,6 @@ from __future__ import annotations
 import time
 
 import gymnasium as gym
-import pygame
 from gymnasium import Env
 
 from pydogfight.core.actions import Actions

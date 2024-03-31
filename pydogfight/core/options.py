@@ -1,13 +1,5 @@
-import math
-from typing import Callable, TYPE_CHECKING, List, Tuple
 import random
-import json
-from pydogfight.core.models import *
-import pygame
-
-if TYPE_CHECKING:
-    pass
-
+from .models import *
 
 class Options:
     ### 实体设置 ###
@@ -25,8 +17,7 @@ class Options:
     delta_time = 0.1  # 更新步长
     update_interval = 1  # 每次env更新的时间间隔
     simulation_rate = 10.0  # 仿真的速率倍数，越大代表越快，update_interval内更新几次（仅在render模式下生效）
-    pygame_mode = pygame.HWSURFACE | pygame.DOUBLEBUF | pygame.RESIZABLE
-
+    reach_location_scale = 3 # 用来判断是否接近目标点的时间片尺度（乘以delta_time*速度后就能得出距离多近就算到达目标点）
     ### 常量 ###
     g = 9.8  # 重力加速度 m/s
 
@@ -35,9 +26,9 @@ class Options:
     destroy_on_boundary_exit = True  # 飞出战场边界是否会摧毁飞机
 
     ### 飞机 ###
-    aircraft_missile_count: int = 100  # 飞机上装载的导弹数量
+    aircraft_missile_count: int = 10  # 飞机上装载的导弹数量
     aircraft_speed: float = 222  # 飞机飞行速度220m/s 800km/h
-    aircraft_collision_radius: float = max(15.0, aircraft_speed * delta_time * 5)  # 飞机的碰撞半径，用来进行碰撞检查，设为0就不会检查碰撞了
+    aircraft_collision_radius: float = max(15.0, aircraft_speed * delta_time * 1)  # 飞机的碰撞半径，用来进行碰撞检查，设为0就不会检查碰撞了
 
     aircraft_fuel_consumption_rate: float = 1  # 飞机耗油速度，每秒消耗多少油
     aircraft_fuel_capacity: float = aircraft_fuel_consumption_rate * 1800  # 飞机载油量，在这里飞机最多能飞1800秒
@@ -59,7 +50,7 @@ class Options:
     missile_speed = aircraft_speed * 5  # 导弹速度是飞机速度的5倍
     missile_min_turn_radius = missile_speed ** 2 / missile_max_centripetal_acceleration  # 导弹最小转弯半径 6286m
 
-    missile_collision_radius = max(15.0, (missile_speed + aircraft_speed) * delta_time * 5)  # 导弹的碰撞半径
+    missile_collision_radius = max(15.0, (missile_speed + aircraft_speed) * delta_time * 1)  # 导弹的碰撞半径
 
     missile_fuel_consumption_rate = 1
     missile_fuel_capacity = missile_fuel_consumption_rate * 30  # 导弹只能飞30秒
@@ -205,16 +196,3 @@ class Options:
         max_screen_size = max(self.screen_size)
         max_game_size = max(self.game_size)
         return (screen_length / max_screen_size) * max_game_size
-
-
-if __name__ == '__main__':
-    import jsonpickle
-
-    options = Options()
-    # setattr(options, 'agents', 1)
-    # print(options.missile_collision_radius)
-    # print(options.aircraft_collision_radius)
-    # print(getattr(options, 'agents', None))
-    # for k in dir(options):
-    #     print(k, type(getattr(options, k)))
-    print(options.safe_boundary)

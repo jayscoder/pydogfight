@@ -1,18 +1,17 @@
 from __future__ import annotations
 
-import os
 from typing import Optional, Union
-from PIL import Image
-import pygame
 from typing import Tuple
 from pydogfight.core.options import Options
 import types
-from pydogfight.core.constants import *
 from pydogfight.core.models import BoundingBox
 import math
+from pydogfight.core.constants import *
+import os
 
 
 def pygame_load_img(path):
+    import pygame
     cwd = os.path.dirname(__file__)
     image = pygame.image.load(os.path.join(cwd, '..', 'imgs', path))
     return image
@@ -58,14 +57,16 @@ def game_length_to_screen_length(
     return (game_length / game_size) * screen_size
 
 
-def render_img(options: Options,
-               position: tuple[float, float],
-               screen,
-               img_path: str,
-               label: str = '',
-               rotate: float = None,
-               scale: Optional[tuple[float, float]] = None) -> np:
+def render_img(
+        options: Options,
+        position: tuple[float, float],
+        screen,
+        img_path: str,
+        label: str = '',
+        rotate: float = None,
+        scale: Optional[tuple[float, float]] = None) -> np:
     # 加载图像（确保路径正确）
+    import pygame
     img = pygame_load_img(img_path).convert_alpha()
     if rotate is not None:
         img = pygame.transform.rotate(img, rotate)  # 顺时针旋转
@@ -101,6 +102,7 @@ def render_img(options: Options,
 
 
 def render_route(options: Options, screen, route, color: str, count: int = 20):
+    import pygame
     if route is not None:
         if isinstance(route, types.GeneratorType):
             route = list(route)
@@ -116,6 +118,7 @@ def render_route(options: Options, screen, route, color: str, count: int = 20):
 def render_circle(options: Options, screen, radius: float, position: tuple[float, float], color: str, width: int = 1):
     if radius <= 0:
         return
+    import pygame
     pygame.draw.circle(screen, COLORS[color], game_point_to_screen_point(
             game_point=position,
             game_size=options.game_size,
@@ -128,6 +131,7 @@ def render_circle(options: Options, screen, radius: float, position: tuple[float
 
 
 def render_rect(options: Options, screen, rect: BoundingBox, color: str, width: int = 1):
+    import pygame
     left_top = game_point_to_screen_point(game_point=rect.left_top, game_size=options.game_size,
                                           screen_size=options.screen_size)
     size_w = game_length_to_screen_length(game_length=rect.size[0], game_size=options.game_size[0],
@@ -138,6 +142,7 @@ def render_rect(options: Options, screen, rect: BoundingBox, color: str, width: 
 
 
 def render_text(screen, text: str, topleft: tuple[float, float], text_size: int = 18, color='black'):
+    import pygame
     info_font = pygame.font.Font(None, text_size)
     # 渲染文本到 Surface 对象
     text_surface = info_font.render(text, True, COLORS[color])

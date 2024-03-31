@@ -215,9 +215,9 @@ def test_main():
     import matplotlib.pyplot as plt
     # User's waypoints: [x, y, heading (degrees)]
 
-    start = Waypoint(0, 0, 0)
-    target = (100, 0)
-    param = calc_optimal_path(start, target, 100)
+    start = Waypoint(0, 0, 90)
+    target = (100, 10)
+    param = calc_optimal_path(start, target, 10)
     if param.length != float('inf'):
         path = param.generate_traj(step=1)
         print(param)

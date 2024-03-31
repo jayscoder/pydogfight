@@ -1,51 +1,72 @@
 from __future__ import annotations
-import math
+import pydogfight
+import pybts
+from pydogfight import Dogfight2dEnv
+from pydogfight.policy import BTPolicyBuilder, BTPolicy
+import json
+from tqdm import tqdm
+import os
 
-import py_trees.display
-import stable_baselines3.common.callbacks
-
-from pydogfight.core.actions import Actions
-from pydogfight import *
-import numpy as np
-from queue import Queue
-from collections import defaultdict
-import random
-from pydogfight.policy import *
-from stable_baselines3 import PPO
-from stable_baselines3.common.env_util import make_vec_env
-
-from py_trees import visitors
+POLICY_UPDATE_INTERVAL = 1
+RENDER_MODE = 'human'
+# RENDER_MODE = 'rgb_array'
+BT_BOARD_TRACK = True
+MAX_ROUND = 100  # 对战轮次
 
 
-class BTGreedyPolicyVisitor(visitors.VisitorBase):
+def create_greedy_policy(env: Dogfight2dEnv, agent_name: str):
+    return pydogfight.policy.GreedyPolicy(env=env, agent_name=agent_name, update_interval=POLICY_UPDATE_INTERVAL)
 
-    def run(self, behaviour: behaviour.Behaviour) -> None:
-        print('Behaviour:', behaviour, behaviour.status)
+
+def create_bt_greedy_policy(env: Dogfight2dEnv, agent_name: str, filepath: str):
+    filename = os.path.basename(filepath).replace('.xml', '')
+    tree = pybts.Tree(
+            root=pydogfight.policy.BTPolicyBuilder().build_from_file(filepath),
+            name=os.path.join(agent_name, filename))
+    policy = pydogfight.policy.BTPolicy(
+            env=env,
+            tree=tree,
+            agent_name=agent_name,
+            update_interval=POLICY_UPDATE_INTERVAL,
+    )
+
+    if BT_BOARD_TRACK:
+        board = pybts.Board(tree=policy.tree, log_dir='logs')
+        tree.add_post_tick_handler(lambda t: board.track({
+            'env_time': env.time,
+            **env.render_info
+        }))
+        board.clear()
+    return policy
 
 
 def policy_main():
-    options = Options()
-    options.delta_time = 0.1
-    options.simulation_rate = 40
-    options.update_interval = 1
+    options = pydogfight.Options()
+    options.delta_time = 0.05
+    options.simulation_rate = 50
+    options.update_interval = 0.3
     # options.aircraft_radar_radius = options.game_size[0]
-    env = Dogfight2dEnv(options=options, render_mode='human')
+    env = Dogfight2dEnv(options=options, render_mode=RENDER_MODE)
 
-    # 每隔3s做一次操作
-    # red_policy = GreedyPolicy(env=env, agent_name=options.red_agents[0], delta_time=5)
-    visitor = BTGreedyPolicyVisitor()
-    policy = MultiAgentPolicy(
-            env=env,
-            policies=[
-                # ManualPolicy(env=env, control_agents=options.agents, update_interval=0),
-                BTPolicy(env=env, root=BTGreedyBuilder().build_from_xml_text(BT_GREEDY_XML),
-                         agent_name=options.red_agents[0], update_interval=1,
-                         visitor=visitor,
-                         ),
-                # ManualPolicy(env=env, control_agents=options.blue_agents, delta_time=0.01),
-                # GreedyPolicy(env=env, agent_name=options.red_agents[0], delta_time=1),
-                GreedyPolicy(env=env, agent_name=options.blue_agents[0], update_interval=1)
-            ],
+    policy = pydogfight.policy.MultiAgentPolicy(
+            # ManualPolicy(env=env, control_agents=options.agents, update_interval=0),
+            # create_bt_greedy_policy(env=env, agent_name=options.red_agents[0],
+            #                         filepath='./policies/bt_greedy_policy_default.xml'),
+            create_bt_greedy_policy(
+                    env=env,
+                    agent_name=options.red_agents[0],
+                    filepath='./policies/bt_v4.xml'),
+            # create_bt_greedy_policy(env=env, agent_name=options.red_agents[0],
+            #                         filepath='./policies/bt_greedy_chatgpt_v1.xml'),
+            # create_bt_greedy_policy(env=env, agent_name=options.blue_agents[0],
+            #                         filepath='./policies/bt_greedy_chatgpt_v2.xml'),
+            # ManualPolicy(env=env, control_agents=options.blue_agents, delta_time=0.01),
+            # GreedyPolicy(env=env, agent_name=options.red_agents[0], delta_time=1),
+            # create_greedy_policy(env=env, agent_name=options.blue_agents[0]),
+            create_bt_greedy_policy(
+                    env=env,
+                    agent_name=options.blue_agents[0],
+                    filepath='./policies/bt_v3.xml'),
     )
 
     win_count = {
@@ -58,33 +79,33 @@ def policy_main():
     env.render_info['blue_wins'] = win_count['blue']
     env.render_info['draw'] = win_count['draw']
 
-    env.reset()
-    policy.reset()
+    for i in tqdm(range(MAX_ROUND)):
+        obs, info = env.reset()
+        policy.reset()
+        if not env.isopen:
+            break
+        while env.isopen:
+            policy.select_action()
+            policy.put_action()
 
-    while env.isopen:
-        policy.select_action()
-        policy.put_action()
+            info = env.gen_info()
 
-        info = env.gen_info()
+            if info['terminated'] or info['truncated']:
+                if info['winner'] in win_count:
+                    win_count[info['winner']] += 1
+                    env.render_info['red_wins'] = win_count['red']
+                    env.render_info['blue_wins'] = win_count['blue']
+                    env.render_info['draw'] = win_count['draw']
+                break
+            if env.should_update():
+                env.update()
+            if env.should_render():
+                env.render()
 
-        if info['terminated'] or info['truncated']:
-            if info['winner'] in win_count:
-                win_count[info['winner']] += 1
-                env.render_info['red_wins'] = win_count['red']
-                env.render_info['blue_wins'] = win_count['blue']
-                env.render_info['draw'] = win_count['draw']
-            obs, info = env.reset()
-            policy.reset()
-        if env.should_update():
-            env.update()
-        if env.should_render():
-            env.render()
+    with open('policy_demo_result.json', 'w') as f:
+        json.dump(win_count, f)
 
 
 if __name__ == '__main__':
-    # policy_main()
-    root = BTGreedyBuilder().build_from_xml_text(BT_GREEDY_XML)
-    root.status = py_trees.common.Status.SUCCESS
-    print(py_trees.display.ascii_tree(root, show_status=True))
-    print(py_trees.display.unicode_tree(root, show_status=True))
+    policy_main()
     # py_trees.display.render_dot_tree(root)

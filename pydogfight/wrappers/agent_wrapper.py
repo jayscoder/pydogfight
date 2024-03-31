@@ -1,14 +1,8 @@
 from __future__ import annotations
-from gymnasium.core import ObsType, WrapperObsType
-
 from pydogfight.envs import Dogfight2dEnv
-from pydogfight.core.options import Options
-from pydogfight.core.constants import *
 import gymnasium as gym
 import numpy as np
-from pydogfight.policy import Policy
 from pydogfight.core.actions import *
-
 
 class AgentWrapper(gym.Wrapper):
     """

@@ -1,0 +1,554 @@
+{
+    "id": 6666,
+    "step": 179,
+    "round": 52,
+    "stage": "52-179",
+    "info": {
+        "env_time": 200.50000000001134,
+        "red_wins": 13,
+        "blue_wins": 7,
+        "draw": 31,
+        "reward": 0,
+        "time": 200.50000000001134
+    },
+    "tree": {
+        "tag": "Sequence",
+        "children": [
+            {
+                "tag": "InitGreedy",
+                "children": [],
+                "data": {
+                    "id": "aec60002f2e74bbcbca4a87671268f76",
+                    "status": "SUCCESS",
+                    "type": "action",
+                    "tag": "InitGreedy",
+                    "feedback_message": "",
+                    "name": "InitGreedy",
+                    "children_count": 0,
+                    "actions": [
+                        "(<Actions.go_to_location: 1>, -121.56570085290184, -421.65086644211124)",
+                        "(<Actions.go_to_location: 1>, -121.56570085290184, -421.65086644211124)",
+                        "(<Actions.go_to_location: 1>, 0, 0)"
+                    ],
+                    "agent_name": "red_1",
+                    "update_messages": [],
+                    "memory_sep": 1000,
+                    "nearest_enemy": {
+                        "name": "blue_1",
+                        "type": "aircraft",
+                        "color": "blue",
+                        "speed": 222,
+                        "turn_radius": 558.7755102040816,
+                        "collision_radius": 100,
+                        "x": 5343.330668079111,
+                        "y": -4747.7975199338825,
+                        "psi": -67.91109633663527,
+                        "destroyed": false,
+                        "destroyed_reason": "",
+                        "route": 590,
+                        "route_index": 20,
+                        "waiting_actions": [],
+                        "consumed_actions": [],
+                        "missile_count": 84,
+                        "fuel": 1599.5000000001824,
+                        "fuel_consumption_rate": 1,
+                        "radar_radius": 10000.0,
+                        "missile_destroyed_enemies": [
+                            "red_1"
+                        ]
+                    },
+                    "missiles": 15,
+                    "agent": {
+                        "name": "red_1",
+                        "type": "aircraft",
+                        "color": "red",
+                        "speed": 222,
+                        "turn_radius": 558.7755102040816,
+                        "collision_radius": 100,
+                        "x": -121.56570085290184,
+                        "y": -421.65086644211124,
+                        "psi": 190.60986357219562,
+                        "destroyed": true,
+                        "destroyed_reason": "Missile hit by blue_1_missile_97",
+                        "route": 825,
+                        "route_index": 5,
+                        "waiting_actions": [],
+                        "consumed_actions": [
+                            "(188, (<Actions.go_to_location: 1>, 0, 0))",
+                            "(189, (<Actions.go_to_location: 1>, -82.82348670122224, -278.2318061111745))",
+                            "(189, (<Actions.go_to_location: 1>, -82.82348670122224, -278.2318061111745))",
+                            "(189, (<Actions.go_to_location: 1>, 0, 0))",
+                            "(190, (<Actions.go_to_location: 1>, -100.79365783080459, -342.95598114814214))",
+                            "(190, (<Actions.go_to_location: 1>, -100.79365783080459, -342.95598114814214))",
+                            "(190, (<Actions.go_to_location: 1>, 0, 0))",
+                            "(191, (<Actions.go_to_location: 1>, -118.78095664599925, -407.76027646730205))",
+                            "(191, (<Actions.go_to_location: 1>, -118.78095664599925, -407.76027646730205))",
+                            "(191, (<Actions.go_to_location: 1>, 0, 0))"
+                        ],
+                        "missile_count": 100,
+                        "fuel": 1609.2500000001735,
+                        "fuel_consumption_rate": 1,
+                        "radar_radius": 10000.0,
+                        "missile_destroyed_enemies": []
+                    }
+                }
+            },
+            {
+                "tag": "Parallel",
+                "children": [
+                    {
+                        "tag": "Selector",
+                        "children": [
+                            {
+                                "tag": "Sequence",
+                                "children": [
+                                    {
+                                        "tag": "EnemyDetected",
+                                        "children": [],
+                                        "data": {
+                                            "id": "f832294c4e764531b46436ba522f2f3f",
+                                            "status": "SUCCESS",
+                                            "type": "condition",
+                                            "tag": "EnemyDetected",
+                                            "feedback_message": "",
+                                            "name": "EnemyDetected",
+                                            "children_count": 0,
+                                            "agent_name": "red_1",
+                                            "update_messages": []
+                                        }
+                                    },
+                                    {
+                                        "tag": "AttackNearestEnemy",
+                                        "children": [],
+                                        "data": {
+                                            "id": "f83c43761a8f4a008d7d862aa006aa0c",
+                                            "status": "FAILURE",
+                                            "type": "action",
+                                            "tag": "AttackNearestEnemy",
+                                            "feedback_message": "",
+                                            "name": "AttackNearestEnemy",
+                                            "children_count": 0,
+                                            "actions": [
+                                                "(<Actions.go_to_location: 1>, -121.56570085290184, -421.65086644211124)",
+                                                "(<Actions.go_to_location: 1>, -121.56570085290184, -421.65086644211124)",
+                                                "(<Actions.go_to_location: 1>, 0, 0)"
+                                            ],
+                                            "agent_name": "red_1",
+                                            "update_messages": [
+                                                "hit_point {\"point\": [-1713.2603026405727, 132.85963649318523], \"time\": 9.3091130733802, \"self_distance\": 10333.115511452022, \"target_distance\": 2066.6231022904044}\n\u53ef\u4ee5\u547d\u4e2d\u654c\u673a fire missile -137.3726494916978 1469.83725469528",
+                                                "hit_point {\"point\": [-1713.2603026405727, 132.85963649318523], \"time\": 9.3091130733802, \"self_distance\": 10333.115511452022, \"target_distance\": 2066.6231022904044}\n\u53ef\u4ee5\u547d\u4e2d\u654c\u673a fire missile -137.3726494916978 1469.83725469528",
+                                                "hit_point {\"point\": [-1713.2603026405727, 132.85963649318523], \"time\": 9.3091130733802, \"self_distance\": 10333.115511452022, \"target_distance\": 2066.6231022904044}\n\u53ef\u4ee5\u547d\u4e2d\u654c\u673a fire missile -137.3726494916978 1469.83725469528",
+                                                "hit_point {\"point\": [-1713.2603026405727, 132.85963649318523], \"time\": 9.3091130733802, \"self_distance\": 10333.115511452022, \"target_distance\": 2066.6231022904044}\n\u53ef\u4ee5\u547d\u4e2d\u654c\u673a fire missile -137.3726494916978 1469.83725469528",
+                                                "hit_point {\"point\": [-1713.2603026405727, 132.85963649318523], \"time\": 9.3091130733802, \"self_distance\": 10333.115511452022, \"target_distance\": 2066.6231022904044}\n\u53ef\u4ee5\u547d\u4e2d\u654c\u673a fire missile -137.3726494916978 1469.83725469528",
+                                                "hit_point {\"point\": [-1713.2603026405727, 132.85963649318523], \"time\": 9.3091130733802, \"self_distance\": 10333.115511452022, \"target_distance\": 2066.6231022904044}\n\u53ef\u4ee5\u547d\u4e2d\u654c\u673a fire missile -137.3726494916978 1469.83725469528",
+                                                "hit_point {\"point\": [-1713.2603026405727, 132.85963649318523], \"time\": 9.3091130733802, \"self_distance\": 10333.115511452022, \"target_distance\": 2066.6231022904044}\n\u53ef\u4ee5\u547d\u4e2d\u654c\u673a fire missile -137.3726494916978 1469.83725469528",
+                                                "hit_point {\"point\": [-1713.2603026405727, 132.85963649318523], \"time\": 9.3091130733802, \"self_distance\": 10333.115511452022, \"target_distance\": 2066.6231022904044}\n\u53ef\u4ee5\u547d\u4e2d\u654c\u673a fire missile -137.3726494916978 1469.83725469528",
+                                                "hit_point {\"point\": [-1713.2603026405727, 132.85963649318523], \"time\": 9.3091130733802, \"self_distance\": 10333.115511452022, \"target_distance\": 2066.6231022904044}\n\u53ef\u4ee5\u547d\u4e2d\u654c\u673a fire missile -137.3726494916978 1469.83725469528",
+                                                "hit_point {\"point\": [-1713.2603026405727, 132.85963649318523], \"time\": 9.3091130733802, \"self_distance\": 10333.115511452022, \"target_distance\": 2066.6231022904044}\n\u53ef\u4ee5\u547d\u4e2d\u654c\u673a fire missile -137.3726494916978 1469.83725469528"
+                                            ]
+                                        }
+                                    }
+                                ],
+                                "data": {
+                                    "id": "80789201b95d45649153e49eda82d144",
+                                    "status": "FAILURE",
+                                    "type": "composite",
+                                    "tag": "Sequence",
+                                    "feedback_message": "",
+                                    "name": "Sequence",
+                                    "children_count": 2,
+                                    "memory": true
+                                }
+                            },
+                            {
+                                "tag": "Sequence",
+                                "children": [
+                                    {
+                                        "tag": "MissileThreatDetected",
+                                        "children": [],
+                                        "data": {
+                                            "id": "cbc38112300044aa837b37d1fc359fca",
+                                            "status": "SUCCESS",
+                                            "type": "condition",
+                                            "tag": "MissileThreatDetected",
+                                            "feedback_message": "",
+                                            "name": "MissileThreatDetected",
+                                            "children_count": 0,
+                                            "agent_name": "red_1",
+                                            "update_messages": []
+                                        }
+                                    },
+                                    {
+                                        "tag": "EvadeMissile",
+                                        "children": [],
+                                        "data": {
+                                            "id": "5e99ac76d26a4fe7b62966b58fa7aed2",
+                                            "status": "SUCCESS",
+                                            "type": "action",
+                                            "tag": "EvadeMissile",
+                                            "feedback_message": "",
+                                            "name": "EvadeMissile",
+                                            "children_count": 0,
+                                            "actions": [
+                                                "(<Actions.go_to_location: 1>, -121.56570085290184, -421.65086644211124)",
+                                                "(<Actions.go_to_location: 1>, -121.56570085290184, -421.65086644211124)",
+                                                "(<Actions.go_to_location: 1>, 0, 0)"
+                                            ],
+                                            "agent_name": "red_1",
+                                            "update_messages": [
+                                                "test_agents=8 missiles=15\nmax_under_hit_point {\"point\": [-761.6526225711798, -3838.6716260200087], \"time\": 15.659709002887993, \"self_distance\": 17382.276993205673, \"target_distance\": 3476.4553986411347}\ngo to location (-121.56570085290184, -421.65086644211124)",
+                                                "test_agents=8 missiles=15\nmax_under_hit_point {\"point\": [-4697.537105129389, -24849.87889783681], \"time\": 111.95101503424499, \"self_distance\": 124265.62668801194, \"target_distance\": 24853.12533760239}\ngo to location (-121.56570085290184, -421.65086644211124)",
+                                                "test_agents=8 missiles=15\nmax_under_hit_point {\"point\": [-4669.026428230752, -24697.678358305806], \"time\": 111.25350210504858, \"self_distance\": 123491.38733660393, \"target_distance\": 24698.277467320786}\ngo to location (-121.56570085290184, -421.65086644211124)",
+                                                "test_agents=8 missiles=15\nmax_under_hit_point {\"point\": [-4630.164678829194, -24490.219964839238], \"time\": 110.30275047066448, \"self_distance\": 122436.05302243757, \"target_distance\": 24487.210604487515}\ngo to location (-121.56570085290184, -421.65086644211124)",
+                                                "test_agents=8 missiles=15\nmax_under_hit_point {\"point\": [-4567.067456439218, -24153.383651734337], \"time\": 108.75907865361647, \"self_distance\": 120722.57730551428, \"target_distance\": 24144.515461102856}\ngo to location (-121.56570085290184, -421.65086644211124)",
+                                                "test_agents=8 missiles=15\nmax_under_hit_point {\"point\": [-4508.950088073366, -23843.13164148383], \"time\": 107.33723882883176, \"self_distance\": 119144.33510000326, \"target_distance\": 23828.86702000065}\ngo to location (-121.56570085290184, -421.65086644211124)",
+                                                "test_agents=8 missiles=15\nmax_under_hit_point {\"point\": [-4440.298151376172, -23476.6422086896], \"time\": 105.65767107844441, \"self_distance\": 117280.0148970733, \"target_distance\": 23456.002979414658}\ngo to location (-121.56570085290184, -421.65086644211124)",
+                                                "test_agents=8 missiles=15\nmax_under_hit_point {\"point\": [-4729.4818144473975, -25020.41157268868], \"time\": 112.7325414724965, \"self_distance\": 125133.12103447111, \"target_distance\": 25026.624206894223}\ngo to location (-121.56570085290184, -421.65086644211124)",
+                                                "test_agents=8 missiles=15\nmax_under_hit_point {\"point\": [-4690.5214056490295, -24812.426498867317], \"time\": 111.77937613867246, \"self_distance\": 124075.10751392643, \"target_distance\": 24815.021502785286}\ngo to location (-121.56570085290184, -421.65086644211124)",
+                                                "test_agents=8 missiles=15\nmax_under_hit_point {\"point\": [-4690.889291832623, -24814.39041139833], \"time\": 111.78837646407482, \"self_distance\": 124085.09787512304, \"target_distance\": 24817.01957502461}\ngo to location (-121.56570085290184, -421.65086644211124)"
+                                            ]
+                                        }
+                                    }
+                                ],
+                                "data": {
+                                    "id": "f4dce6b235b445ddb453e94536ff582a",
+                                    "status": "SUCCESS",
+                                    "type": "composite",
+                                    "tag": "Sequence",
+                                    "feedback_message": "",
+                                    "name": "Sequence",
+                                    "children_count": 2,
+                                    "memory": true
+                                }
+                            },
+                            {
+                                "tag": "GoHome",
+                                "children": [],
+                                "data": {
+                                    "id": "9ff49ff27f3e413bac8de3643560f715",
+                                    "status": "INVALID",
+                                    "type": "action",
+                                    "tag": "GoHome",
+                                    "feedback_message": "",
+                                    "name": "GoHome",
+                                    "children_count": 0,
+                                    "actions": [
+                                        "(<Actions.go_to_location: 1>, -121.56570085290184, -421.65086644211124)",
+                                        "(<Actions.go_to_location: 1>, -121.56570085290184, -421.65086644211124)",
+                                        "(<Actions.go_to_location: 1>, 0, 0)"
+                                    ],
+                                    "agent_name": "red_1",
+                                    "update_messages": []
+                                }
+                            }
+                        ],
+                        "data": {
+                            "id": "2429520f88094e55be537fce6f9be1a4",
+                            "status": "SUCCESS",
+                            "type": "composite",
+                            "tag": "Selector",
+                            "feedback_message": "",
+                            "name": "Selector",
+                            "children_count": 3,
+                            "memory": true
+                        }
+                    },
+                    {
+                        "tag": "Sequence",
+                        "children": [
+                            {
+                                "tag": "IsInSafeArea",
+                                "children": [],
+                                "data": {
+                                    "id": "617d8b51f6214acd90c9acb261711a6e",
+                                    "status": "SUCCESS",
+                                    "type": "condition",
+                                    "tag": "IsInSafeArea",
+                                    "feedback_message": "",
+                                    "name": "IsInSafeArea",
+                                    "children_count": 0,
+                                    "agent_name": "red_1",
+                                    "update_messages": []
+                                }
+                            },
+                            {
+                                "tag": "Selector",
+                                "children": [
+                                    {
+                                        "tag": "Sequence",
+                                        "children": [
+                                            {
+                                                "tag": "IsOnActiveRoute",
+                                                "children": [],
+                                                "data": {
+                                                    "id": "016d4f5acbac42c09d3889880b6b44f5",
+                                                    "status": "SUCCESS",
+                                                    "type": "condition",
+                                                    "tag": "IsOnActiveRoute",
+                                                    "feedback_message": "",
+                                                    "name": "IsOnActiveRoute",
+                                                    "children_count": 0,
+                                                    "agent_name": "red_1",
+                                                    "update_messages": []
+                                                }
+                                            },
+                                            {
+                                                "tag": "PursueNearestEnemy",
+                                                "children": [],
+                                                "data": {
+                                                    "id": "1fbae1da8aec4c1d898ca5b025a2c6c2",
+                                                    "status": "SUCCESS",
+                                                    "type": "action",
+                                                    "tag": "PursueNearestEnemy",
+                                                    "feedback_message": "",
+                                                    "name": "PursueNearestEnemy",
+                                                    "children_count": 0,
+                                                    "actions": [
+                                                        "(<Actions.go_to_location: 1>, -121.56570085290184, -421.65086644211124)",
+                                                        "(<Actions.go_to_location: 1>, -121.56570085290184, -421.65086644211124)",
+                                                        "(<Actions.go_to_location: 1>, 0, 0)"
+                                                    ],
+                                                    "agent_name": "red_1",
+                                                    "update_messages": [
+                                                        "test_agents=8 ",
+                                                        "test_agents=8 ",
+                                                        "test_agents=8 ",
+                                                        "test_agents=8 ",
+                                                        "test_agents=8 ",
+                                                        "test_agents=8 ",
+                                                        "test_agents=8 ",
+                                                        "test_agents=8 ",
+                                                        "test_agents=8 ",
+                                                        "test_agents=8 "
+                                                    ],
+                                                    "attack_ratio": 0.7,
+                                                    "evade_ratio": 0.3
+                                                }
+                                            }
+                                        ],
+                                        "data": {
+                                            "id": "cc40efd795624d9daa1bc6d4362ec64e",
+                                            "status": "SUCCESS",
+                                            "type": "composite",
+                                            "tag": "Sequence",
+                                            "feedback_message": "",
+                                            "name": "Sequence",
+                                            "children_count": 2,
+                                            "memory": true
+                                        }
+                                    },
+                                    {
+                                        "tag": "Explore",
+                                        "children": [],
+                                        "data": {
+                                            "id": "f85d174a42464dbe92d254e6212fe6b6",
+                                            "status": "INVALID",
+                                            "type": "action",
+                                            "tag": "Explore",
+                                            "feedback_message": "",
+                                            "name": "Explore",
+                                            "children_count": 0,
+                                            "actions": [
+                                                "(<Actions.go_to_location: 1>, -121.56570085290184, -421.65086644211124)",
+                                                "(<Actions.go_to_location: 1>, -121.56570085290184, -421.65086644211124)",
+                                                "(<Actions.go_to_location: 1>, 0, 0)"
+                                            ],
+                                            "agent_name": "red_1",
+                                            "update_messages": [
+                                                "\u5f53\u524dagent\u8fd8\u6709\u6ca1\u6709\u5b8c\u6210\u7684\u8def\u7ebf",
+                                                "\u5f53\u524dagent\u8fd8\u6709\u6ca1\u6709\u5b8c\u6210\u7684\u8def\u7ebf",
+                                                "\u5f53\u524dagent\u8fd8\u6709\u6ca1\u6709\u5b8c\u6210\u7684\u8def\u7ebf",
+                                                "\u5f53\u524dagent\u8fd8\u6709\u6ca1\u6709\u5b8c\u6210\u7684\u8def\u7ebf",
+                                                "\u5f53\u524dagent\u8fd8\u6709\u6ca1\u6709\u5b8c\u6210\u7684\u8def\u7ebf",
+                                                "\u5f53\u524dagent\u8fd8\u6709\u6ca1\u6709\u5b8c\u6210\u7684\u8def\u7ebf",
+                                                "\u5f53\u524dagent\u8fd8\u6709\u6ca1\u6709\u5b8c\u6210\u7684\u8def\u7ebf",
+                                                "\u5f53\u524dagent\u8fd8\u6709\u6ca1\u6709\u5b8c\u6210\u7684\u8def\u7ebf",
+                                                "\u5f53\u524dagent\u8fd8\u6709\u6ca1\u6709\u5b8c\u6210\u7684\u8def\u7ebf",
+                                                ""
+                                            ]
+                                        }
+                                    }
+                                ],
+                                "data": {
+                                    "id": "961eaab71c08431b8f46cca968669648",
+                                    "status": "SUCCESS",
+                                    "type": "composite",
+                                    "tag": "Selector",
+                                    "feedback_message": "",
+                                    "name": "Selector",
+                                    "children_count": 2,
+                                    "memory": true
+                                }
+                            }
+                        ],
+                        "data": {
+                            "id": "853eac36b6d0489180361067847add74",
+                            "status": "SUCCESS",
+                            "type": "composite",
+                            "tag": "Sequence",
+                            "feedback_message": "",
+                            "name": "Sequence",
+                            "children_count": 2,
+                            "memory": true
+                        }
+                    }
+                ],
+                "data": {
+                    "id": "2312decf8d134f209765a1d064b66d84",
+                    "status": "SUCCESS",
+                    "type": "composite",
+                    "tag": "Parallel",
+                    "feedback_message": "",
+                    "name": "Parallel",
+                    "children_count": 2,
+                    "success_threshold": 1
+                }
+            },
+            {
+                "tag": "Selector",
+                "children": [
+                    {
+                        "tag": "Sequence",
+                        "children": [
+                            {
+                                "tag": "IsMissileDepleted",
+                                "children": [],
+                                "data": {
+                                    "id": "1cfe043ed39d4e58b2cfe8b4769f78b0",
+                                    "status": "FAILURE",
+                                    "type": "condition",
+                                    "tag": "IsMissileDepleted",
+                                    "feedback_message": "",
+                                    "name": "IsMissileDepleted",
+                                    "children_count": 0,
+                                    "agent_name": "red_1",
+                                    "update_messages": []
+                                }
+                            },
+                            {
+                                "tag": "GoHome",
+                                "children": [],
+                                "data": {
+                                    "id": "b53badfd7d5a449aa083733b8a5ae005",
+                                    "status": "INVALID",
+                                    "type": "action",
+                                    "tag": "GoHome",
+                                    "feedback_message": "",
+                                    "name": "GoHome",
+                                    "children_count": 0,
+                                    "actions": [
+                                        "(<Actions.go_to_location: 1>, -121.56570085290184, -421.65086644211124)",
+                                        "(<Actions.go_to_location: 1>, -121.56570085290184, -421.65086644211124)",
+                                        "(<Actions.go_to_location: 1>, 0, 0)"
+                                    ],
+                                    "agent_name": "red_1",
+                                    "update_messages": []
+                                }
+                            }
+                        ],
+                        "data": {
+                            "id": "faca56c0bb9f49689c9bf3b48ba490e1",
+                            "status": "FAILURE",
+                            "type": "composite",
+                            "tag": "Sequence",
+                            "feedback_message": "",
+                            "name": "Sequence",
+                            "children_count": 2,
+                            "memory": true
+                        }
+                    },
+                    {
+                        "tag": "Sequence",
+                        "children": [
+                            {
+                                "tag": "IsFuelBingo",
+                                "children": [],
+                                "data": {
+                                    "id": "1ab9f50bafcf44c9a6209f68ad40ea84",
+                                    "status": "FAILURE",
+                                    "type": "condition",
+                                    "tag": "IsFuelBingo",
+                                    "feedback_message": "",
+                                    "name": "IsFuelBingo",
+                                    "children_count": 0,
+                                    "agent_name": "red_1",
+                                    "update_messages": []
+                                }
+                            },
+                            {
+                                "tag": "GoHome",
+                                "children": [],
+                                "data": {
+                                    "id": "21cce0dac7f04093866ba63533b10f79",
+                                    "status": "INVALID",
+                                    "type": "action",
+                                    "tag": "GoHome",
+                                    "feedback_message": "",
+                                    "name": "GoHome",
+                                    "children_count": 0,
+                                    "actions": [
+                                        "(<Actions.go_to_location: 1>, -121.56570085290184, -421.65086644211124)",
+                                        "(<Actions.go_to_location: 1>, -121.56570085290184, -421.65086644211124)",
+                                        "(<Actions.go_to_location: 1>, 0, 0)"
+                                    ],
+                                    "agent_name": "red_1",
+                                    "update_messages": []
+                                }
+                            }
+                        ],
+                        "data": {
+                            "id": "d087e84260db4327b9af2c8e5b934518",
+                            "status": "FAILURE",
+                            "type": "composite",
+                            "tag": "Sequence",
+                            "feedback_message": "",
+                            "name": "Sequence",
+                            "children_count": 2,
+                            "memory": true
+                        }
+                    },
+                    {
+                        "tag": "GoToCenter",
+                        "children": [],
+                        "data": {
+                            "id": "46a21efa097249e9ad2a8be0266fc1a1",
+                            "status": "SUCCESS",
+                            "type": "action",
+                            "tag": "GoToCenter",
+                            "feedback_message": "",
+                            "name": "GoToCenter",
+                            "children_count": 0,
+                            "actions": [
+                                "(<Actions.go_to_location: 1>, -121.56570085290184, -421.65086644211124)",
+                                "(<Actions.go_to_location: 1>, -121.56570085290184, -421.65086644211124)",
+                                "(<Actions.go_to_location: 1>, 0, 0)"
+                            ],
+                            "agent_name": "red_1",
+                            "update_messages": []
+                        }
+                    }
+                ],
+                "data": {
+                    "id": "4d10425c12ae47cc8a3de9a493cd23fc",
+                    "status": "SUCCESS",
+                    "type": "composite",
+                    "tag": "Selector",
+                    "feedback_message": "",
+                    "name": "Selector",
+                    "children_count": 3,
+                    "memory": true
+                }
+            }
+        ],
+        "data": {
+            "id": "5c990cfef76b49f096de51d9986cba99",
+            "status": "SUCCESS",
+            "type": "composite",
+            "tag": "Sequence",
+            "feedback_message": "",
+            "name": "Sequence",
+            "children_count": 3,
+            "memory": true
+        }
+    }
+}

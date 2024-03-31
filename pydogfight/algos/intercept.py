@@ -14,9 +14,9 @@ class InterceptPointResult:
 
     def __init__(self, point: tuple[float, float], time: float, self_distance: float, target_distance: float):
         self.point = point
-        self.time = time
-        self.self_distance = self_distance
-        self.target_distance = target_distance
+        self.time = float(time)
+        self.self_distance = float(self_distance)
+        self.target_distance = float(target_distance)
 
     def to_dict(self):
         return {
@@ -27,7 +27,8 @@ class InterceptPointResult:
         }
 
     def __str__(self):
-        return json.dumps(self.to_dict(), indent=4, ensure_ascii=False)
+        # return f"{self.self_distance} -> {self.target_distance}"
+        return json.dumps(self.to_dict(), ensure_ascii=False)
 
 
 def predict_intercept_point(

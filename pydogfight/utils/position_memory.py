@@ -1,42 +1,7 @@
 from __future__ import annotations
 
-import time
-
 from pydogfight.core.models import BoundingBox
-from collections import defaultdict
 import numpy as np
-import random
-
-
-# class PositionMemory:
-#     def __init__(self, boundary: BoundingBox, sep: int):
-#         self.boundary: BoundingBox = boundary
-#         self.sep = sep
-#         self.memory = defaultdict(int)
-#
-#     def reset(self):
-#         memory = defaultdict(int)
-#         x_range = self.boundary.int_x_range
-#         y_range = self.boundary.int_y_range
-#         for x in range(x_range[0], x_range[1], self.sep):
-#             for y in range(y_range[0], y_range[1], self.sep):
-#                 key = (int(x / self.sep), int(y / self.sep))
-#                 memory[key] = 0
-#         self.memory = memory
-#
-#     def pick_position(self):
-#         """
-#         从记忆中提取出一个走的最少的点
-#         :return:
-#         """
-#         min_value = min(self.memory.values())
-#         min_pos = []
-#         for pos in self.memory:
-#             if self.memory[pos] == min_value:
-#                 min_pos.append(pos)
-#         min_pos = random.choice(min_pos)
-#         return min_pos[0] * self.sep, min_pos[1] * self.sep
-
 
 class PositionMemory:
     def __init__(self, boundary: BoundingBox, sep: int):

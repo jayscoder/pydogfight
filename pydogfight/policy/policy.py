@@ -1,13 +1,9 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Union, Tuple, List, Optional
+from typing import List
 from pydogfight.envs import Dogfight2dEnv
-import numpy as np
 from queue import Queue
-from collections import defaultdict
-import random
-from pydogfight.core.actions import *
 from pydogfight.core.world_obj import Aircraft
 
 
@@ -20,17 +16,18 @@ class Policy(ABC):
         self.actions = Queue()
         self._has_setup = False
 
+    def _setup(self):
+        self._has_setup = True
+        pass
+
     def reset(self):
+        if not self._has_setup:
+            self._has_setup = True
+            self._setup()
         self.last_time = 0
         while not self.actions.empty():
             # 清空actions
             self.actions.get_nowait()
-        if not self._has_setup:
-            self._has_setup = True
-            self._setup()
-
-    def _setup(self):
-        pass
 
     def select_action(self):
         # 根据当前状态选择动作，obs的第一个是自己
@@ -78,35 +75,18 @@ class AgentPolicy(Policy, ABC):
         return self.env.gen_agent_obs(agent_name=self.agent_name)
 
 
-class MultiAgentPolicy(Policy):
-    def __init__(self, env: Dogfight2dEnv, policies: List[AgentPolicy]):
-        super().__init__(env=env, update_interval=0)
+class MultiAgentPolicy:
+    def __init__(self, *policies: AgentPolicy):
         self.policies = policies
 
     def reset(self):
-        super().reset()
         for policy in self.policies:
             policy.reset()
 
     def put_action(self):
-        while not self.actions.empty():
-            self.env.put_action(action=self.actions.get_nowait())
+        for policy in self.policies:
+            policy.put_action()
 
-    def execute(self, observation, delta_time: float):
-        for p in self.policies:
-            p.select_action()
-        over = [p.actions.empty() for p in self.policies]
-
-        while not all(over):
-            act_value = self.env.empty_action()
-            for i, p in enumerate(self.policies):
-                if over[i]:
-                    continue
-                if p.actions.empty():
-                    over[i] = True
-                    continue
-                act_value[p.agent_index, :] = p.actions.get_nowait()
-            self.actions.put_nowait(act_value)
-
-    def gen_obs(self):
-        return self.env.gen_obs()
+    def select_action(self):
+        for policy in self.policies:
+            policy.select_action()

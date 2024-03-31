@@ -1,12 +1,8 @@
 from __future__ import annotations
 
 from pydogfight.core.world_obj import *
-from pydogfight.algos.traj import calc_optimal_path, Waypoint
 from pydogfight.core.options import Options
-from pydogfight.core.actions import Actions
-import math
 from collections import defaultdict
-
 
 class BattleArea:
     def __init__(self, options: Options, render_mode: str = 'rgb_array'):

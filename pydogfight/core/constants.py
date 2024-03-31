@@ -5,7 +5,6 @@ import numpy as np
 TILE_PIXELS = 32
 import os
 
-
 def _hex_color(color: str) -> tuple[int, int, int]:
     # 将十六进制颜色代码转换为RGB值
     r = int(color[0:2], 16)  # 转换红色分量

@@ -1,84 +1,93 @@
 from __future__ import annotations
 
-import py_trees
-from abc import ABC
-from typing import Callable
-import xml.etree.ElementTree as ET
-from xml.etree.ElementTree import Element
-import copy
+import queue
+
+import pybts
+
 from pydogfight.policy.policy import Policy, AgentPolicy
-from py_trees.behaviour import Behaviour
-from py_trees.composites import *
-from py_trees.common import Status
-from py_trees.trees import BehaviourTree
-from py_trees import visitors
-from queue import Queue
 from pydogfight.envs import Dogfight2dEnv, Aircraft
 from abc import ABC
-from pydogfight.bt.node import BTNode
 
 
-class BTPolicyNode(BTNode, ABC):
-    def __init__(self, name: str):
+class BTPolicyNode(pybts.Node, ABC):
+    """
+    BT Policy Base Class Node
+    """
+
+    def __init__(self, name: str = ''):
         super().__init__(name=name)
         self.env: Dogfight2dEnv | None = None
         self.share_cache = { }
         self.agent_name = ''
-        self.update_interval = 0
-        self.actions: Queue | None = None
+        self.update_messages = queue.Queue(maxsize=10)  # update过程中的message
 
     @property
-    def agent(self) -> Aircraft:
+    def agent(self) -> Aircraft | None:
+        if self.env is None:
+            return None
         return self.env.get_agent(self.agent_name)
 
-    def reset(self):
-        pass
+    def put_update_message(self, msgs: list):
+        if self.update_messages.full():
+            self.update_messages.get_nowait()
+        self.update_messages.put_nowait('\n'.join(msgs))
 
-    @classmethod
-    def creator(cls, d, c):
-        return cls(name=d['name'])
-
-    def update(self) -> Status:
-        return Status.INVALID
-
-
-class BTPolicyAction(BTPolicyNode, ABC):
-    pass
+    def to_data(self):
+        return {
+            **super().to_data(),
+            'agent_name'     : self.agent_name,
+            'update_messages': pybts.utility.read_queue_without_destroying(self.update_messages)
+        }
 
 
-class BTPolicyCondition(BTPolicyNode, ABC):
-    pass
+class BTPolicyAction(BTPolicyNode, pybts.Action, ABC):
+    """BT Policy Action Node"""
+
+    def to_data(self):
+        return {
+            **super().to_data(),
+            **pybts.Action.to_data(self)
+        }
+
+
+class BTPolicyCondition(BTPolicyNode, pybts.Condition, ABC):
+    """
+    BT Policy Condition Node
+    """
+
+    def to_data(self):
+        return {
+            **super().to_data(),
+            **pybts.Condition.to_data(self)
+        }
 
 
 class BTPolicy(AgentPolicy):
     def __init__(self,
-                 root: Behaviour,
+                 tree: pybts.Tree,
                  env: Dogfight2dEnv,
                  agent_name: str,
                  update_interval: float = 1,
-                 visitor: typing.Optional[visitors.VisitorBase] = None,
                  ):
         super().__init__(env=env, agent_name=agent_name, update_interval=update_interval)
-        self.tree = BehaviourTree(root)
+        self.tree = tree
         self.share_cache = { }
         for node in self.tree.root.iterate():
             if isinstance(node, BTPolicyNode):
                 node.share_cache = self.share_cache
                 node.env = env
                 node.agent_name = agent_name
-                node.update_interval = update_interval
+            if isinstance(node, pybts.Action):
                 node.actions = self.actions
-        if visitor is not None:
-            self.tree.add_visitor(visitor)
 
     def _setup(self):
+        super()._setup()
         self.tree.setup()
 
     def reset(self):
         super().reset()
-        for node in self.tree.root.iterate():
-            if isinstance(node, BTNode):
-                node.reset()
+        self.share_cache.clear()
+        self.tree.reset()
 
     def execute(self, observation, delta_time: float):
         self.tree.tick()

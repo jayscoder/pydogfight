@@ -1,7 +1,6 @@
 from .agent_wrapper import AgentWrapper
-from pydogfight.policy import *
-from pydogfight.policy import Policy
-
+from ..policy import *
+from ..policy import Policy
 
 class ModelTrainWrapper(AgentWrapper):
     """

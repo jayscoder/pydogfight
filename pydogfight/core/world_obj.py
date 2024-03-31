@@ -1,20 +1,16 @@
 from __future__ import annotations
 
-import types
 from typing import Tuple, TYPE_CHECKING, Union, Optional
 
 import numpy as np
 
-from pydogfight.core.constants import *
 from pydogfight.core.actions import *
-import random
 from queue import Queue
-from pydogfight.utils.rendering import pygame_load_img
 from pydogfight.core.models import Waypoint
 from pydogfight.algos.traj import calc_optimal_path, OptimalPathParam
 from pydogfight.algos.intercept import predict_intercept_point, InterceptPointResult
-import math
 from pydogfight.utils.rendering import *
+from pydogfight.utils.common import read_queue_without_destroying
 import weakref
 import json
 
@@ -46,11 +42,14 @@ class WorldObj:
         self.psi = psi
 
         self.destroyed = False  # 是否已经被摧毁
+        self.destroyed_reason = ''  # 被摧毁的原因
 
+        self.target_location = None # 目标点
         self.route: np.ndarray | None = None  # 需要遵循的轨迹
         self.route_index: int = -1
 
-        self.actions = Queue()  # 等待消费的行为，每一项是个列表
+        self.waiting_actions = Queue(maxsize=10)  # 等待消费的行为，每一项是个列表
+        self.consumed_actions = Queue(maxsize=10)  # 最近消费的10个动作
         self._area = None  # 战场
         # (0, -, -) 0代表什么也不做
         # （1, x, y）飞到指定位置
@@ -74,6 +73,9 @@ class WorldObj:
         return obj
 
     def to_dict(self):
+        route = self.route
+        if route is not None:
+            route = len(route)
         return {
             'name'            : self.name,
             'type'            : self.type,
@@ -81,16 +83,19 @@ class WorldObj:
             'speed'           : self.speed,
             'turn_radius'     : self.turn_radius,
             'collision_radius': self.collision_radius,
-            'x'               : self.x,
-            'y'               : self.y,
-            'psi'             : self.psi,
+            'x'               : float(self.x),
+            'y'               : float(self.y),
+            'psi'             : float(self.psi),
             'destroyed'       : self.destroyed,
-            'route'           : list(self.route),
-            'route_index'     : self.route_index
+            'destroyed_reason': self.destroyed_reason,
+            'route'           : route,
+            'route_index'     : self.route_index,
+            'waiting_actions' : [str(act) for act in read_queue_without_destroying(self.waiting_actions)],
+            'consumed_actions': [str(act) for act in read_queue_without_destroying(self.consumed_actions)],
         }
 
     def __str__(self):
-        return json.dump(self.to_dict(), indent=4, ensure_ascii=False)
+        return json.dumps(self.to_dict(), indent=4, ensure_ascii=False)
 
     def __repr__(self):
         return self.__str__()
@@ -98,7 +103,11 @@ class WorldObj:
     def put_action(self, action):
         if self.destroyed:
             return
-        self.actions.put_nowait(action)
+        if action[0] == Actions.keep:
+            return
+        if self.waiting_actions.full():
+            self.waiting_actions.get_nowait()
+        self.waiting_actions.put_nowait(action)
 
     def attach(self, battle_area: 'BattleArea'):
         self._area = weakref.ref(battle_area)
@@ -165,11 +174,11 @@ class WorldObj:
             # 检查是否跑出了游戏范围
             game_x_range = (-self.options.game_size[0] / 2, self.options.game_size[0] / 2)
             game_y_range = (-self.options.game_size[1] / 2, self.options.game_size[1] / 2)
-
-            if self.x < game_x_range[0] or self.x > game_x_range[1]:
-                self.destroyed = True
-            elif self.y < game_y_range[0] or self.y > game_y_range[1]:
-                self.destroyed = True
+            boundary = BoundingBox.from_range(x_range=game_x_range, y_range=game_y_range)
+            if boundary.contains(self.location):
+                return
+            self.destroyed = True
+            self.destroyed_reason += 'Out of game range'
 
     def follow_route(self, route) -> bool:
         """
@@ -212,7 +221,7 @@ class WorldObj:
         self.x += dx
         self.y += dy
 
-    def move_toward(self, target: tuple[float, float], delta_time: float):
+    def move_toward_once(self, target: tuple[float, float], delta_time: float):
         next_wpt = calc_optimal_path(
                 start=self.waypoint,
                 target=target,
@@ -224,6 +233,24 @@ class WorldObj:
         self.y = next_wpt.y
         self.psi = next_wpt.psi
         return True
+
+    def go_to_location(self, target: tuple[float, float], delta_time: float, force: bool = False):
+
+        if self.route is not None and len(self.route) > 0 and not force:
+            # 当前还有未完成的路由
+            route_target = self.route[-1][:2]
+            target_distance = np.linalg.norm(route_target - np.array(target))
+            print(f'{self.name} target_distance', target_distance)
+            if target_distance <= self.speed * self.options.delta_time * 3:
+                # 如果目标点和自己当前的路由终点很接近，就不再重复导航了
+                return
+
+        # TODO: 当前的状态可能是在拐弯，计算最佳路径的时候需要考虑进去
+        # 需要移动
+        # 判断一下当前路由的终点是哪里
+        param = calc_optimal_path(self.waypoint, (target[0], target[1]), self.turn_radius)
+        self.route = param.generate_traj(delta_time * self.speed)
+        self.route_index = 0
 
     def generate_test_moves(self, angles: list, dis: float) -> list[WorldObj]:
         """
@@ -239,7 +266,7 @@ class WorldObj:
                 self.x + math.cos(math.radians(angle)) * dis,
                 self.y + math.sin(math.radians(angle)) * dis,
             )
-            obj_tmp.move_toward(target=target_point, delta_time=dis / self.speed)
+            obj_tmp.move_toward_once(target=target_point, delta_time=dis / self.speed)
             objs.append(obj_tmp)
         return objs
 
@@ -344,36 +371,6 @@ class Aircraft(WorldObj):
             self.destroyed = True
             return
 
-        while not self.actions.empty():
-            # 先执行动作
-            action = self.actions.get_nowait()
-            action_type = int(action[0])
-            # print(f'{self.name} 执行动作', Actions(action_type).name)
-            if action_type == Actions.go_to_location:
-                # 需要移动
-                param = calc_optimal_path(self.waypoint, (action[1], action[2]), self.turn_radius)
-                self.route = param.generate_traj(delta_time * self.speed)
-                self.route_index = 0
-            elif action_type == Actions.fire_missile and self.missile_count > 0:
-                # 需要发射导弹，以一定概率将对方摧毁
-                # 寻找离目标点最近的飞机
-                min_dis = float('inf')
-                fire_enemy: Aircraft | None = None
-                for enemy in area.objs.values():
-                    if isinstance(enemy, Aircraft) and enemy.color != self.color:
-                        dis = self.distance(enemy)
-                        if dis < min_dis and dis < self.radar_radius:
-                            # 只能朝雷达范围内的飞机发射导弹
-                            min_dis = dis
-                            fire_enemy = enemy
-
-                if fire_enemy is not None:
-                    self.missile_count -= 1
-                    area.add_obj(Missile(source=self, target=fire_enemy, time=area.time))
-                    # if random.random() < self.options.predict_missile_hit_prob(self, fire_enemy):
-                    #     fire_enemy.destroyed = True
-                    #     self.missile_destroyed_agents.append(fire_enemy.name)
-
         # 执行移动
         if not self.follow_route(route=self.route):
             self.move_forward(delta_time=delta_time)
@@ -384,10 +381,36 @@ class Aircraft(WorldObj):
         # 检查剩余油量
         if self.fuel <= 0:
             self.destroyed = True
+            self.destroyed_reason += 'Fuel is over'
+
+        while not self.waiting_actions.empty():
+            # 执行动作
+            action = self.waiting_actions.get_nowait()
+            if self.consumed_actions.full():
+                self.consumed_actions.get_nowait()
+            self.consumed_actions.put_nowait((round(area.time), action))  # 将消费的动作放入最近消费动作序列中
+
+            action_type = int(action[0])
+            action_target = action[1:]
+            # print(f'{self.name} 执行动作', Actions(action_type).name)
+            if action_type == Actions.go_to_location:
+                self.go_to_location(target=action_target, delta_time=delta_time)
+            elif action_type == Actions.fire_missile:
+                # 需要发射导弹，以一定概率将对方摧毁
+                # 寻找离目标点最近的飞机
+                self.fire_missile(target=action_target)
+            elif action_type == Actions.go_home:
+                self.go_home(delta_time=delta_time)
 
         self.check_in_game_range()
 
+    def go_home(self, delta_time: float):
+        home_position = self.area.get_obj(self.options.red_home).location
+        self.go_to_location(target=home_position, delta_time=delta_time, force=True)
+
     def fire_missile(self, target: tuple[float, float]):
+        if self.missile_count <= 0:
+            return
         # 需要发射导弹，以一定概率将对方摧毁
         # 寻找离目标点最近的飞机
         min_dis = float('inf')
@@ -438,8 +461,11 @@ class Aircraft(WorldObj):
         if self.destroyed:
             return
         if isinstance(obj, Aircraft):
-            obj.destroyed = True
             self.destroyed = True
+            self.destroyed_reason = f'Aircraft collision {obj.name}'
+        elif isinstance(obj, Missile) and obj.color != self.color:
+            self.destroyed = True
+            self.destroyed_reason = f'Missile hit by {obj.name}'
 
     def in_radar_range(self, obj: WorldObj) -> bool:
         """
@@ -530,12 +556,12 @@ class Missile(WorldObj):
     def on_collision(self, obj: WorldObj):
         if self.destroyed:
             return
-
         if isinstance(obj, Aircraft):
-            if obj == self.source:
+            if obj.color == self.color:
+                # 导弹暂时不攻击友方 TODO: 未来可能会修改
                 return
             self.destroyed = True
-            obj.destroyed = True
+            self.destroyed_reason += f'hit {obj.name}'
             self.source.missile_destroyed_agents.append(obj.name)
 
     def predict_aircraft_intercept_point(self, target: Aircraft) -> InterceptPointResult | None:

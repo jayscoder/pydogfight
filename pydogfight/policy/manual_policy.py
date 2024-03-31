@@ -2,9 +2,6 @@ from __future__ import annotations
 from pydogfight.policy.policy import AgentPolicy
 from pydogfight.envs.dogfight_2d_env import Dogfight2dEnv
 from pydogfight.core.actions import Actions
-from typing import List
-import pygame
-
 
 class ManualPolicy(AgentPolicy):
 
@@ -14,6 +11,7 @@ class ManualPolicy(AgentPolicy):
         self.control_agents = control_agents
 
     def execute(self, observation, delta_time: float):
+        import pygame
         agent = self.env.get_agent(self.agent_name)
         self.env.render_info['duration'] = f'{self.env.time:.0f} s'
         self.env.render_info['agent'] = self.agent_name
@@ -24,7 +22,7 @@ class ManualPolicy(AgentPolicy):
         self.env.render_info['missile'] = f'{agent.missile_count}'
         self.env.render_info['destroy_enemy'] = f'{agent.missile_destroyed_agents}'
 
-        self.env.render_info['actions'] = f'{agent.actions.qsize()}'
+        self.env.render_info['actions'] = f'{agent.waiting_actions.qsize()}'
 
         event = pygame.event.poll()
         # if event.type == pygame.QUIT:
