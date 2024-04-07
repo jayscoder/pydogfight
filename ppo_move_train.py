@@ -46,8 +46,8 @@ class ModelGoToLocationTrainWrapper(AgentWrapper):
             p.put_action()
         agent = self.env.get_agent(self.agent_name)
 
-        relative_waypoint = agent.waypoint.relative_waypoint(dx=action[0] * agent.radar_radius,
-                                                             dy=action[1] * agent.radar_radius)
+        relative_waypoint = agent.waypoint.relative_move(dx=action[0] * agent.radar_radius,
+                                                         dy=action[1] * agent.radar_radius)
 
         agent.put_action((Actions.go_to_location, relative_waypoint.x, relative_waypoint.y))
         self.env.update()

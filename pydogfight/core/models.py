@@ -47,12 +47,26 @@ class Waypoint:
         dy = other.y - self.y
         return (dx * dx + dy * dy) ** 0.5
 
-    def relative_waypoint(self, dx: float, dy: float) -> Waypoint:
-        """以自身为原点的相对位置"""
+    def relative_move(self, dx: float, dy: float) -> Waypoint:
+        """以自身为原点移动"""
         rad = self.standard_rad
         x = self.x + dx * math.cos(rad)
         y = self.y + dy * math.sin(rad)
         return Waypoint(x=x, y=y, psi=self.psi)
+
+    def relative_waypoint(self, other: 'Waypoint') -> Waypoint:
+        """以自身为原点的相对航迹点"""
+        dx = other.x - self.x
+        dy = other.y - self.y
+        dpsi = other.psi - self.psi
+        return Waypoint(x=dx, y=dy, psi=dpsi)
+
+    def relative_waypoint(self, other: 'Waypoint') -> Waypoint:
+        """以自身为原点的相对航迹点"""
+        dx = other.x - self.x
+        dy = other.y - self.y
+        dpsi = other.psi - self.psi
+        return Waypoint(x=dx, y=dy, psi=dpsi)
 
 
 class BoundingBox(object):

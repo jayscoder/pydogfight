@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import typing
 
 from pydogfight.core.models import BoundingBox
 from pydogfight.utils.position_memory import PositionMemory
@@ -11,8 +12,51 @@ import pybts
 from pybts import Status
 import os
 
-BASE_DIR = os.path.dirname(__file__)
-DEFAULT_BT_GREEDY_POLICY_FILE = os.path.join(BASE_DIR, 'bt_greedy_policy.xml')
+
+def _delay_updater(self: BTPolicyAction, time: float, status: Status) -> typing.Optional[Status]:
+    """
+    # 等待一段时间
+    :param self:
+    :param time: 等待的时间
+    :param status: 等待时间中的状态
+    :return:
+    """
+    start_time = self.env.time
+    while self.env.time - start_time < time:
+        yield status
+
+
+def _go_to_location_updater(self: BTPolicyAction, location: (float, float)) -> typing.Optional[Status]:
+    start_time = self.env.time
+    self.actions.put_nowait((Actions.go_to_location, location[0], location[1]))
+    yield Status.RUNNING
+    while not self.agent.is_reach_location(location):
+        yield Status.RUNNING
+        if self.env.time - start_time >= 15:
+            # 最多持续探索10秒
+            self.put_update_message('最多持续运行15秒')
+            break
+        if not self.agent.is_current_route_target(location):
+            # 当前目标点改变了
+            self.put_update_message('当前目标点改变了')
+            break
+    return
+
+
+def _detect_missiles(self: BTPolicyNode) -> list[Missile]:
+    missiles = []
+    agent = self.env.get_agent(self.agent_name)
+    for obj in self.env.battle_area.objs.values():
+        if obj.name == self.agent_name:
+            continue
+        if not agent.in_radar_range(obj) or obj.destroyed:
+            # 不在雷达范围内或者已经被摧毁了
+            continue
+        elif isinstance(obj, Missile):
+            if obj.color == agent.color:
+                continue
+            missiles.append(obj)
+    return missiles
 
 
 class InitGreedyPolicy(BTPolicyAction):
@@ -65,35 +109,18 @@ class InitGreedyPolicy(BTPolicyAction):
         if nearest_enemy is not None:
             self.share_cache['nearest_enemy'] = nearest_enemy.__copy__()
 
-        test_agents = self.agent.generate_test_moves(
-                angles=list(range(0, 360, 45)),
-                dis=self.agent.turn_radius * 20
+        self.share_cache['test_agents'] = self.agent.generate_test_moves(
+                in_safe_area=True
         )
 
-        test_agents = list(
-                filter(lambda agent: self.env.options.safe_boundary.contains(agent.location), test_agents))
-        self.share_cache['test_agents'] = test_agents
-
-        missiles = []
-        agent = self.env.get_agent(self.agent_name)
-        for obj in self.env.battle_area.objs.values():
-            if obj.name == self.agent_name:
-                continue
-            if not agent.in_radar_range(obj) or obj.destroyed:
-                # 不在雷达范围内或者已经被摧毁了
-                continue
-            elif isinstance(obj, Missile):
-                if obj.color == agent.color:
-                    continue
-                missiles.append(obj)
-        self.share_cache['missiles'] = missiles
+        self.share_cache['missiles'] = _detect_missiles(self)
         # 记忆走过的地方
         self.share_cache['memory'].add_position(self.agent.location)
         return Status.SUCCESS
 
     def reset(self):
         super().reset()
-        self.share_cache['memory'] = PositionMemory(boundary=self.env.options.safe_boundary, sep=self.memory_sep)
+        self.share_cache['memory'] = PositionMemory(boundary=self.env.options.safe_boundary(), sep=self.memory_sep)
 
 
 class GoHome(BTPolicyAction):
@@ -104,10 +131,10 @@ class GoHome(BTPolicyAction):
     - ALWAYS SUCCESS: 返回基地的操作被设计为总是成功，假定基地是可以到达的，并且代理具有返回基地的能力。
     """
 
-    def update(self) -> Status:
+    def updater(self) -> typing.Iterator[Status]:
         home_obj = self.env.get_home(self.agent.color)
-        self.actions.put_nowait((Actions.go_to_location, home_obj.x, home_obj.y))
-        return Status.SUCCESS
+        yield from _go_to_location_updater(self, home_obj.location)
+        yield Status.SUCCESS
 
 
 class IsFuelBingo(BTPolicyCondition):
@@ -146,7 +173,7 @@ class MissileThreatDetected(BTPolicyCondition):
     """
 
     def update(self) -> Status:
-        missiles = self.share_cache['missiles']
+        missiles = _detect_missiles(self)
         if len(missiles) > 0:
             return Status.SUCCESS
         else:
@@ -161,10 +188,14 @@ class EnemyDetected(BTPolicyCondition):
     """
 
     def update(self) -> Status:
-        if 'nearest_enemy' not in self.share_cache:
+        enemy = self.env.battle_area.find_nearest_enemy(
+                agent_name=self.agent_name,
+                ignore_radar=False)
+
+        if enemy is None:
+            self.put_update_message('No nearest enemy')
             return Status.FAILURE
-        if self.share_cache['nearest_enemy'] is None:
-            return Status.FAILURE
+
         return Status.SUCCESS
 
 
@@ -174,9 +205,9 @@ class GoToCenter(BTPolicyAction):
     - ALWAYS SUCCESS
     """
 
-    def update(self) -> Status:
-        self.actions.put_nowait((Actions.go_to_location, 0, 0))
-        return Status.SUCCESS
+    def updater(self) -> typing.Iterator[Status]:
+        yield from _go_to_location_updater(self, (0, 0))
+        yield Status.SUCCESS
 
     @classmethod
     def creator(cls, d, c):
@@ -203,11 +234,17 @@ class IsInSafeArea(BTPolicyCondition):
     - FAILURE: 不处于
     """
 
+    def to_data(self):
+        return {
+            **super().to_data(),
+            'distance'            : self.agent.distance((0, 0)),
+            'bullseye_safe_radius': self.env.options.bullseye_safe_radius()
+        }
+
     def update(self) -> Status:
-        bounds = BoundingBox.from_range(x_range=self.env.options.safe_x_range, y_range=self.env.options.safe_y_range)
-        if bounds.contains(self.agent.location):
-            return Status.SUCCESS
-        return Status.FAILURE
+        if self.agent.distance((0, 0)) >= self.env.options.bullseye_safe_radius():
+            return Status.FAILURE
+        return Status.SUCCESS
 
     @classmethod
     def creator(cls, d, c):
@@ -221,15 +258,18 @@ class EvadeMissile(BTPolicyAction):
     - FAILURE: 规避失败（可能是不存在来袭导弹、无法规避导弹）
     """
 
-    def update(self) -> Status:
-        missiles = self.share_cache['missiles']
-        test_agents = self.share_cache['test_agents']
-        update_messages = [f'test_agents={len(test_agents)} missiles={len(missiles)}']
-        if len(missiles) == 0:
-            update_messages.append('No missiles')
-            self.put_update_message(update_messages)
-            return Status.FAILURE
+    def updater(self) -> typing.Iterator[Status]:
+        # 获取导弹
+        missiles = []
+        for mis in self.env.battle_area.missiles:
+            if not self.agent.in_radar_range(mis) or mis.destroyed:
+                # 不在雷达范围内或者已经被摧毁了
+                continue
+            if mis.color == self.agent.color:
+                continue
+            missiles.append(mis)
 
+        test_agents = self.agent.generate_test_moves(in_safe_area=True)
         # 从周围8个点中寻找一个能够让导弹飞行时间最长的点来飞
         max_under_hit_point = None
         go_to_location = None
@@ -242,16 +282,12 @@ class EvadeMissile(BTPolicyAction):
                     max_under_hit_point = under_hit_point
                     go_to_location = agent_tmp.location
 
-        if go_to_location is not None:
-            self.actions.put_nowait((Actions.go_to_location, go_to_location[0], go_to_location[1]))
+        if go_to_location is None:
+            yield Status.FAILURE
+            return
 
-            update_messages.append(f'max_under_hit_point {max_under_hit_point}')
-            update_messages.append(f'go to location {go_to_location}')
-            self.put_update_message(update_messages)
-            return Status.SUCCESS
-
-        self.put_update_message(update_messages)
-        return Status.FAILURE
+        yield from _go_to_location_updater(self, go_to_location)
+        yield Status.SUCCESS
 
     @classmethod
     def creator(cls, d, c):
@@ -265,30 +301,32 @@ class AttackNearestEnemy(BTPolicyAction):
     - FAILURE: 发射导弹失败（可能是没有发现最近敌机、剩余导弹为空、无法攻击到敌机）
     """
 
-    def update(self) -> Status:
-        update_messages = []
-        if 'nearest_enemy' not in self.share_cache:
-            update_messages.append('not found nearest_enemy')
-            self.put_update_message(update_messages)
-            return Status.FAILURE
-
+    def updater(self) -> typing.Iterator[Status]:
         if self.agent.missile_count <= 0:
-            update_messages.append('missile_count == 0')
-            self.put_update_message(update_messages)
-            return Status.FAILURE
+            self.put_update_message('Missile Count == 0')
+            yield Status.FAILURE
+            return
+        enemy = self.env.battle_area.find_nearest_enemy(
+                agent_name=self.agent_name,
+                ignore_radar=False)
 
-        enemy = self.share_cache['nearest_enemy']
+        if enemy is None:
+            self.put_update_message('No nearest enemy')
+            yield Status.FAILURE
+            return
+
         hit_point = self.agent.predict_missile_intercept_point(target=enemy)
 
-        update_messages.append(f'hit_point {hit_point}')
+        self.put_update_message(f'hit_point {hit_point}')
 
         if hit_point is not None and hit_point.time < 0.8 * self.env.options.missile_fuel_capacity / self.env.options.missile_fuel_consumption_rate:
             # 可以命中敌机
             self.actions.put_nowait((Actions.fire_missile, enemy.x, enemy.y))
-            update_messages.append(f'可以命中敌机 fire missile {enemy.x} {enemy.y}')
-            self.put_update_message(update_messages)
-            return Status.SUCCESS
-        return Status.FAILURE
+            self.put_update_message(f'可以命中敌机 fire missile {enemy.x} {enemy.y}')
+            # 每隔3s最多发射一枚导弹
+            yield from _delay_updater(self, time=3, status=Status.SUCCESS)
+        else:
+            yield Status.FAILURE
 
     @classmethod
     def creator(cls, d, c):
@@ -332,46 +370,49 @@ class PursueNearestEnemy(BTPolicyAction):
             'evade_ratio' : self.evade_ratio
         }
 
-    def update(self) -> Status:
-        update_messages = []
-        if 'nearest_enemy' not in self.share_cache:
-            update_messages.append('No nearest enemy')
-            self.put_update_message(update_messages)
-            return Status.FAILURE
+    def updater(self) -> typing.Iterator[Status]:
+        enemy = self.env.battle_area.find_nearest_enemy(
+                agent_name=self.agent_name,
+                ignore_radar=False)
 
-        test_agents = self.share_cache['test_agents']
-        enemy: Aircraft = self.share_cache['nearest_enemy']
-
-        update_messages.append(f'test_agents={len(test_agents)} ')
+        if enemy is None:
+            self.put_update_message('No nearest enemy')
+            yield Status.FAILURE
+            return
 
         # 如果没有要躲避的任务，则尝试飞到更容易命中敌机，且更不容易被敌机命中的位置上（两者命中时间之差最大）
-        max_time = -float('inf')
+        min_time = float('inf')
         go_to_location = None
 
         if enemy.distance(self.agent) > self.env.options.aircraft_radar_radius:
             # 超出雷达探测范围了，则朝着敌机的位置飞
-            self.actions.put_nowait((Actions.go_to_location, enemy.x, enemy.y))
-            update_messages.append('超出雷达探测范围了，则朝着敌机的位置飞')
-            self.put_update_message(update_messages)
-            return Status.SUCCESS
+            go_to_location = (enemy.x, enemy.y)
+            self.put_update_message('超出雷达探测范围了，则朝着敌机的位置飞')
+        else:
+            test_agents = self.agent.generate_test_moves(
+                    in_safe_area=True
+            )
+            self.put_update_message(f'test_agents={len(test_agents)} ')
+            for agent_tmp in test_agents:
+                assert isinstance(agent_tmp, Aircraft)
+                hit_point = agent_tmp.predict_missile_intercept_point(target=enemy)  # 我方命中敌机
+                under_hit_point = enemy.predict_missile_intercept_point(target=agent_tmp)  # 敌机命中我方
+                if hit_point.time == float('inf'):
+                    hit_point.time = 10000
+                if under_hit_point.time == float('inf'):
+                    under_hit_point.time = 10000
+                time_tmp = hit_point.time * self.attack_ratio - under_hit_point.time * self.evade_ratio  # 让我方命中敌机的时间尽可能小，敌方命中我方的时间尽可能大
+                if time_tmp < min_time:
+                    min_time = time_tmp
+                    go_to_location = agent_tmp.location
 
-        for agent_tmp in test_agents:
-            hit_point = agent_tmp.predict_missile_intercept_point(target=enemy)
-            under_hit_point = enemy.predict_missile_intercept_point(target=agent_tmp)
-            if hit_point.time == float('inf'):
-                hit_point.time = 10000
-            if under_hit_point.time == float('inf'):
-                under_hit_point.time = 10000
-            time_tmp = hit_point.time * self.attack_ratio - under_hit_point.time * self.evade_ratio
-            if max_time < time_tmp:
-                max_time = time_tmp
-                go_to_location = agent_tmp.location
+        if go_to_location is None:
+            yield Status.FAILURE
+            return
 
-        if go_to_location is not None:
-            self.actions.put_nowait((Actions.go_to_location, go_to_location[0], go_to_location[1]))
-            self.put_update_message(update_messages)
-            return Status.SUCCESS
-        return Status.FAILURE
+        yield from _go_to_location_updater(self, go_to_location)
+        yield Status.SUCCESS
+        return
 
 
 class Explore(BTPolicyAction):
@@ -390,18 +431,13 @@ class Explore(BTPolicyAction):
         return Explore(
                 name=d['name'])
 
-    def update(self) -> Status:
-        update_messages = []
+    def updater(self) -> typing.Iterator[Status]:
         if self.agent.route is not None:
-            update_messages.append('当前agent还有没有完成的路线')
-            self.put_update_message(update_messages)
-            return Status.FAILURE
-
-        not_memory_pos = self.share_cache['memory'].pick_position()
-        self.actions.put_nowait((Actions.go_to_location, not_memory_pos[0], not_memory_pos[1]))
-
-        self.put_update_message(update_messages)
-        return Status.SUCCESS
+            self.put_update_message('当前agent还有没有完成的路线')
+            yield Status.RUNNING
+        go_to_location = self.share_cache['memory'].pick_position()
+        yield from _go_to_location_updater(self, go_to_location)
+        yield Status.SUCCESS
 
 
 class KeepFly(BTPolicyAction):
@@ -438,20 +474,12 @@ class FollowRoute(BTPolicyAction):
                 recursive=bool(d.get('recursive', False))
         )
 
-    def update(self) -> Status:
-        if self.route_index >= len(self.route):
-            return Status.FAILURE
-
-        pos = self.route[self.route_index]
-        self.actions.put_nowait((Actions.go_to_location, pos[0], pos[1]))
-
-        # 到了路由点附近
-        if self.agent.distance(self.route[self.route_index]) <= self.agent.speed * self.env.options.delta_time * 2:
-            self.route_index += 1
-            if self.recursive:
-                self.route_index %= len(self.route)
-
-        return Status.SUCCESS
+    def updater(self) -> typing.Iterator[Status]:
+        while self.recursive:
+            for index in range(len(self.route)):
+                self.route_index = index
+                yield from _go_to_location_updater(self, self.route[index])
+        yield Status.SUCCESS
 
     def to_data(self):
         return {
@@ -473,13 +501,9 @@ class GoToLocation(BTPolicyAction):
         super().initialise()
         self.actions.put_nowait((Actions.go_to_location, self.x, self.y))
 
-    def update(self) -> Status:
-        super().update()
-        reach_distance = self.agent.speed * max(self.env.options.delta_time,
-                                                self.env.options.policy_interval) * self.env.options.reach_location_scale
-        if self.agent.distance((self.x, self.y)) <= reach_distance:
-            return Status.SUCCESS
-        return Status.RUNNING
+    def updater(self) -> typing.Iterator[Status]:
+        yield from _go_to_location_updater(self, (self.x, self.y))
+        yield Status.SUCCESS
 
     @classmethod
     def creator(cls, d: dict, c: list):
@@ -517,13 +541,9 @@ class IsReachLocation(BTPolicyCondition):
         }
 
     def update(self) -> Status:
-        reach_distance = self.agent.speed * max(self.env.options.delta_time,
-                                                self.env.options.policy_interval) * self.env.options.reach_location_scale
+        reach_distance = self.agent.speed * max(
+                self.env.options.delta_time,
+                self.env.options.policy_interval * 2) * self.env.options.reach_location_threshold
         if self.agent.distance((self.x, self.y)) <= reach_distance:
             return Status.SUCCESS
         return Status.FAILURE
-
-
-
-
-

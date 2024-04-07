@@ -88,9 +88,9 @@ class GreedyPolicy(AgentPolicy):
 
         MAX_CENTER_DISTANCE = min(self.options.game_size) / 2 - self.safe_boundary_distance  # 建议距离战场中心最远距离
         test_agents = agent.generate_test_moves(
-                angles=list(range(0, 360, 45)),
-                dis=self.agent.turn_radius * 3
+                in_safe_area=True
         )
+
         test_agents = list(filter(lambda agent: agent.distance((0, 0)) < MAX_CENTER_DISTANCE, test_agents))
 
         # 如果距离战场中心过远，则往战场中心飞

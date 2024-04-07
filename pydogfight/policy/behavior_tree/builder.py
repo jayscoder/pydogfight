@@ -2,6 +2,8 @@ from pydogfight.policy.behavior_tree.greedy_nodes import *
 from pydogfight.policy.behavior_tree.nodes import *
 from pydogfight.policy.behavior_tree.model_nodes import *
 
+BASE_DIR = os.path.dirname(__file__)
+
 
 class BTPolicyBuilder(pybts.Builder):
     def __init__(self):
@@ -29,23 +31,6 @@ class BTPolicyBuilder(pybts.Builder):
                 IsReachLocation,
                 BTPPOGoToLocationModel
         )
-
-    def build_default(self) -> pybts.Node:
-        return self.build_from_file(DEFAULT_BT_GREEDY_POLICY_FILE)
-
-
-def _main():
-    builder = BTPolicyBuilder()
-    tree = builder.build_from_file(DEFAULT_BT_GREEDY_POLICY_FILE)
-    # print(pybts.utility.bt_to_xml(tree))
-    with open(DEFAULT_BT_GREEDY_POLICY_FILE, 'r') as f:
-        # print(pybts.utility.xml_to_json(f.read()))
-        json_data = pybts.utility.xml_to_json(f.read())
-        tree = builder.build_from_json(json_data=json_data)
-        # print(tree)
-        # print(pybts.utility.bt_to_xml(tree))
-        for node in tree.iterate():
-            print(node.name)
 
 
 if __name__ == '__main__':

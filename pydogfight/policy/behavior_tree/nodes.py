@@ -19,7 +19,7 @@ class BTPolicyNode(pybts.Node, ABC):
         self.env: Dogfight2dEnv | None = None
         self.share_cache = { }
         self.agent_name = ''
-        self.update_messages = queue.Queue(maxsize=10)  # update过程中的message
+        self.update_messages = queue.Queue(maxsize=20)  # update过程中的message
 
     @property
     def agent(self) -> Aircraft | None:
@@ -27,10 +27,11 @@ class BTPolicyNode(pybts.Node, ABC):
             return None
         return self.env.get_agent(self.agent_name)
 
-    def put_update_message(self, msgs: list):
+    def put_update_message(self, msg: str):
         if self.update_messages.full():
             self.update_messages.get_nowait()
-        self.update_messages.put_nowait('\n'.join(msgs))
+        msg = f"{self.debug_info['tick_count']}: {msg}"
+        self.update_messages.put_nowait(msg)
 
     def to_data(self):
         return {

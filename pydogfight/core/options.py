@@ -1,12 +1,14 @@
 import random
 from .models import *
 
+
 class Options:
     ### 实体设置 ###
     red_agents = ['red_1']
     blue_agents = ['blue_1']
-    red_home = 'red_home'  # 如果设置为空字符串则不会设置基地
+    red_home = 'red_home'
     blue_home = 'blue_home'
+    bullseye = 'bullseye'
 
     self_side = 'red'  # 自己所处的战队（奖励会根据这个来给）
 
@@ -17,8 +19,14 @@ class Options:
     delta_time = 0.1  # 更新步长
     update_interval = 1  # 每次env更新的时间间隔
     simulation_rate = 10.0  # 仿真的速率倍数，越大代表越快，update_interval内更新几次（仅在render模式下生效）
-    policy_interval = 0.5 # 每次策略的处理间隔时长
-    reach_location_scale = 3 # 用来判断是否接近目标点的时间片尺度（乘以delta_time*速度后就能得出距离多近就算到达目标点）
+    policy_interval = 0.5  # 每次策略的处理间隔时长
+    reach_location_threshold = 2  # 用来判断是否接近目标点的时间片尺度（乘以policy_interval*速度后就能得出距离多近就算到达目标点）
+
+    obs_ignore_radar = False  # 是否忽略雷达（设置为true的话，生成单机观测时不会观测到雷达范围以内的敌机）
+    obs_ignore_missile_fuel = True  # 是否忽略导弹油量
+    obs_ignore_enemy_detail = True  # 是否忽略敌机部分详细信息（比如不能知道敌机的石油）
+    obs_ignore_destroyed = True  # 忽略掉被摧毁的实体
+
     ### 常量 ###
     g = 9.8  # 重力加速度 m/s
 
@@ -67,21 +75,31 @@ class Options:
     home_attack = False  # 基地是否具备攻击功能（进入基地范围的敌机会被自动毁灭）
 
     ### 训练 ###
-    win_reward = 1000
+    win_reward = 3000
     lose_reward = -1000
-    draw_reward = -100
+    draw_reward = -3000  # draw的惩罚更大，鼓励进攻
     time_punish_reward = -1  # 时间惩罚（每s惩罚多少分）
-    train = True # 是否是训练模式
+    train = True  # 是否是训练模式
 
     ### 策略 ###
     safe_boundary_distance = aircraft_speed * 20  # 距离边界的安全距离
-    safe_boundary = BoundingBox.from_center(
-            center=[0, 0], size=[game_size[0] - safe_boundary_distance * 2,
-                                 game_size[1] - safe_boundary_distance * 2])
-    safe_x_range = [-int(game_size[0] / 2 + safe_boundary_distance),
-                    int(game_size[0] / 2 - safe_boundary_distance)]
-    safe_y_range = [-int(game_size[1] / 2 + safe_boundary_distance),
-                    int(game_size[1] / 2 - safe_boundary_distance)]
+
+
+    def bullseye_safe_radius(self):
+        """牛眼的安全半径"""
+        return min(self.game_size) / 2 - self.safe_boundary_distance
+
+    def safe_boundary(self):
+        return BoundingBox.from_center(
+                center=[0, 0], size=[self.game_size[0] - self.safe_boundary_distance * 2,
+                                     self.game_size[1] - self.safe_boundary_distance * 2])
+
+    def validate(self):
+        """校验是否合法"""
+        assert self.delta_time > 0
+        assert self.policy_interval >= self.delta_time
+        assert self.red_home != ''
+        assert self.blue_home != ''
 
     def to_dict(self):
         return {

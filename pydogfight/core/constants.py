@@ -5,6 +5,7 @@ import numpy as np
 TILE_PIXELS = 32
 import os
 
+
 def _hex_color(color: str) -> tuple[int, int, int]:
     # 将十六进制颜色代码转换为RGB值
     r = int(color[0:2], 16)  # 转换红色分量
@@ -31,14 +32,14 @@ COLORS = {
 # IDX_TO_COLOR = dict(zip(COLOR_TO_IDX.values(), COLOR_TO_IDX.keys()))
 
 COLOR_TO_IDX = {
-    'red' : 0,
-    'blue': 1,
-    # 'green': 2,
-    # 'pink': 3,
-    # 'yellow': 4,
-    # 'grey': 5,
-    # 'black': 6,
-    # 'white': 7
+    'white' : 0,
+    'red'   : 1,
+    'blue'  : 2,
+    'green' : 3,
+    'pink'  : 4,
+    'yellow': 5,
+    'grey'  : 6,
+    'black' : 7,
 }
 
 # Map of object type to integers
@@ -47,7 +48,8 @@ OBJECT_TO_IDX = {
     "empty"   : 1,
     "aircraft": 2,
     "missile" : 3,
-    'home'    : 4
+    'home'    : 4,
+    'bullseye': 5,  # 战场中心，牛眼
 }
 
 IDX_TO_OBJECT = dict(zip(OBJECT_TO_IDX.values(), OBJECT_TO_IDX.keys()))

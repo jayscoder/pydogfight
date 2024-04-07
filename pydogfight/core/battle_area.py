@@ -4,6 +4,7 @@ from pydogfight.core.world_obj import *
 from pydogfight.core.options import Options
 from collections import defaultdict
 
+
 class BattleArea:
     def __init__(self, options: Options, render_mode: str = 'rgb_array'):
         self.options = options
@@ -17,27 +18,31 @@ class BattleArea:
         self.objs = { }
 
         home_position = self.options.generate_home_init_position()
-        if self.options.red_home != '':
-            self.add_obj(
-                    Home(
-                            name=self.options.red_home,
-                            options=self.options,
-                            color='red',
-                            x=home_position[0][0],
-                            y=home_position[0][1],
-                    )
-            )
+        assert self.options.red_home != ''
+        assert self.options.blue_home != ''
+        self.add_obj(
+                Home(
+                        name=self.options.red_home,
+                        options=self.options,
+                        color='red',
+                        x=home_position[0][0],
+                        y=home_position[0][1],
+                )
+        )
 
-        if self.options.blue_home != '':
-            self.add_obj(
-                    Home(
-                            name=self.options.blue_home,
-                            options=self.options,
-                            color='blue',
-                            x=home_position[1][0],
-                            y=home_position[1][1],
-                    )
-            )
+        self.add_obj(
+                Home(
+                        name=self.options.blue_home,
+                        options=self.options,
+                        color='blue',
+                        x=home_position[1][0],
+                        y=home_position[1][1],
+                )
+        )
+
+        self.add_obj(
+            Bullseye(options=self.options)
+        )
 
         for name in self.options.red_agents:
             # 随机生成飞机位置
@@ -75,24 +80,33 @@ class BattleArea:
     def agents(self) -> list[Aircraft]:
         return list(filter(lambda agent: isinstance(agent, Aircraft), self.objs.values()))
 
+    @property
+    def missiles(self) -> list[Missile]:
+        return list(filter(lambda obj: isinstance(obj, Missile), self.objs.values()))
+
+    @property
+    def homes(self) -> list[Home]:
+        return list(filter(lambda obj: isinstance(obj, Home), self.objs.values()))
+
+    @property
+    def bullseye(self) ->  Bullseye:
+        obj = self.objs.get('bullseye')
+        assert isinstance(obj, Bullseye)
+        return obj
+
     def render(self, screen):
         for obj in self.objs.values():
             obj.render(screen)
 
     ### 战场环境更新，每一轮每个物体只消费一个行为 ###
-    def update(self, delta_time: float = 0.1):
+    def update(self):
         """
-
-        :param delta_time: 间隔时间
         :return:
         """
-        if delta_time <= 0:
-            return
-
         for obj in list(self.objs.values()):
             if obj.destroyed:
                 continue
-            obj.update(delta_time=delta_time)
+            obj.update(delta_time=self.options.delta_time)
 
         # 检查碰撞
         obj_list = list(self.objs.values())
@@ -104,7 +118,7 @@ class BattleArea:
                     obj_list[i].on_collision(obj_list[j])
                     obj_list[j].on_collision(obj_list[i])
 
-        self.time += delta_time
+        self.time += self.options.delta_time
 
     @property
     def remain_count(self) -> dict:
@@ -129,7 +143,7 @@ class BattleArea:
         """
         找到距离最近的敌人
         :param agent_name:
-        :param ignore_radar:
+        :param ignore_radar: 是否忽略雷达因素（设为false则只会返回雷达范围内的敌机）
         :return:
         """
         agent = self.objs[agent_name]

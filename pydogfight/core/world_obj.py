@@ -10,7 +10,7 @@ from pydogfight.core.models import Waypoint
 from pydogfight.algos.traj import calc_optimal_path, OptimalPathParam
 from pydogfight.algos.intercept import predict_intercept_point, InterceptPointResult
 from pydogfight.utils.rendering import *
-from pydogfight.utils.common import read_queue_without_destroying
+from pydogfight.utils.common import read_queue_without_destroying, cal_distance
 import weakref
 import json
 
@@ -44,7 +44,6 @@ class WorldObj:
         self.destroyed = False  # 是否已经被摧毁
         self.destroyed_reason = ''  # 被摧毁的原因
 
-        self.target_location = None # 目标点
         self.route: np.ndarray | None = None  # 需要遵循的轨迹
         self.route_index: int = -1
 
@@ -253,23 +252,40 @@ class WorldObj:
         self.route = param.generate_traj(delta_time * self.speed)
         self.route_index = 0
 
-    def generate_test_moves(self, angles: list, dis: float) -> list[WorldObj]:
+    def generate_test_moves(self, in_safe_area: bool) -> list[WorldObj]:
         """
         生成测试的实体（在不同方向上假设实体飞到对应点上）
-        :param angles: 测试的不同角度
-        :param dis: 飞行的距离
+        :param in_safe_area: 是否在安全位置（不能离战场中心远）
         :return:
         """
+        # 测试的距离
+        dis = max(self.turn_radius * 10,
+                  self.speed * self.options.policy_interval * self.options.reach_location_threshold * 10)
+
         objs: list[WorldObj] = []
-        for angle in angles:
+        for angle in range(0, 360, 15):
             obj_tmp = self.__copy__()
             target_point = (
                 self.x + math.cos(math.radians(angle)) * dis,
                 self.y + math.sin(math.radians(angle)) * dis,
             )
+            if in_safe_area and cal_distance(target_point, (0, 0)) >= self.options.bullseye_safe_radius():
+                # 距离战场太远了
+                continue
             obj_tmp.move_toward_once(target=target_point, delta_time=dis / self.speed)
             objs.append(obj_tmp)
         return objs
+
+    def is_reach_location(self, p: tuple[float, float]) -> bool:
+        return self.distance(
+                (p[0], p[1])) <= self.speed * self.options.policy_interval * self.options.reach_location_threshold
+
+    def is_current_route_target(self, target: tuple[float, float]) -> bool:
+        # 是否是当前路由的目标
+        if self.route is None or len(self.route) == 0:
+            return self.is_reach_location(target)
+        return cal_distance(self.route[-1, :2],
+                            target) <= self.speed * self.options.policy_interval * self.options.reach_location_threshold
 
 
 class Aircraft(WorldObj):
@@ -579,6 +595,28 @@ class Missile(WorldObj):
                         target=target.location,
                         turn_radius=self.turn_radius
                 ).length)
+
+
+class Bullseye(WorldObj):
+    def __init__(self, options: Options):
+        super().__init__(type='bullseye', options=options, name='bullseye', color='white', x=0, y=0)
+        self.radius = options.bullseye_safe_radius()  # 安全半径
+
+    def render(self, screen):
+        # 渲染安全区域
+        render_circle(options=self.options,
+                      screen=screen,
+                      radius=1,
+                      position=(self.x, self.y),
+                      color='black',
+                      width=3)
+
+        render_circle(options=self.options,
+                      screen=screen,
+                      radius=self.radius,
+                      position=(self.x, self.y),
+                      color='grey',
+                      width=3)
 
 
 class Home(WorldObj):
