@@ -15,7 +15,7 @@ class ModelTrainWrapper(AgentWrapper):
     def step(self, action):
         assert isinstance(self.env, Dogfight2dEnv)
         for p in self.policies:
-            p.select_action()
+            p.take_action()
             p.put_action()
         agent = self.env.get_agent(self.agent_name)
         agent.put_action(action)
@@ -38,7 +38,7 @@ class TeacherTrainWrapper(ModelTrainWrapper):
         return obs, reward, terminated, truncated, info
 
     def teacher_reward(self, action):
-        self.teacher.select_action()
+        self.teacher.take_action()
         reward = 0
         # 如果动作和老师的动作接近，则给出更高的奖励
         while not self.teacher.actions.empty():

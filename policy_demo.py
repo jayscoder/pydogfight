@@ -86,7 +86,7 @@ def policy_main():
         if not env.isopen:
             break
         while env.isopen:
-            policy.select_action()
+            policy.take_action()
             policy.put_action()
 
             info = env.gen_info()

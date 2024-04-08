@@ -1,4 +1,4 @@
-# RL-Dogfight-2d
+# pydogfight
 
 基于Gym开发的2D空战仿真框架
 

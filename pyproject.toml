@@ -1,0 +1,32 @@
+[tool.poetry]
+name = "pydogfight"
+version = "0.1.0"
+description = "基于Gym开发的2D空战仿真框架"
+authors = ["王童 <785271992@qq.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = ">=3.9,<4.0"
+pybts = "^1.3.1"
+numpy = "^1.26.4"
+matplotlib = "^3.8.4"
+tensorboard = "^2.16.2"
+future = "^1.0.0"
+torch = "^2.2.2"
+torchvision = "^0.17.2"
+torchaudio = "^2.2.2"
+pyyaml = "^6.0.1"
+pygame = "^2.5.2"
+gymnasium = "^0.29.1"
+stable-baselines3 = "^2.3.0"
+pytest = "^8.1.1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[[tool.poetry.source]]
+name = "tsinghua"
+priority = 'primary'
+url = "https://pypi.tuna.tsinghua.edu.cn/simple"

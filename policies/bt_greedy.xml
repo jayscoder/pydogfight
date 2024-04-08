@@ -1,3 +1,4 @@
+<!--完整的贪心策略-->
 <Sequence>
     <InitGreedyPolicy memory_gap="1000"/>
     <Parallel>
@@ -25,9 +26,16 @@
 
             <ReactiveSequence>
                 <EnemyDetected/>
-                <PursueNearestEnemy/>
+                <PursueNearestEnemy attack_ratio="0.5" evade_ratio="0.5"/>
             </ReactiveSequence>
 
+            <ReactiveSequence>
+                <IsInSafeArea/>
+                <Inverter>
+                    <EnemyDetected/>
+                </Inverter>
+                <Explore/>
+            </ReactiveSequence>
         </Selector>
     </Parallel>
 </Sequence>

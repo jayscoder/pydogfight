@@ -1,12 +1,13 @@
+<!--不带有攻击节点-->
 <Sequence>
     <InitGreedyPolicy memory_gap="1000"/>
     <Parallel>
-        <AttackNearestEnemy/>
+<!--        <AttackNearestEnemy/>-->
         <Selector>
-            <ReactiveSequence>
-                <MissileThreatDetected/>
-                <EvadeMissile/>
-            </ReactiveSequence>
+<!--            <ReactiveSequence>-->
+<!--                <MissileThreatDetected/>-->
+<!--                <EvadeMissile/>-->
+<!--            </ReactiveSequence>-->
 
             <ReactiveSequence>
                 <Selector>

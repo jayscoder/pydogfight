@@ -8,7 +8,6 @@ import math
 import time
 
 import gymnasium as gym
-import pytest
 import pydogfight
 
 

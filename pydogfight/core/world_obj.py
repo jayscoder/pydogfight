@@ -102,7 +102,7 @@ class WorldObj:
     def put_action(self, action):
         if self.destroyed:
             return
-        if action[0] == Actions.keep:
+        if int(action[0]) == Actions.keep:
             return
         if self.waiting_actions.full():
             self.waiting_actions.get_nowait()
@@ -124,6 +124,14 @@ class WorldObj:
     @property
     def location(self) -> tuple[float, float]:
         return self.x, self.y
+
+    @property
+    def enemy_color(self):
+        """敌方战队的颜色"""
+        if self.color == 'red':
+            return 'blue'
+        else:
+            return 'red'
 
     @property
     def screen_position(self) -> tuple[float, float]:
@@ -413,7 +421,6 @@ class Aircraft(WorldObj):
             if action_type == Actions.go_to_location:
                 self.go_to_location(target=action_target, delta_time=delta_time)
             elif action_type == Actions.fire_missile:
-                # 需要发射导弹，以一定概率将对方摧毁
                 # 寻找离目标点最近的飞机
                 self.fire_missile(target=action_target)
             elif action_type == Actions.go_home:
@@ -435,7 +442,7 @@ class Aircraft(WorldObj):
         for enemy in self.area.objs.values():
             if isinstance(enemy, Aircraft) and enemy.color != self.color:
                 dis = enemy.distance(target)
-                if dis < min_dis and dis < self.radar_radius:
+                if dis < min_dis and self.distance(enemy) < self.radar_radius:
                     # 只能朝雷达范围内的飞机发射导弹
                     min_dis = dis
                     fire_enemy = enemy

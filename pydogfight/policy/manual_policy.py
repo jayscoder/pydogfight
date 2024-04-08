@@ -9,7 +9,7 @@ class ManualPolicy(AgentPolicy):
         super().__init__(env=env, agent_name=control_agents[0], update_interval=update_interval)
         self.control_index = 0
         self.control_agents = control_agents
-
+    
     def execute(self, observation, delta_time: float):
         import pygame
         agent = self.env.get_agent(self.agent_name)

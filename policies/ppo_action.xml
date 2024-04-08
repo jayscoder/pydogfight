@@ -1,0 +1,1 @@
+<PPOAction allow_actions="keep,go_to_location,fire_missile,go_home" path="models/ppo_action/{{agent_name}}/PPOAction_1"/>

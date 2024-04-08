@@ -9,13 +9,13 @@ from pydogfight.envs import Dogfight2dEnv, Aircraft
 from abc import ABC
 
 
-class BTPolicyNode(pybts.Node, ABC):
+class BTPolicyNode(pybts.Action, ABC):
     """
     BT Policy Base Class Node
     """
 
-    def __init__(self, name: str = ''):
-        super().__init__(name=name)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self.env: Dogfight2dEnv | None = None
         self.share_cache = { }
         self.agent_name = ''
@@ -38,28 +38,6 @@ class BTPolicyNode(pybts.Node, ABC):
             **super().to_data(),
             'agent_name'     : self.agent_name,
             'update_messages': pybts.utility.read_queue_without_destroying(self.update_messages)
-        }
-
-
-class BTPolicyAction(BTPolicyNode, pybts.Action, ABC):
-    """BT Policy Action Node"""
-
-    def to_data(self):
-        return {
-            **super().to_data(),
-            **pybts.Action.to_data(self)
-        }
-
-
-class BTPolicyCondition(BTPolicyNode, pybts.Condition, ABC):
-    """
-    BT Policy Condition Node
-    """
-
-    def to_data(self):
-        return {
-            **super().to_data(),
-            **pybts.Condition.to_data(self)
         }
 
 

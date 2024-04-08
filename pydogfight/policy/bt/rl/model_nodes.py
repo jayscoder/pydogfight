@@ -1,12 +1,11 @@
 from __future__ import annotations
-from pydogfight.policy.behavior_tree.nodes import *
+from pydogfight.policy.bt.nodes import *
 from stable_baselines3 import PPO
 from pybts import Status
 from pydogfight.core.actions import Actions
 
-
-class BTPPOModel(BTPolicyAction):
-    def __init__(self, model: str | PPO, name: str=''):
+class BTPPOModel(BTPolicyNode):
+    def __init__(self, model: str | PPO, name: str = ''):
         super().__init__(name=name)
         if isinstance(model, str):
             self.model_path = model
@@ -26,7 +25,7 @@ class BTPPOModel(BTPolicyAction):
         return {
             **super().to_data(),
             'model_path': self.model_path,
-            'model': self.model
+            'model'     : self.model
         }
 
     def update(self) -> Status:
@@ -54,7 +53,6 @@ class BTPPOGoToLocationModel(BTPPOModel):
 class BTPPOFireMissileModel(BTPPOModel):
 
     def update(self) -> Status:
-        self.model.action_space
         obs = self.env.gen_agent_obs(agent_name=self.agent_name)
         action, _ = self.model.predict(obs, deterministic=True, state=None)
         relative_waypoint = self.agent.waypoint.relative_move(dx=action[0] * self.agent.radar_radius,

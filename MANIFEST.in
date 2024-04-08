@@ -1,3 +1,0 @@
-recursive-include pydogfight/policy *
-include requirements.txt
-include README.md

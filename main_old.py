@@ -9,34 +9,63 @@ from stable_baselines3 import PPO
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.callbacks import BaseCallback
 from pydogfight import *
-from pydogfight.policy import Policy
+from pydogfight.policy import Policy, ManualPolicy
 from pydogfight.wrappers import AgentWrapper
 import json
 import pybts
 import pydogfight
+import argparse
+
+parser = argparse.ArgumentParser(description="PPO Training and Testing")
+parser.add_argument('--mode', type=str, default='train', choices=['train', 'test', 'teacher'],
+                    help='Mode to run the script in: train, test, or teacher')
+parser.add_argument('--render_mode', type=str, default='rgb_array', choices=['rgb_array', 'human'],
+                    help='Render Mode')
+parser.add_argument('--track_name',
+                    type=str,
+                    default='main',
+                    help='BT Track Name')
+parser.add_argument('--model_name', type=str, default='ppo_model',
+                    help='PPO Model Name')
+parser.add_argument('--train_timesteps', type=int, default=300000,
+                    help='Train timesteps')
+args = parser.parse_args()
+print('args', args)
 
 options = Options()
-options.delta_time = 1  # 每次更新的间隔
+# options.delta_time = 0.5  # 每次更新的间隔
 options.self_side = 'red'
 options.simulation_rate = 1000
-options.policy_interval = 1
-BT_BOARD_TRACK = True
-MODEL_NAME = 'ppo_move'
+options.train = args.mode == 'train'
+# options.policy_interval = 0.5
+MODEL_NAME = args.model_name
 MODEL_PATH = os.path.join('models', MODEL_NAME)
 TEST_N = 100
-BT_BOARD_TRACK_PREFIX = 'ppo_move'
+BT_BOARD_TRACK_NAME = args.track_name
 
 
-class ModelGoToLocationTrainWrapper(AgentWrapper):
+class ModelTrainProgressCallback(BaseCallback):
+    def __init__(self, check_freq):
+        super().__init__()
+        self.check_freq = check_freq
+
+    def _on_step(self) -> bool:
+        if self.n_calls % self.check_freq == 0:
+            print(f"Step number: {self.n_calls}")
+            print(f"Game Info: {self.training_env.get_attr('game_info')}")
+        return True
+
+
+class ModelTrainWrapper(AgentWrapper):
     """
-    指定单个Agent飞行控制的强化学习训练的视角
+    指定单个Agent强化学习训练的视角
     """
 
     def __init__(self, policies: list[Policy], env: Dogfight2dEnv, agent_name: str = ''):
         super().__init__(env=env, agent_name=agent_name)
         self.observation_space = env.observation_space
-        # 定义连续动作空间，比如一个二维连续动作，每个维度的范围是-1到1，以自身为原点，雷达范围内的坐标点（放缩到[-1, 1]之间）
-        self.action_space = gym.spaces.Box(low=np.array([-1, -1]), high=np.array([1, 1]), dtype=np.float32)
+        # 组合离散和连续动作空间
+        self.action_space = gym.spaces.Box(low=np.array([-1, -1, -1]), high=np.array([1, 1, 1]), dtype=np.float32)
         self.policies = policies
 
     def step(self, action):
@@ -45,11 +74,14 @@ class ModelGoToLocationTrainWrapper(AgentWrapper):
             p.take_action()
             p.put_action()
         agent = self.env.get_agent(self.agent_name)
-
-        relative_waypoint = agent.waypoint.relative_move(dx=action[0] * agent.radar_radius,
-                                                         dy=action[1] * agent.radar_radius)
-
-        agent.put_action((Actions.go_to_location, relative_waypoint.x, relative_waypoint.y))
+        relative_waypoint = agent.waypoint.relative_move(
+                dx=action[1] * agent.radar_radius,
+                dy=action[2] * agent.radar_radius)
+        action_type = Actions.extract_action_in_value_range(
+                value=action[0],
+                value_range=(-1, 1)
+        )
+        agent.put_action((action_type, relative_waypoint.x, relative_waypoint.y))
         old_info = self.env.gen_info()
         self.env.update()
         obs = self.env.gen_agent_obs(agent_name=self.agent_name)
@@ -58,11 +90,11 @@ class ModelGoToLocationTrainWrapper(AgentWrapper):
         return obs, reward, info['terminated'], info['truncated'], info
 
 
-def create_bt_greedy_policy(env: Dogfight2dEnv, agent_name: str, filepath: str):
+def create_bt_policy(env: Dogfight2dEnv, agent_name: str, filepath: str, track: bool):
     filename = os.path.basename(filepath).replace('.xml', '')
     tree = pybts.Tree(
             root=pydogfight.policy.BTPolicyBuilder().build_from_file(filepath),
-            name=os.path.join(BT_BOARD_TRACK_PREFIX, agent_name, filename))
+            name=os.path.join(BT_BOARD_TRACK_NAME, agent_name, filename))
     policy = pydogfight.policy.BTPolicy(
             env=env,
             tree=tree,
@@ -70,7 +102,7 @@ def create_bt_greedy_policy(env: Dogfight2dEnv, agent_name: str, filepath: str):
             update_interval=options.policy_interval
     )
 
-    if BT_BOARD_TRACK:
+    if track:
         board = pybts.Board(tree=policy.tree, log_dir='logs')
         tree.add_post_tick_handler(lambda t: board.track({
             'env_time': env.time,
@@ -81,12 +113,12 @@ def create_bt_greedy_policy(env: Dogfight2dEnv, agent_name: str, filepath: str):
     return policy
 
 
-def create_bt_model_policy(env: Dogfight2dEnv, agent_name: str):
+def create_bt_model_policy(env: Dogfight2dEnv, agent_name: str, track: bool):
     tree = pybts.Tree(
-            root=pydogfight.policy.BTPPOGoToLocationModel(
+            root=pydogfight.policy.BTPPOModel(
                     model=MODEL_PATH
             ),
-            name=os.path.join(BT_BOARD_TRACK_PREFIX, MODEL_NAME))
+            name=str(os.path.join(BT_BOARD_TRACK_NAME, MODEL_NAME)))
 
     policy = pydogfight.policy.BTPolicy(
             env=env,
@@ -95,7 +127,7 @@ def create_bt_model_policy(env: Dogfight2dEnv, agent_name: str):
             update_interval=options.policy_interval
     )
 
-    if BT_BOARD_TRACK:
+    if track:
         board = pybts.Board(tree=policy.tree, log_dir='logs')
         tree.add_post_tick_handler(lambda t: board.track({
             'env_time': env.time,
@@ -106,26 +138,28 @@ def create_bt_model_policy(env: Dogfight2dEnv, agent_name: str):
     return policy
 
 
-def ppo_model_train():
-    env = Dogfight2dEnv(options=options, render_mode='rgb_array')
+def run_train():
+    env = Dogfight2dEnv(options=options, render_mode=args.render_mode)
 
-    train_env = ModelGoToLocationTrainWrapper(env=env, policies=[
-        create_bt_greedy_policy(
-                env=env, agent_name=options.blue_agents[0], filepath='policies/follow_route.xml'
+    train_env = ModelTrainWrapper(env=env, policies=[
+        create_bt_policy(
+                env=env, agent_name=options.blue_agents[0], filepath='policies/follow_route.xml',
+                track=False
         ),
     ], agent_name=options.red_agents[0])
 
     model = PPO("MlpPolicy", train_env, verbose=2, tensorboard_log=f"./logs/{MODEL_NAME}")
-    model.learn(total_timesteps=250000, progress_bar=True)
+    model.learn(total_timesteps=args.train_timesteps, progress_bar=True,
+                callback=ModelTrainProgressCallback(check_freq=1000))
     model.save(MODEL_PATH)
 
 
-def ppo_test():
+def run_test():
     options = Options()
     options.delta_time = 0.5  # 每次更新的间隔
     options.self_side = 'red'
     options.simulation_rate = 100
-    env = Dogfight2dEnv(options=options, render_mode='human')
+    env = Dogfight2dEnv(options=options, render_mode=args.render_mode)
     # model = PPO.load(f'./models/{MODEL_NAME}')
 
     policy = pydogfight.policy.MultiAgentPolicy(
@@ -133,42 +167,46 @@ def ppo_test():
             #         env=env, model=model,
             #         agent_name=options.red_agents[0],
             #         update_interval=options.policy_interval),
-            create_bt_model_policy(
-                    env=env, agent_name=options.red_agents[0],
-            ),
-            # ManualPolicy(env=env, control_agents=options.agents, delta_time=0),
+            # create_bt_model_policy(
+            #         env=env, agent_name=options.red_agents[0],
+            #         track=True
+            # ),
+            # ManualPolicy(env=env, control_agents=options.agents, update_interval=0),
             # ManualPolicy(env=env, control_agents=options.blue_agents, delta_time=0.01),
-            create_bt_greedy_policy(
-                    env=env, agent_name=options.blue_agents[0], filepath='policies/follow_route.xml'
+            create_bt_policy(
+                    env=env,
+                    agent_name=options.red_agents[0],
+                    filepath='policies/bt_greedy_red.xml',
+                    track=True
+            ),
+            create_bt_policy(
+                    env=env,
+                    agent_name=options.blue_agents[0],
+                    filepath='policies/bt_greedy_blue.xml',
+                    track=True
             ),
     )
 
-    win_count = {
-        'red' : 0,
-        'blue': 0,
-        'draw': 0
+    env.render_info = {
+        **env.render_info,
+        **env.game_info
     }
-
-    env.render_info['red_wins'] = win_count['red']
-    env.render_info['blue_wins'] = win_count['blue']
-    env.render_info['draw'] = win_count['draw']
-
     for _ in range(TEST_N):
         if not env.isopen:
             break
-        obs, info = env.reset()
+        env.reset()
         policy.reset()
 
         while env.isopen:
             policy.take_action()
             policy.put_action()
             info = env.gen_info()
+
             if info['terminated'] or info['truncated']:
-                if info['winner'] in win_count:
-                    win_count[info['winner']] += 1
-                    env.render_info['red_wins'] = win_count['red']
-                    env.render_info['blue_wins'] = win_count['blue']
-                    env.render_info['draw'] = win_count['draw']
+                env.render_info = {
+                    **env.render_info,
+                    **env.game_info
+                }
                 break
             if env.should_update():
                 env.update()
@@ -178,10 +216,17 @@ def ppo_test():
             json.dump(env.render_info, f, ensure_ascii=False, indent=4)
 
 
+def main():
+    if args.mode == 'train':
+        run_train()
+    elif args.mode == 'test':
+        run_test()
+
+
 if __name__ == '__main__':
-    # ppo_model_train()
+    main()
     # ppo_teacher_train()
-    ppo_test()
+    # ppo_test()
 
     # options = Options()
     # options.delta_time = 1

@@ -1,0 +1,12 @@
+<Sequence>
+    <InitGreedyPolicy memory_gap="1000"/>
+    <Parallel>
+        <AttackNearestEnemy/>
+        <PPOActionPPA
+                path="models/PPOActionPPA_V2/{{agent_name}}"
+                tensorboard_log="logs/PPOActionPPA_V2">
+            <EnemyDetected/>
+            <Failure/>
+        </PPOActionPPA>
+    </Parallel>
+</Sequence>

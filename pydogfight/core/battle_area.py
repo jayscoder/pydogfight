@@ -41,7 +41,7 @@ class BattleArea:
         )
 
         self.add_obj(
-            Bullseye(options=self.options)
+                Bullseye(options=self.options)
         )
 
         for name in self.options.red_agents:
@@ -89,7 +89,7 @@ class BattleArea:
         return list(filter(lambda obj: isinstance(obj, Home), self.objs.values()))
 
     @property
-    def bullseye(self) ->  Bullseye:
+    def bullseye(self) -> Bullseye:
         obj = self.objs.get('bullseye')
         assert isinstance(obj, Bullseye)
         return obj
@@ -127,17 +127,111 @@ class BattleArea:
         :return:
         """
         count = {
-            'aircraft': defaultdict(int),
-            'missile' : defaultdict(int),
-            'home'    : defaultdict(int)
+            'aircraft': {
+                'red' : 0,
+                'blue': 0
+            },
+            'missile' : {
+                'red' : 0,
+                'blue': 0
+            },
+            'home'    : {
+                'red' : 0,
+                'blue': 0
+            }
         }
         for obj in self.objs.values():
             if obj.destroyed:
                 continue
             if obj.type not in count:
-                count[obj.type] = defaultdict(int)
+                count[obj.type] = {
+                    'red' : 0,
+                    'blue': 0
+                }
+            if obj.color not in count[obj.type]:
+                count[obj.type][obj.color] = 0
             count[obj.type][obj.color] += 1
         return count
+
+    @property
+    def winner(self) -> str:
+        """
+        计算胜利方
+        Returns:
+            red: 红方获胜
+            blue: 蓝方获胜
+            draw: 平局
+
+        """
+        remain_count = self.remain_count
+
+        if remain_count['missile']['red'] + remain_count['missile']['blue'] > 0:
+            return ''
+
+        if remain_count['aircraft']['red'] == 0 or remain_count['aircraft']['blue'] == 0:
+            if remain_count['aircraft']['red'] > 0:
+                return 'red'
+            elif remain_count['aircraft']['blue'] > 0:
+                return 'blue'
+            else:
+                return 'draw'
+        elif self.time >= self.options.max_duration:
+            # 超时就认为是平局
+            return 'draw'  # 不这么做的话，强化学习就会一直停留原地打转，等待敌机找上门或失误
+
+        return ''
+
+    def detect_missiles(self, agent_name: str, ignore_radar: bool = False, only_enemy: bool = True) -> list[Missile]:
+        """
+        检测来袭导弹
+        Args:
+            agent_name: 我方战机名称
+            ignore_radar: 忽略雷达
+            only_enemy: 只检测敌机的导弹
+
+        Returns: 来袭导弹，按照距离从小到大排序
+
+        """
+        missiles = []
+        agent = self.get_obj(agent_name)
+        assert isinstance(agent, Aircraft)
+        for obj in self.objs.values():
+            if obj.name == agent_name or not isinstance(obj, Missile) or obj.destroyed:
+                continue
+            if not ignore_radar and not agent.in_radar_range(obj):
+                # 不在雷达范围内
+                continue
+            if only_enemy and obj.color == agent.color:
+                # 不检测相同战队的导弹
+                continue
+            missiles.append((obj, obj.distance(agent)))
+        return list(map(lambda x: x[0], sorted(missiles, key=lambda x: x[1])))
+
+    def detect_aircraft(self, agent_name: str, ignore_radar: bool = False, only_enemy: bool = True) -> list[Aircraft]:
+        """
+        检测来袭飞机
+        Args:
+            agent_name: 我方战机名称
+            ignore_radar: 忽略雷达
+            only_enemy: 只检测敌机
+
+        Returns: 来袭飞机，按照距离从小到大排序
+
+        """
+        aircraft_items = []
+        agent = self.get_obj(agent_name)
+        assert isinstance(agent, Aircraft)
+        for obj in self.objs.values():
+            if obj.name == agent_name or not isinstance(obj, Aircraft) or obj.destroyed:
+                continue
+            if not ignore_radar and not agent.in_radar_range(obj):
+                # 不在雷达范围内
+                continue
+            if only_enemy and obj.color == agent.color:
+                # 只检测敌机
+                continue
+            aircraft_items.append((obj, obj.distance(agent)))
+        return list(map(lambda x: x[0], sorted(aircraft_items, key=lambda x: x[1])))
 
     def find_nearest_enemy(self, agent_name: str, ignore_radar: bool = False) -> Aircraft | None:
         """

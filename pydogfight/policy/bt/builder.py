@@ -1,6 +1,8 @@
-from pydogfight.policy.behavior_tree.greedy_nodes import *
-from pydogfight.policy.behavior_tree.nodes import *
-from pydogfight.policy.behavior_tree.model_nodes import *
+from pydogfight.policy.bt.greedy_nodes import *
+from pydogfight.policy.bt.nodes import *
+from pydogfight.policy.bt.manual import ManualControl
+from pydogfight.policy.bt.rl import *
+import os
 
 BASE_DIR = os.path.dirname(__file__)
 
@@ -20,6 +22,7 @@ class BTPolicyBuilder(pybts.Builder):
                 IsOnActiveRoute,
                 EvadeMissile,
                 AttackNearestEnemy,
+                GoToNearestEnemy,
                 PursueNearestEnemy,
                 Explore,
                 GoHome,
@@ -29,8 +32,24 @@ class BTPolicyBuilder(pybts.Builder):
                 KeepFly,
                 GoToLocation,
                 IsReachLocation,
-                BTPPOGoToLocationModel
+                ManualControl,
+                IsWin,
+                IsLose,
+                IsDraw
         )
+
+        self.register_bt(
+                BTPPOGoToLocationModel,
+                PPOSwitcher,
+                ReactivePPOSwitcher,
+                PPOSelector,
+                PPOCondition,
+                PPOAction,
+                PPOActionPPA,
+        )
+
+        # Ricky注册
+
 
 
 if __name__ == '__main__':

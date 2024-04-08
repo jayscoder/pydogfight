@@ -1,5 +1,5 @@
 import random
-from .models import *
+from pydogfight.core.models import *
 
 
 class Options:
@@ -16,16 +16,19 @@ class Options:
     max_duration = 60 * 30  # 一局对战最多时长30分钟，超过这个就会truncated
     screen_size = (800, 800)  # 屏幕宽度 屏幕高度
     render_fps = 50  # 渲染的fps
-    delta_time = 0.1  # 更新步长
+    delta_time = 0.01  # 更新步长
     update_interval = 1  # 每次env更新的时间间隔
-    simulation_rate = 10.0  # 仿真的速率倍数，越大代表越快，update_interval内更新几次（仅在render模式下生效）
-    policy_interval = 0.5  # 每次策略的处理间隔时长
+    simulation_rate = 100.0  # 仿真的速率倍数，越大代表越快，update_interval内更新几次（仅在render模式下生效）
+    policy_interval = 0.1  # 每次策略的处理间隔时长
     reach_location_threshold = 2  # 用来判断是否接近目标点的时间片尺度（乘以policy_interval*速度后就能得出距离多近就算到达目标点）
 
     obs_ignore_radar = False  # 是否忽略雷达（设置为true的话，生成单机观测时不会观测到雷达范围以内的敌机）
-    obs_ignore_missile_fuel = True  # 是否忽略导弹油量
-    obs_ignore_enemy_detail = True  # 是否忽略敌机部分详细信息（比如不能知道敌机的石油）
+    obs_ignore_enemy_missile_fuel = False  # 是否忽略敌方导弹剩余油量
+    obs_ignore_enemy_fuel = False  # 是否忽略敌方的剩余油量
+    obs_ignore_enemy_missile_count = False  # 是否忽略敌方的剩余导弹数
     obs_ignore_destroyed = True  # 忽略掉被摧毁的实体
+
+    obs_allow_memory = True  # 是否允许记忆
 
     ### 常量 ###
     g = 9.8  # 重力加速度 m/s
@@ -35,9 +38,9 @@ class Options:
     destroy_on_boundary_exit = True  # 飞出战场边界是否会摧毁飞机
 
     ### 飞机 ###
-    aircraft_missile_count: int = 10  # 飞机上装载的导弹数量
-    aircraft_speed: float = 222  # 飞机飞行速度220m/s 800km/h
-    aircraft_collision_radius: float = max(15.0, aircraft_speed * delta_time * 1)  # 飞机的碰撞半径，用来进行碰撞检查，设为0就不会检查碰撞了
+    aircraft_missile_count: int = 2  # 飞机上装载的导弹数量
+    aircraft_speed: float = 200  # 飞机飞行速度200m/s
+    aircraft_collision_radius: float = max(10.0, aircraft_speed * delta_time * 1)  # 飞机的碰撞半径，用来进行碰撞检查，设为0就不会检查碰撞了
 
     aircraft_fuel_consumption_rate: float = 1  # 飞机耗油速度，每秒消耗多少油
     aircraft_fuel_capacity: float = aircraft_fuel_consumption_rate * 1800  # 飞机载油量，在这里飞机最多能飞1800秒
@@ -47,23 +50,25 @@ class Options:
 
     aircraft_min_turn_radius = aircraft_speed ** 2 / aircraft_max_centripetal_acceleration  # 飞机最小转弯半径558m
     # aircraft_min_turn_radius = 5000
-    aircraft_predict_distance = aircraft_speed * 5  # 预测未来1秒的位置
+    aircraft_predict_distance = aircraft_speed * 5  # 预测未来5秒的位置
 
-    aircraft_radar_radius = 10e3  # 雷达半径 10km
+    # aircraft_radar_radius = 1e4  # 雷达半径 10km
+    aircraft_radar_radius = 3e4  # 雷达半径 30km
 
     ### 导弹 ###
-    missile_max_threat_distance = 8e3  # 导弹最大威胁距离8km
-    missile_no_escape_distance = 2e3  # 导弹不可躲避距离2km
+    # missile_max_threat_distance = 8e3  # 导弹最大威胁距离8km
+    # missile_no_escape_distance = 2e3  # 导弹不可躲避距离2km
 
     missile_max_centripetal_acceleration = 20 * g  # 导弹最大向心加速度
     missile_speed = aircraft_speed * 5  # 导弹速度是飞机速度的5倍
-    missile_min_turn_radius = missile_speed ** 2 / missile_max_centripetal_acceleration  # 导弹最小转弯半径 6286m
+    missile_min_turn_radius = missile_speed ** 2 / missile_max_centripetal_acceleration  # 导弹最小转弯半径 4023m
 
-    missile_collision_radius = max(15.0, (missile_speed + aircraft_speed) * delta_time * 1)  # 导弹的碰撞半径
+    missile_collision_radius = max(10.0, missile_speed * delta_time * 1)  # 导弹的碰撞半径
 
     missile_fuel_consumption_rate = 1
-    missile_fuel_capacity = missile_fuel_consumption_rate * 30  # 导弹只能飞30秒
+    missile_fuel_capacity = missile_fuel_consumption_rate * 30  # 导弹只能飞20秒: 26640m
     missile_reroute_interval = 1  # 导弹重新规划路径时间间隔
+    missile_fire_interval = 5 # 每隔5 s最多发射一枚导弹
 
     ### 基地 ###
     home_area_radius = 2e3  # 基地范围半径
@@ -77,13 +82,19 @@ class Options:
     ### 训练 ###
     win_reward = 3000
     lose_reward = -1000
-    draw_reward = -3000  # draw的惩罚更大，鼓励进攻
+    draw_reward = -500  #
     time_punish_reward = -1  # 时间惩罚（每s惩罚多少分）
     train = True  # 是否是训练模式
 
+    status_reward = {  # 状态奖励
+        'SUCCESS': 0,
+        'RUNNING': 0,
+        'FAILURE': -1,
+        'INVALID': -0.5
+    }
+
     ### 策略 ###
     safe_boundary_distance = aircraft_speed * 20  # 距离边界的安全距离
-
 
     def bullseye_safe_radius(self):
         """牛眼的安全半径"""
@@ -131,8 +142,8 @@ class Options:
             'aircraft_predict_distance'             : self.aircraft_predict_distance,
             'aircraft_radar_radius'                 : self.aircraft_radar_radius,
 
-            'missile_max_threat_distance'           : self.missile_max_threat_distance,
-            'missile_no_escape_distance'            : self.missile_no_escape_distance,
+            # 'missile_max_threat_distance'           : self.missile_max_threat_distance,
+            # 'missile_no_escape_distance'            : self.missile_no_escape_distance,
             'missile_max_centripetal_acceleration'  : self.missile_max_centripetal_acceleration,
             'missile_speed'                         : self.missile_speed,
             'missile_min_turn_radius'               : self.missile_min_turn_radius,
@@ -216,3 +227,9 @@ class Options:
         max_screen_size = max(self.screen_size)
         max_game_size = max(self.game_size)
         return (screen_length / max_screen_size) * max_game_size
+
+
+if __name__ == '__main__':
+    options = Options()
+    print(options.aircraft_collision_radius)
+    print(options.missile_collision_radius)

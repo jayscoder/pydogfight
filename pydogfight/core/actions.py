@@ -26,7 +26,19 @@ class Actions(IntEnum):
                 return actions[i]
         return actions[-1]
 
+    @classmethod
+    def from_str(cls, action_str: str) -> Actions:
+        return ACTIONS_MAP[action_str.strip().lower()]
+
+ACTIONS_MAP = {
+    'keep'          : Actions.keep,
+    'go_to_location': Actions.go_to_location,
+    'go_home'       : Actions.go_home,
+    'fire_missile'  : Actions.fire_missile
+}
 
 if __name__ == '__main__':
     print(Actions.extract_action_in_value_range(actions=None, value=-1, value_range=(-1, 1)))
-
+    allow_actions = 'keep, go_to_location, fire_missile'.split(',')
+    allow_actions = list(map(lambda x: ACTIONS_MAP[x.strip().lower()], allow_actions))
+    print(allow_actions)

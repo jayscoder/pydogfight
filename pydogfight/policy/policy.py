@@ -29,7 +29,7 @@ class Policy(ABC):
             # 清空actions
             self.actions.get_nowait()
 
-    def select_action(self):
+    def take_action(self):
         # 根据当前状态选择动作，obs的第一个是自己
         delta_time = self.env.time - self.last_time
         if delta_time < self.update_interval:
@@ -87,6 +87,6 @@ class MultiAgentPolicy:
         for policy in self.policies:
             policy.put_action()
 
-    def select_action(self):
+    def take_action(self):
         for policy in self.policies:
-            policy.select_action()
+            policy.take_action()
