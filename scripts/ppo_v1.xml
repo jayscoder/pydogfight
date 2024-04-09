@@ -1,18 +1,16 @@
 <Sequence>
-    <InitGreedyPolicy memory_gap="1000"/>
     <Parallel>
         <!--        <AttackNearestEnemy/>-->
         <ReactiveSequence>
             <PPOCondition
-                    path="models/ppo_v1_reactive/{{agent_color}}/PPOCondition_attack/{{version}}"
-                    tensorboard_log="logs/ppo_v1_reactive/PPOCondition_attack/{{version}}"
+                    path="models/ppo_v1/{{agent_color}}/PPOCondition_attack"
+                    tensorboard_log="logs/ppo_v1/PPOCondition_attack"
             />
             <AttackNearestEnemy/>
         </ReactiveSequence>
-        
-        <ReactivePPOSwitcher
-                path="models/ppo_v1_reactive/{{agent_color}}/PPOSwitcher_1/{{version}}"
-                tensorboard_log="logs/ppo_v1_reactive/PPOSwitcher_1/{{version}}">
+        <PPOSwitcher
+                path="models/ppo_v1/{{agent_color}}/PPOSwitcher_1"
+                tensorboard_log="logs/ppo_v1/PPOSwitcher_1">
             <ReactiveSequence>
                 <MissileThreatDetected/>
                 <EvadeMissile/>
@@ -35,12 +33,12 @@
 
             <ReactiveSequence>
                 <EnemyDetected/>
-                <GoToNearestEnemy/>
+                <GoToNearestEnemy />
             </ReactiveSequence>
 
             <ReactiveSequence>
                 <EnemyDetected/>
-                <PursueNearestEnemy attack_ratio="1"/>
+                <PursueNearestEnemy attack_ratio="1" />
             </ReactiveSequence>
 
             <ReactiveSequence>
@@ -50,6 +48,6 @@
                 </Inverter>
                 <Explore/>
             </ReactiveSequence>
-        </ReactivePPOSwitcher>
+        </PPOSwitcher>
     </Parallel>
 </Sequence>

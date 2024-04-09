@@ -65,3 +65,25 @@ DIR_TO_VEC = [
     # Up (negative Y)
     np.array((0, -1)),
 ]
+
+
+class DestroyReason:
+    """摧毁原因"""
+    OUT_OF_GAME_RANGE = "out of game range"  # 超出游戏范围
+    # 碰撞导弹
+    COLLIDED_WITH_MISSILE = "collided with missile"  # 碰撞导弹
+    # 碰撞飞机
+    COLLIDED_WITH_AIRCRAFT = "collided with aircraft"  # 碰撞飞机
+    # 燃油耗尽
+    FUEL_DEPLETION = "fuel depletion"  # 燃油耗尽
+    # 基地攻击
+    HOME_ATTACK = 'home attack'  # 基地攻击
+
+# class Events:
+#     """事件"""
+#     # 物体被摧毁
+#     # 发射导弹
+#     # 飞机碰撞
+#     # 导弹命中敌机
+#     # 导弹未命中
+#     # 回家

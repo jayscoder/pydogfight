@@ -1,0 +1,36 @@
+<PPOSwitcher
+        path="models/ppo_hier/{{agent_name}}/PPOSwitcher_1"
+        tensorboard_log="logs/ppo_hier/PPOSwitcher_1"
+>
+    <GoToCenter/>
+    <GoHome/>
+
+    <PPOActionPPA
+            path="models/ppo_hier/{{agent_name}}/PPOActionPPA_pursue"
+            tensorboard_log="logs/ppo_hier/PPOActionPPA_pursue"
+            allow_actions="keep,go_to_location"
+    >
+        <!--前置条件-->
+        <PreCondition>
+            <Inverter>
+                <EnemyDetected/>
+            </Inverter>
+        </PreCondition>
+        <!--后置条件-->
+        <PostCondition>
+            <EnemyDetected/>
+        </PostCondition>
+    </PPOActionPPA>
+
+    <AttackNearestEnemy/>
+    <!--    <PPOActionPPA-->
+    <!--            allow_actions="fire_missile"-->
+    <!--            path="models/ppo_hier/{{agent_name}}/PPOActionPPA_fire"-->
+    <!--            tensorboard_log="logs/ppo_hier/PPOActionPPA_fire"-->
+    <!--    >-->
+    <!--        &lt;!&ndash;前置条件&ndash;&gt;-->
+    <!--        <EnemyDetected/>-->
+    <!--        &lt;!&ndash;后置条件&ndash;&gt;-->
+    <!--        <IsWin/>-->
+    <!--    </PPOActionPPA>-->
+</PPOSwitcher>

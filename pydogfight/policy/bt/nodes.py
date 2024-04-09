@@ -18,13 +18,11 @@ class BTPolicyNode(pybts.Action, ABC):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.env: Dogfight2dEnv | None = None
-        self.share_cache = { }
         self.agent_name = ''
         self.update_messages = queue.Queue(maxsize=20)  # update过程中的message
 
     def setup(self, **kwargs: typing.Any) -> None:
         self.env = kwargs['env']
-        self.share_cache = kwargs['share_cache']
         self.agent_name = kwargs['agent_name']
         self.actions = kwargs['actions']
 

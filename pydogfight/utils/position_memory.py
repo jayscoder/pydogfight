@@ -3,6 +3,7 @@ from __future__ import annotations
 from pydogfight.core.models import BoundingBox
 import numpy as np
 
+
 class PositionMemory:
     def __init__(self, boundary: BoundingBox, sep: int):
         self.boundary: BoundingBox = boundary
@@ -52,3 +53,18 @@ class PositionMemory:
         selected_position = min_indices[index]
 
         return selected_position[0] * self.sep + self.x_range[0], selected_position[1] * self.sep + self.y_range[0]
+
+
+if __name__ == '__main__':
+
+    position_memory = PositionMemory(boundary=BoundingBox.from_center(center=(0, 0), size=(100, 100)), sep=50)
+    for x in range(100):
+        for y in range(100):
+            position_memory.add_position((x, y))
+    from collections import defaultdict
+
+    data = defaultdict(int)
+    for i in range(100):
+        data[position_memory.pick_position()] += 1
+    print(data)
+

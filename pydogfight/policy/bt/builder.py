@@ -1,4 +1,7 @@
-from pydogfight.policy.bt.greedy_nodes import *
+import pybts.rl.builder
+
+from pydogfight.policy.bt.nodes_actions import *
+from pydogfight.policy.bt.nodes_conditions import *
 from pydogfight.policy.bt.nodes import *
 from pydogfight.policy.bt.manual import ManualControl
 from pydogfight.policy.bt.rl import *
@@ -7,14 +10,11 @@ import os
 BASE_DIR = os.path.dirname(__file__)
 
 
-class BTPolicyBuilder(pybts.Builder):
-    def __init__(self):
-        super().__init__()
-        self.register_greedy()
+class BTPolicyBuilder(pybts.rl.builder.RLBuilder):
+    def register_default(self):
+        super().register_default()
 
-    def register_greedy(self):
         self.register_node(
-                InitGreedyPolicy,
                 MissileThreatDetected,
                 EnemyDetected,
                 GoToCenter,
@@ -38,6 +38,7 @@ class BTPolicyBuilder(pybts.Builder):
                 IsDraw
         )
 
+        # 强化学习节点
         self.register_node(
                 BTPPOGoToLocationModel,
                 PPOSwitcher,

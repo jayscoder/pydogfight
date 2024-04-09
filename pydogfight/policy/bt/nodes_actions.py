@@ -4,7 +4,7 @@ import json
 import typing
 
 from pydogfight.core.models import BoundingBox
-from pydogfight.utils.position_memory import PositionMemory
+
 from pydogfight.policy.bt.nodes import *
 from pydogfight.core.world_obj import Aircraft, Missile
 from pydogfight.algos.traj import calc_optimal_path
@@ -14,62 +14,6 @@ from pybts import Status
 import os
 
 from pydogfight.policy.bt.common import *
-
-
-class InitGreedyPolicy(BTPolicyNode):
-    """
-    行为节点：初始化贪心策略
-    此节点用于在决策过程开始时初始化贪心策略，设置必要的环境和参数，以便后续节点可以执行基于贪心逻辑的决策。它主要负责收集和初始化与战斗相关的数据，如敌人的位置、可用的导弹等信息。
-
-    - SUCCESS: 初始化成功，表示贪心策略相关的数据和参数已经准备完毕，可以开始执行具体的贪心决策。
-    - FAILURE: 初始化失败，通常不应发生，除非在获取或设置初始数据时出现问题。
-
-    Parameters:
-    - name (str): 此行为节点的名称。
-    - memory_sep (int): 用于分割记忆中的位置，以帮助管理探索的区域。
-
-    备注：
-    - 此节点应在决策树执行的早期阶段运行，以确保后续的行为节点可以访问到初始化后的数据和状态。
-    - 使用共享缓存来存储和传递初始化的数据，确保决策树中的其他节点可以访问这些信息。
-    """
-
-    def __init__(self, memory_sep: int | str = 1000, **kwargs):
-        super().__init__(**kwargs)
-        self.memory_sep = int(memory_sep)
-
-    # def to_data(self):
-    #     nearest_enemy = self.share_cache.get('nearest_enemy', None)
-    #     if nearest_enemy is not None:
-    #         nearest_enemy = nearest_enemy.to_dict()
-    #     missiles = self.share_cache.get('missiles', None)
-    #     if missiles is not None:
-    #         missiles = len(missiles)
-    #     agent = self.agent
-    #     if agent is not None:
-    #         agent = agent.to_dict()
-    #     return {
-    #         **super().to_data(),
-    #     }
-
-    def update(self) -> Status:
-        nearest_enemy = self.env.battle_area.find_nearest_enemy(
-                agent_name=self.agent_name,
-                ignore_radar=False)
-        if nearest_enemy is not None:
-            self.share_cache['nearest_enemy'] = nearest_enemy.__copy__()
-
-        self.share_cache['test_agents'] = self.agent.generate_test_moves(
-                in_safe_area=True
-        )
-
-        self.share_cache['missiles'] = self.env.battle_area.detect_missiles(agent_name=self.agent_name)
-        # 记忆走过的地方
-        self.share_cache['memory'].add_position(self.agent.location)
-        return Status.SUCCESS
-
-    def reset(self):
-        super().reset()
-        self.share_cache['memory'] = PositionMemory(boundary=self.env.options.safe_boundary(), sep=self.memory_sep)
 
 
 class GoHome(BTPolicyNode):
@@ -86,68 +30,6 @@ class GoHome(BTPolicyNode):
         yield Status.SUCCESS
 
 
-class IsFuelBingo(BTPolicyNode, pybts.Condition):
-    """
-    条件节点：检查是否达到了bingo油量（紧急燃油水平）。如果处于bingo油量以下，则需要返航
-    - SUCCESS: 剩余油量 <= bingo油量
-    - FAILURE: 剩余油量 > bingo油量
-    """
-
-    def update(self) -> Status:
-        if self.agent.fuel <= self.env.options.aircraft_fuel_bingo_fuel:
-            return Status.SUCCESS
-        else:
-            return Status.FAILURE
-
-
-class IsMissileDepleted(BTPolicyNode, pybts.Condition):
-    """
-    条件节点: 导弹是否用完了，用完了就要返回基地补充导弹
-    - SUCCESS: 剩余导弹 == 0
-    - FAILURE: 剩余导弹 > 0
-    """
-
-    def update(self) -> Status:
-        if self.agent.missile_count == 0:
-            return Status.SUCCESS
-        else:
-            return Status.FAILURE
-
-
-class MissileThreatDetected(BTPolicyNode, pybts.Condition):
-    """
-    条件节点:是否发现来袭导弹，如果发现了，可能需要进行规避
-    - SUCCESS: 发现来袭导弹
-    - FAILURE: 未发现
-    """
-
-    def update(self) -> Status:
-        missiles = self.env.battle_area.detect_missiles(agent_name=self.agent_name)
-        if len(missiles) > 0:
-            return Status.SUCCESS
-        else:
-            return Status.FAILURE
-
-
-class EnemyDetected(BTPolicyNode, pybts.Condition):
-    """
-    行为节点：是否监测到敌机
-    - SUCCESS: 监测到敌机
-    - FAILURE: 没有监测到敌机
-    """
-
-    def update(self) -> Status:
-        enemy = self.env.battle_area.find_nearest_enemy(
-                agent_name=self.agent_name,
-                ignore_radar=False)
-
-        if enemy is None:
-            self.put_update_message('No nearest enemy')
-            return Status.FAILURE
-
-        return Status.SUCCESS
-
-
 class GoToCenter(BTPolicyNode):
     """
     行为节点：飞行到战场中心
@@ -157,39 +39,6 @@ class GoToCenter(BTPolicyNode):
     def updater(self) -> typing.Iterator[Status]:
         yield from go_to_location_updater(self, (0, 0))
         yield Status.SUCCESS
-
-
-class IsOnActiveRoute(BTPolicyNode, pybts.Condition):
-    """
-    条件节点: 当前agent是否存在未完成的飞行路线
-    - SUCCESS: 存在未完成的飞行路线
-    - FAILURE: 不存在
-    """
-
-    def update(self) -> Status:
-        if self.agent.route is not None:
-            return Status.SUCCESS
-        return Status.FAILURE
-
-
-class IsInSafeArea(BTPolicyNode, pybts.Condition):
-    """
-    条件节点: 是否处于安全区域，如果不在安全区域，则要往战场中心飞
-    - SUCCESS: 处于安全区域
-    - FAILURE: 不处于
-    """
-
-    def to_data(self):
-        return {
-            **super().to_data(),
-            'distance'            : self.agent.distance((0, 0)),
-            'bullseye_safe_radius': self.env.options.bullseye_safe_radius()
-        }
-
-    def update(self) -> Status:
-        if self.agent.distance((0, 0)) >= self.env.options.bullseye_safe_radius():
-            return Status.FAILURE
-        return Status.SUCCESS
 
 
 class EvadeMissile(BTPolicyNode):
@@ -316,33 +165,6 @@ class AwayFromNearestEnemy(BTPolicyNode):
         return
 
 
-class IsNearEnemy(BTPolicyNode):
-    """
-    是否靠近敌机
-    """
-
-    def __init__(self, radar_ratio: float = 0.1, **kwargs):
-        super().__init__(**kwargs)
-        self.radar_ratio = self.converter.float(radar_ratio)  # 以自己的雷达半径为判断依据
-
-    def update(self) -> Status:
-        enemy = self.env.battle_area.find_nearest_enemy(
-                agent_name=self.agent_name,
-                ignore_radar=False)
-
-        if enemy is None:
-            self.put_update_message('No nearest enemy')
-            yield Status.FAILURE
-            return
-
-        distance = self.agent.distance(enemy)
-
-        if distance <= self.radar_ratio * self.agent.radar_radius:
-            return Status.SUCCESS
-        else:
-            return Status.FAILURE
-
-
 class PursueNearestEnemy(BTPolicyNode):
     """
     行为节点：追击最近的敌机
@@ -425,7 +247,7 @@ class Explore(BTPolicyNode):
         if self.agent.route is not None:
             self.put_update_message('当前agent还有没有完成的路线')
             yield Status.RUNNING
-        go_to_location = self.share_cache['memory'].pick_position()
+        go_to_location = self.agent.position_memory.pick_position()
         yield from go_to_location_updater(self, go_to_location)
         yield Status.SUCCESS
 
@@ -488,55 +310,5 @@ class GoToLocation(BTPolicyNode):
             'x': self.x,
             'y': self.y,
         }
-
-class IsReachLocation(BTPolicyNode, pybts.Condition):
-    """由于策略的更新时间较长，可能无法正确判断是否到达某个目标点"""
-
-    def __init__(self, x: float, y: float, **kwargs):
-        super().__init__(**kwargs)
-        self.x = self.converter.float(x)
-        self.y = self.converter.float(y)
-
-    def to_data(self):
-        return {
-            **super().to_data(),
-            'x': self.x,
-            'y': self.y,
-        }
-
-    def update(self) -> Status:
-        reach_distance = self.agent.speed * max(
-                self.env.options.delta_time,
-                self.env.options.policy_interval * 2) * self.env.options.reach_location_threshold
-        if self.agent.distance((self.x, self.y)) <= reach_distance:
-            return Status.SUCCESS
-        return Status.FAILURE
-
-
-class IsWin(BTPolicyNode, pybts.Condition):
-
-    def update(self) -> Status:
-        info = self.env.gen_info()
-        if info['winner'] == self.agent.color:
-            return Status.SUCCESS
-        return Status.FAILURE
-
-
-class IsLose(BTPolicyNode, pybts.Condition):
-
-    def update(self) -> Status:
-        info = self.env.gen_info()
-        if info['winner'] == self.agent.enemy_color:
-            return Status.SUCCESS
-        return Status.FAILURE
-
-
-class IsDraw(BTPolicyNode, pybts.Condition):
-
-    def update(self) -> Status:
-        info = self.env.gen_info()
-        if info['winner'] == 'draw':
-            return Status.SUCCESS
-        return Status.FAILURE
 
 # TODO: 条件节点，导弹命中敌机，需要考虑一些匹配

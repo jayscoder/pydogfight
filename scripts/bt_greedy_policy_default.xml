@@ -1,5 +1,4 @@
 <Sequence>
-    <InitGreedyPolicy memory_gap="1000"/>
     <Parallel>
         <AttackNearestEnemy/>
         <Selector>

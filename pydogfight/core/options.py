@@ -5,6 +5,8 @@ from pydogfight.core.models import *
 
 
 class Options:
+    version = 'v1'  # 版本
+
     ### 实体设置 ###
     red_agents = ['red_1']
     blue_agents = ['blue_1']
@@ -20,7 +22,7 @@ class Options:
     render_fps = 50  # 渲染的fps
     delta_time = 0.01  # 每次env的更新步长
     update_interval = 1  # 每轮env更新的时间间隔（在一轮更新中会进行多次更新，更新次数=update_interval/delta_time）
-    simulation_rate = 100.0  # 仿真的速率倍数，越大代表越快，update_interval内更新几次（仅在render模式下生效）
+    simulation_rate = 100.0  # 仿真的速率倍数，越大代表越快，update_interval内更新几次（仅在render_mode=human模式下生效）
     policy_interval = 0  # 每次策略的处理间隔时长（为0代表每次更新后都会处理策略）
     reach_location_threshold = 2  # 用来判断是否接近目标点的时间片尺度（乘以policy_interval*速度后就能得出距离多近就算到达目标点）
 
@@ -39,10 +41,16 @@ class Options:
     game_size = (5e4, 5e4)  # 战场宽度 50km 战场高度 50km
     destroy_on_boundary_exit = True  # 飞出战场边界是否会摧毁飞机
 
+    collision_scale = 1.5  # 碰撞半径的倍数，越大代表越容易碰撞
+
     ### 飞机 ###
     aircraft_missile_count: int = 10  # 飞机上装载的导弹数量
     aircraft_speed: float = 200  # 飞机飞行速度200m/s
-    aircraft_collision_radius: float = max(15.0, aircraft_speed * delta_time * 1)  # 飞机的碰撞半径，用来进行碰撞检查，设为0就不会检查碰撞了
+
+    @property
+    def aircraft_collision_radius(self):
+        return max(15.0,
+                   self.aircraft_speed * self.delta_time * self.collision_scale)  # 飞机的碰撞半径，用来进行碰撞检查，设为0就不会检查碰撞了
 
     aircraft_fuel_consumption_rate: float = 1  # 飞机耗油速度，每秒消耗多少油
     aircraft_fuel_capacity: float = aircraft_fuel_consumption_rate * 1800  # 飞机载油量，在这里飞机最多能飞1800秒
@@ -57,6 +65,11 @@ class Options:
     # aircraft_radar_radius = 1e4  # 雷达半径 10km
     aircraft_radar_radius = 1e4  # 雷达半径 30km
 
+    aircraft_fire_missile_interval = 5  # 发射导弹时间间隔
+
+    aircraft_indestructible = False  # 飞机是否不可被摧毁
+    aircraft_position_memory_sep = 1000  # 飞机记忆走过的路径点，以1000作为分隔点
+
     ### 导弹 ###
     # missile_max_threat_distance = 8e3  # 导弹最大威胁距离8km
     # missile_no_escape_distance = 2e3  # 导弹不可躲避距离2km
@@ -65,15 +78,23 @@ class Options:
     missile_speed = aircraft_speed * 5  # 导弹速度是飞机速度的5倍
     missile_min_turn_radius = missile_speed ** 2 / missile_max_centripetal_acceleration  # 导弹最小转弯半径 4023m
 
-    missile_collision_radius = max(15.0, missile_speed * delta_time * 5)  # 导弹的碰撞半径
+    @property
+    def missile_collision_radius(self):
+        return max(15.0, self.missile_speed * self.delta_time * self.collision_scale)
+
+    # missile_collision_radius = max(15.0, missile_speed * delta_time * 5)  # 导弹的碰撞半径
 
     missile_fuel_consumption_rate = 1
     missile_fuel_capacity = missile_fuel_consumption_rate * 30  # 导弹只能飞30秒: 26640m
     missile_reroute_interval = 1  # 导弹重新规划路径时间间隔
     missile_fire_interval = 5  # 每隔5 s最多发射一枚导弹
 
+    missile_can_only_hit_enemy: bool = True  # 导弹是否只能攻击敌方（如果设为False，则导弹可以打中友方）
+
     ### 基地 ###
     home_area_radius = 2e3  # 基地范围半径
+    home_return_time_interval = 10  # 触发返回基地的时间间隔
+
     home_refuel = True  # 基地是否具备重新加油功能
     home_refuel_threshold_capacity = aircraft_fuel_bingo_fuel * 2  # 基地重新加油的阈值（飞机剩余油量小于这个才会重新加油）
     home_replenish_missile = True  # 基地是否具备补充导弹的功能

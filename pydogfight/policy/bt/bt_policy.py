@@ -15,15 +15,9 @@ class BTPolicy(AgentPolicy):
                  ):
         super().__init__(env=env, agent_name=agent_name, update_interval=update_interval)
         self.tree = tree
-        self.share_cache = { }
-
-    def _setup(self):
-        super()._setup()
-        self.tree.setup(env=self.env, agent_name=self.agent_name, share_cache=self.share_cache, actions=self.actions)
 
     def reset(self):
         super().reset()
-        self.share_cache.clear()
         self.tree.reset()
 
     def execute(self, observation, delta_time: float):

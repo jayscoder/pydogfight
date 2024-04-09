@@ -5,6 +5,8 @@ from pydogfight.core.options import Options
 from collections import defaultdict
 
 
+
+
 class BattleArea:
     def __init__(self, options: Options, render_mode: str = 'rgb_array'):
         self.options = options

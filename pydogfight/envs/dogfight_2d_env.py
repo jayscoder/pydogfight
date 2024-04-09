@@ -94,11 +94,20 @@ class Dogfight2dEnv(gym.Env):
 
         self.agent_memory = { }
 
+        # 回调函数
+        self.before_update_handlers: list[typing.Callable[['Dogfight2dEnv'], None]] = []
         self.after_update_handlers: list[typing.Callable[['Dogfight2dEnv'], None]] = []
+        self.before_reset_handlers: list[typing.Callable[['Dogfight2dEnv'], None]] = []
         self.after_reset_handlers: list[typing.Callable[['Dogfight2dEnv'], None]] = []
+
+    def add_before_update_handler(self, handler: typing.Callable[['Dogfight2dEnv'], None]):
+        self.before_update_handlers.append(handler)
 
     def add_after_update_handler(self, handler: typing.Callable[['Dogfight2dEnv'], None]):
         self.after_update_handlers.append(handler)
+
+    def add_before_reset_handler(self, handler: typing.Callable[['Dogfight2dEnv'], None]):
+        self.before_reset_handlers.append(handler)
 
     def add_after_reset_handler(self, handler: typing.Callable[['Dogfight2dEnv'], None]):
         self.after_reset_handlers.append(handler)
@@ -118,6 +127,9 @@ class Dogfight2dEnv(gym.Env):
             seed: int | None = None,
             options: dict[str, Any] | None = None,
     ) -> tuple[ObsType, dict[str, Any]]:
+        for handler in self.before_reset_handlers:
+            handler(self)
+
         info = self.gen_info()
         if info['winner'] == 'red':
             self.game_info['red_wins'] += 1
@@ -387,6 +399,9 @@ class Dogfight2dEnv(gym.Env):
             agent.put_action(act)
 
     def update(self):
+        for handler in self.before_update_handlers:
+            handler(self)
+
         assert self.options.delta_time > 0
         assert self.options.update_interval >= self.options.delta_time
         for _ in range(int(self.options.update_interval / self.options.delta_time)):

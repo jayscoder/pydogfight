@@ -1,37 +1,37 @@
-python main.py --num-episodes=1000 --mode=train --render-mode=human --red-bt=policies/ppo_action.xml --blue-bt=policies/bt_greedy.xml
-python main.py --num-episodes=1000 --mode=train --render-mode=human --red-bt=policies/ppo_hier.xml --blue-bt=policies/bt_greedy.xml
+python main.py --num-episodes=1000 --mode=train --render-mode=human --red-bt=scripts/ppo_action.xml --blue-bt=scripts/bt_greedy.xml
+python main.py --num-episodes=1000 --mode=train --render-mode=human --red-bt=scripts/ppo_hier.xml --blue-bt=scripts/bt_greedy.xml
 
-python main.py --num-episodes=1000 --mode=train --render-mode=human --red-bt=policies/ppo_action.xml --blue-bt=policies/bt_greedy_no_fire.xml
-python main.py --num-episodes=1000 --mode=train --render-mode=human --red-bt=policies/ppo_hier.xml --blue-bt=policies/bt_greedy_no_fire.xml
+python main.py --num-episodes=1000 --mode=train --render-mode=human --red-bt=scripts/ppo_action.xml --blue-bt=scripts/bt_greedy_no_fire.xml
+python main.py --num-episodes=1000 --mode=train --render-mode=human --red-bt=scripts/ppo_hier.xml --blue-bt=scripts/bt_greedy_no_fire.xml
 
-python main.py --num-episodes=100 --mode=train --render-mode=rgb_array --red-bt=policies/ppo_action.xml --blue-bt=policies/bt_greedy.xml
-python main.py --num-episodes=100 --mode=train --render-mode=rgb_array --red-bt=policies/ppo_hier.xml --blue-bt=policies/bt_greedy.xml
+python main.py --num-episodes=100 --mode=train --render-mode=rgb_array --red-bt=scripts/ppo_action.xml --blue-bt=scripts/bt_greedy.xml
+python main.py --num-episodes=100 --mode=train --render-mode=rgb_array --red-bt=scripts/ppo_hier.xml --blue-bt=scripts/bt_greedy.xml
 
-python main.py --num-episodes=100 --mode=train --render-mode=rgb_array --red-bt=policies/ppo_action.xml --blue-bt=policies/bt_greedy_no_fire.xml
-python main.py --num-episodes=100 --mode=train --render-mode=rgb_array --red-bt=policies/ppo_hier.xml --blue-bt=policies/bt_greedy_no_fire.xml
-python main.py --num-episodes=100 --mode=test --render-mode=human --red-bt=policies/ppo_hier.xml --blue-bt=policies/bt_greedy_no_fire.xml
-
-
-
-python main.py --num-episodes=1000 --mode=test --render-mode=human --red-bt=policies/manual_control.xml --blue-bt=policies/bt_greedy_no_fire.xml
+python main.py --num-episodes=100 --mode=train --render-mode=rgb_array --red-bt=scripts/ppo_action.xml --blue-bt=scripts/bt_greedy_no_fire.xml
+python main.py --num-episodes=100 --mode=train --render-mode=rgb_array --red-bt=scripts/ppo_hier.xml --blue-bt=scripts/bt_greedy_no_fire.xml
+python main.py --num-episodes=100 --mode=test --render-mode=human --red-bt=scripts/ppo_hier.xml --blue-bt=scripts/bt_greedy_no_fire.xml
 
 
 
-python main.py --num-episodes=100 --mode=train --render-mode=human --red-bt=policies/ppo_v1.xml --blue-bt=policies/bt_greedy.xml
+python main.py --num-episodes=1000 --mode=test --render-mode=human --red-bt=scripts/manual_control.xml --blue-bt=scripts/bt_greedy_no_fire.xml
 
 
-python main.py --num-episodes=1000 --mode=train --render-mode=rgb_array --red-bt=policies/ppo_v1.xml --blue-bt=policies/bt_greedy.xml
 
-python main.py --num-episodes=3000 --mode=train --render-mode=rgb_array --red-bt=policies/ppo_v1_reactive.xml --blue-bt=policies/bt_greedy.xml
-python main.py --num-episodes=3000 --mode=test --render-mode=human --red-bt=policies/ppo_v1_reactive.xml --blue-bt=policies/bt_greedy.xml
+python main.py --num-episodes=100 --mode=train --render-mode=human --red-bt=scripts/ppo_v1.xml --blue-bt=scripts/bt_greedy.xml
 
 
-python main.py --num-episodes=3000 --mode=test --render-mode=human --red-bt=policies/ppo_v1_reactive.xml --blue-bt=policies/ppo_v1_reactive.xml
-python main.py --num-episodes=3000 --mode=train --render-mode=human --red-bt=policies/ppo_v1_reactive.xml --blue-bt=policies/ppo_v1_reactive.xml
+python main.py --num-episodes=1000 --mode=train --render-mode=rgb_array --red-bt=scripts/ppo_v1.xml --blue-bt=scripts/bt_greedy.xml
+
+python main.py --num-episodes=3000 --mode=train --render-mode=rgb_array --red-bt=scripts/ppo_v1_reactive.xml --blue-bt=scripts/bt_greedy.xml
+python main.py --num-episodes=3000 --mode=test --render-mode=human --red-bt=scripts/ppo_v1_reactive.xml --blue-bt=scripts/bt_greedy.xml
 
 
-python main.py --num-episodes=3000 --mode=train --render-mode=human --red-bt=policies/ppo_v1_reactive.xml --blue-bt=policies/ppo_v1_reactive.xml
-python main.py --num-episodes=3000 --mode=train --render-mode=rgb_array --red-bt=policies/ppo_v1_reactive.xml --blue-bt=policies/ppo_v1_reactive.xml --version=v2 --delta-time=0.1
+python main.py --num-episodes=3000 --mode=test --render-mode=human --red-bt=scripts/ppo_v1_reactive.xml --blue-bt=scripts/ppo_v1_reactive.xml
+python main.py --num-episodes=3000 --mode=train --render-mode=human --red-bt=scripts/ppo_v1_reactive.xml --blue-bt=scripts/ppo_v1_reactive.xml
 
 
-python main.py --num-episodes=3000 --mode=test --render-mode=human --red-bt=policies/ppo_v1_reactive.xml --blue-bt=policies/ppo_v1_reactive.xml
+python main.py --num-episodes=3000 --mode=train --render-mode=human --red-bt=scripts/ppo_v1_reactive.xml --blue-bt=scripts/ppo_v1_reactive.xml
+python main.py --num-episodes=3000 --mode=train --render-mode=rgb_array --red-bt=scripts/ppo_v1_reactive.xml --blue-bt=scripts/ppo_v1_reactive.xml --version=v2 --delta-time=0.1
+
+
+python main.py --num-episodes=3000 --mode=test --render-mode=human --red-bt=scripts/ppo_v1_reactive.xml --blue-bt=scripts/ppo_v1_reactive.xml

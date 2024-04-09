@@ -1,5 +1,4 @@
 <Sequence>
-    <InitGreedyPolicy memory_gap="500"/>
     <Parallel success_threshold="1">
         <Selector>
             <Sequence>
