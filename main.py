@@ -42,7 +42,8 @@ parser.add_argument('--policy-interval', type=float, default=options.policy_inte
 
 parser.add_argument('--num-episodes', type=int, default=100, help='对战场次')
 parser.add_argument('--version', type=str, default=options.version, help='版本')
-parser.add_argument('--indestructible', action='store_true', help='战机是否不可被摧毁')
+parser.add_argument('--indestructible', action='store_true',
+                    help='战机是否开启无敌模式，在做强化学习训练的时候就不能靠战机是否被摧毁来获得奖励，需要靠导弹命中敌机来获得奖励')
 parser.add_argument('--max-duration', type=int, default=options.max_duration,
                     help='一局对战最长时间，单位是s，默认是30分钟')
 parser.add_argument('--simulation-rate', type=int, default=options.simulation_rate,
@@ -70,26 +71,26 @@ def main():
 
     manager = utils.Manager(env=env, builder=builder, bt_track=args.track, bt_track_interval=args.track_interval)
 
-    # policy = MultiAgentPolicy(
-    #         policies=[
-    #             # ManualPolicy(env=env, control_agents=options.agents, update_interval=0),
-    #             # ManualPolicy(env=env, control_agents=options.blue_agents, delta_time=0.01),
-    #             manager.create_bt_policy(
-    #                     agent_name=options.red_agents[0],
-    #                     filepath='./scripts/manual_control.xml',
-    #                     tree_name_suffix='-manual'
-    #             ),
-    #             manager.create_bt_policy(
-    #                     agent_name=options.red_agents[0],
-    #                     filepath=args.red_bt,
-    #             ),
-    #             manager.create_bt_policy(
-    #                     agent_name=options.blue_agents[0],
-    #                     filepath=args.blue_bt,
-    #             ),
-    #         ]
-    # )
-    policy = manager.create_policy_from_workspace(runtime='0410-024433')
+    policy = MultiAgentPolicy(
+            policies=[
+                # ManualPolicy(env=env, control_agents=options.agents, update_interval=0),
+                # ManualPolicy(env=env, control_agents=options.blue_agents, delta_time=0.01),
+                manager.create_bt_policy(
+                        agent_name=options.red_agents[0],
+                        filepath='./scripts/manual_control.xml',
+                        tree_name_suffix='-manual'
+                ),
+                manager.create_bt_policy(
+                        agent_name=options.red_agents[0],
+                        filepath=args.red_bt,
+                ),
+                manager.create_bt_policy(
+                        agent_name=options.blue_agents[0],
+                        filepath=args.blue_bt,
+                ),
+            ]
+    )
+    # policy = manager.create_policy_from_workspace(runtime='0410-024433')
     manager.evaluate(
             num_episodes=args.num_episodes,
             policy=policy
