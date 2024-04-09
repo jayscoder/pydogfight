@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import queue
+import typing
 
 import pybts
 
@@ -20,6 +21,12 @@ class BTPolicyNode(pybts.Action, ABC):
         self.share_cache = { }
         self.agent_name = ''
         self.update_messages = queue.Queue(maxsize=20)  # update过程中的message
+
+    def setup(self, **kwargs: typing.Any) -> None:
+        self.env = kwargs['env']
+        self.share_cache = kwargs['share_cache']
+        self.agent_name = kwargs['agent_name']
+        self.actions = kwargs['actions']
 
     @property
     def agent(self) -> Aircraft | None:
@@ -41,32 +48,3 @@ class BTPolicyNode(pybts.Action, ABC):
         }
 
 
-class BTPolicy(AgentPolicy):
-    def __init__(self,
-                 tree: pybts.Tree,
-                 env: Dogfight2dEnv,
-                 agent_name: str,
-                 update_interval: float = 1,
-                 ):
-        super().__init__(env=env, agent_name=agent_name, update_interval=update_interval)
-        self.tree = tree
-        self.share_cache = { }
-        for node in self.tree.root.iterate():
-            if isinstance(node, BTPolicyNode):
-                node.share_cache = self.share_cache
-                node.env = env
-                node.agent_name = agent_name
-            if isinstance(node, pybts.Action):
-                node.actions = self.actions
-
-    def _setup(self):
-        super()._setup()
-        self.tree.setup()
-
-    def reset(self):
-        super().reset()
-        self.share_cache.clear()
-        self.tree.reset()
-
-    def execute(self, observation, delta_time: float):
-        self.tree.tick()

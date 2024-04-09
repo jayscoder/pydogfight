@@ -13,7 +13,7 @@ class BTPolicyBuilder(pybts.Builder):
         self.register_greedy()
 
     def register_greedy(self):
-        self.register_bt(
+        self.register_node(
                 InitGreedyPolicy,
                 MissileThreatDetected,
                 EnemyDetected,
@@ -38,7 +38,7 @@ class BTPolicyBuilder(pybts.Builder):
                 IsDraw
         )
 
-        self.register_bt(
+        self.register_node(
                 BTPPOGoToLocationModel,
                 PPOSwitcher,
                 ReactivePPOSwitcher,
@@ -49,20 +49,3 @@ class BTPolicyBuilder(pybts.Builder):
         )
 
         # Ricky注册
-
-
-
-if __name__ == '__main__':
-    # _main()
-    builder = BTPolicyBuilder()
-    with open(os.path.join(BASE_DIR, 'bt_policy_nodes.md'), 'w') as f:
-        texts = ['## 战机策略行为树节点定义']
-        for k, n in builder.repo_node.items():
-            texts.append(f'**{k}**')
-            for line in n.__doc__.split('\n'):
-                line = line.strip()
-                if line == '':
-                    continue
-                texts.append(line.strip())
-
-        f.write('\n\n'.join(texts))

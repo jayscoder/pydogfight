@@ -4,13 +4,13 @@
         <!--        <AttackNearestEnemy/>-->
         <ReactiveSequence>
             <PPOCondition
-                    path="models/ppo_v1/{{agent_name}}/PPOCondition_attack"
+                    path="models/ppo_v1/{{agent_color}}/PPOCondition_attack"
                     tensorboard_log="logs/ppo_v1/PPOCondition_attack"
             />
             <AttackNearestEnemy/>
         </ReactiveSequence>
         <PPOSwitcher
-                path="models/ppo_v1/{{agent_name}}/PPOSwitcher_1"
+                path="models/ppo_v1/{{agent_color}}/PPOSwitcher_1"
                 tensorboard_log="logs/ppo_v1/PPOSwitcher_1">
             <ReactiveSequence>
                 <MissileThreatDetected/>

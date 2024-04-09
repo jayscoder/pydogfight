@@ -33,31 +33,23 @@ class InitGreedyPolicy(BTPolicyNode):
     - 使用共享缓存来存储和传递初始化的数据，确保决策树中的其他节点可以访问这些信息。
     """
 
-    def __init__(self, name: str, memory_sep: int = 1000):
-        super().__init__(name=name)
-        self.memory_sep = memory_sep
+    def __init__(self, memory_sep: int | str = 1000, **kwargs):
+        super().__init__(**kwargs)
+        self.memory_sep = int(memory_sep)
 
-    def to_data(self):
-        nearest_enemy = self.share_cache.get('nearest_enemy', None)
-        if nearest_enemy is not None:
-            nearest_enemy = nearest_enemy.to_dict()
-        missiles = self.share_cache.get('missiles', None)
-        if missiles is not None:
-            missiles = len(missiles)
-        agent = self.agent
-        if agent is not None:
-            agent = agent.to_dict()
-        return {
-            **super().to_data(),
-            'memory_sep'   : self.memory_sep,
-            'nearest_enemy': nearest_enemy,
-            'missiles'     : missiles,
-            'agent'        : agent
-        }
-
-    @classmethod
-    def creator(cls, d, c):
-        return InitGreedyPolicy(name=d['name'], memory_sep=int(d.get('memory_sep', 1000)))
+    # def to_data(self):
+    #     nearest_enemy = self.share_cache.get('nearest_enemy', None)
+    #     if nearest_enemy is not None:
+    #         nearest_enemy = nearest_enemy.to_dict()
+    #     missiles = self.share_cache.get('missiles', None)
+    #     if missiles is not None:
+    #         missiles = len(missiles)
+    #     agent = self.agent
+    #     if agent is not None:
+    #         agent = agent.to_dict()
+    #     return {
+    #         **super().to_data(),
+    #     }
 
     def update(self) -> Status:
         nearest_enemy = self.env.battle_area.find_nearest_enemy(
@@ -89,7 +81,7 @@ class GoHome(BTPolicyNode):
     """
 
     def updater(self) -> typing.Iterator[Status]:
-        home_obj = self.env.get_home(self.agent.color)
+        home_obj = self.env.battle_area.get_home(self.agent.color)
         yield from go_to_location_updater(self, home_obj.location)
         yield Status.SUCCESS
 
@@ -166,10 +158,6 @@ class GoToCenter(BTPolicyNode):
         yield from go_to_location_updater(self, (0, 0))
         yield Status.SUCCESS
 
-    @classmethod
-    def creator(cls, d, c):
-        return GoToCenter(name=d['name'])
-
 
 class IsOnActiveRoute(BTPolicyNode, pybts.Condition):
     """
@@ -203,10 +191,6 @@ class IsInSafeArea(BTPolicyNode, pybts.Condition):
             return Status.FAILURE
         return Status.SUCCESS
 
-    @classmethod
-    def creator(cls, d, c):
-        return IsInSafeArea(name=d['name'])
-
 
 class EvadeMissile(BTPolicyNode):
     """
@@ -228,7 +212,7 @@ class EvadeMissile(BTPolicyNode):
         go_to_location = None
         for agent_tmp in test_agents:
             diff_time = 0
-            for mis in missiles[:1]: # 只规避最近的导弹
+            for mis in missiles[:1]:  # 只规避最近的导弹
                 under_hit_point = mis.predict_aircraft_intercept_point(target=agent_tmp)
                 optimal_path = calc_optimal_path(
                         start=self.agent.waypoint,
@@ -253,10 +237,6 @@ class EvadeMissile(BTPolicyNode):
         yield from go_to_location_updater(self, go_to_location)
         yield Status.SUCCESS
 
-    @classmethod
-    def creator(cls, d, c):
-        return EvadeMissile(name=d['name'])
-
 
 class AttackNearestEnemy(BTPolicyNode):
     """
@@ -278,7 +258,7 @@ class AttackNearestEnemy(BTPolicyNode):
             self.put_update_message('No nearest enemy')
             yield Status.FAILURE
             return
-        
+
         hit_point = self.agent.predict_missile_intercept_point(target=enemy)
 
         self.put_update_message(f'hit_point {hit_point}')
@@ -291,10 +271,6 @@ class AttackNearestEnemy(BTPolicyNode):
             yield from delay_updater(env=self.env, time=self.env.options.missile_fire_interval, status=Status.SUCCESS)
         else:
             yield Status.FAILURE
-
-    @classmethod
-    def creator(cls, d, c):
-        return AttackNearestEnemy(name=d['name'])
 
 
 class GoToNearestEnemy(BTPolicyNode):
@@ -347,7 +323,7 @@ class IsNearEnemy(BTPolicyNode):
 
     def __init__(self, radar_ratio: float = 0.1, **kwargs):
         super().__init__(**kwargs)
-        self.radar_ratio = radar_ratio  # 以自己的雷达半径为判断依据
+        self.radar_ratio = self.converter.float(radar_ratio)  # 以自己的雷达半径为判断依据
 
     def update(self) -> Status:
         enemy = self.env.battle_area.find_nearest_enemy(
@@ -384,25 +360,10 @@ class PursueNearestEnemy(BTPolicyNode):
     - evade_ratio (float): 逃避比例，用于决定在追击过程中防御的倾向性，较高值意味着更偏向于防御。
     """
 
-    def __init__(self, name: str = '', attack_ratio: float = 0.5, evade_ratio: float = 0.5):
-        super().__init__(name=name)
-        self.attack_ratio = attack_ratio
-        self.evade_ratio = evade_ratio
-
-    @classmethod
-    def creator(cls, d, c):
-        return PursueNearestEnemy(
-                name=d['name'],
-                attack_ratio=float(d.get('attack_ratio', 0.5)),
-                evade_ratio=float(d.get('evade_ratio', 0.5)),
-        )
-
-    def to_data(self):
-        return {
-            **super().to_data(),
-            'attack_ratio': self.attack_ratio,
-            'evade_ratio' : self.evade_ratio
-        }
+    def __init__(self, attack_ratio: float | str = 0.5, evade_ratio: float | str = 0.5, **kwargs):
+        super().__init__(**kwargs)
+        self.attack_ratio = float(attack_ratio)
+        self.evade_ratio = float(evade_ratio)
 
     def updater(self) -> typing.Iterator[Status]:
         enemy = self.env.battle_area.find_nearest_enemy(
@@ -460,11 +421,6 @@ class Explore(BTPolicyNode):
         - 环境中没有更多的未探索区域，或者无法从当前位置移动到未探索的区域。
     """
 
-    @classmethod
-    def creator(cls, d, c):
-        return Explore(
-                name=d['name'])
-
     def updater(self) -> typing.Iterator[Status]:
         if self.agent.route is not None:
             self.put_update_message('当前agent还有没有完成的路线')
@@ -482,31 +438,18 @@ class KeepFly(BTPolicyNode):
     def update(self) -> Status:
         return Status.SUCCESS
 
-    def to_data(self):
-        return {
-            'agent': self.agent.to_dict()
-        }
-
 
 class FollowRoute(BTPolicyNode):
     """
     沿着一条预设的航线飞行
     """
 
-    def __init__(self, route: list, recursive: bool = False, name: str = ''):
-        super().__init__(name=name)
-        self.route = route
+    def __init__(self, route: list | str, recursive: bool | str = False, **kwargs):
+        super().__init__(**kwargs)
+        self.route: list = self.converter.list(route)
         self.route_index = 0
-        self.recursive = recursive
+        self.recursive = self.converter.bool(recursive)
         assert len(self.route) > 0
-
-    @classmethod
-    def creator(cls, d: dict, c: list):
-        return cls(
-                name=d['name'],
-                route=json.loads(d['route']),
-                recursive=bool(d.get('recursive', False))
-        )
 
     def updater(self) -> typing.Iterator[Status]:
         while self.recursive:
@@ -526,10 +469,10 @@ class FollowRoute(BTPolicyNode):
 
 
 class GoToLocation(BTPolicyNode):
-    def __init__(self, x: float, y: float, name: str = ''):
-        super().__init__(name=name)
-        self.x = x
-        self.y = y
+    def __init__(self, x: float | str, y: float | str, **kwargs):
+        super().__init__(**kwargs)
+        self.x = self.converter.float(x)
+        self.y = self.converter.float(y)
 
     def initialise(self) -> None:
         super().initialise()
@@ -539,12 +482,6 @@ class GoToLocation(BTPolicyNode):
         yield from go_to_location_updater(self, (self.x, self.y))
         yield Status.SUCCESS
 
-    @classmethod
-    def creator(cls, d: dict, c: list):
-        return GoToLocation(
-                x=float(d['x']), y=float(d['y']), name=d['name']
-        )
-
     def to_data(self):
         return {
             **super().to_data(),
@@ -552,20 +489,13 @@ class GoToLocation(BTPolicyNode):
             'y': self.y,
         }
 
-
 class IsReachLocation(BTPolicyNode, pybts.Condition):
     """由于策略的更新时间较长，可能无法正确判断是否到达某个目标点"""
 
-    def __init__(self, x: float, y: float, name: str = ''):
-        super().__init__(name=name)
-        self.x = x
-        self.y = y
-
-    @classmethod
-    def creator(cls, d: dict, c: list):
-        return IsReachLocation(
-                x=float(d['x']), y=float(d['y']), name=d['name']
-        )
+    def __init__(self, x: float, y: float, **kwargs):
+        super().__init__(**kwargs)
+        self.x = self.converter.float(x)
+        self.y = self.converter.float(y)
 
     def to_data(self):
         return {

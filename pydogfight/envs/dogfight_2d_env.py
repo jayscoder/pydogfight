@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import typing
 from typing import Any, Optional, SupportsFloat, Tuple, Union
 
 import gymnasium as gym
@@ -36,10 +37,10 @@ class Dogfight2dEnv(gym.Env):
 
         self.action_space = gym.spaces.Box(
                 low=np.tile([0, -int(options.game_size[0] / 2), -int(options.game_size[1] / 2)],
-                            (len(options.agents), 1)),
+                            (len(options.agents()), 1)),
                 high=np.tile([len(Actions), int(options.game_size[0] / 2), int(options.game_size[1] / 2)],
-                             (len(options.agents), 1)),
-                shape=(len(self.options.agents), 3),
+                             (len(options.agents()), 1)),
+                shape=(len(self.options.agents()), 3),
                 dtype=np.int32)
 
         self.agent_action_space = gym.spaces.Box(
@@ -52,14 +53,14 @@ class Dogfight2dEnv(gym.Env):
         self.observation_space = gym.spaces.Box(
                 low=-options.game_size[0] / 2,
                 high=options.game_size[0] / 2,
-                shape=(len(options.agents) + 3 + 5, 11),  # 最多同时记录所有飞机、基地、牛眼和5个导弹的信息
+                shape=(len(options.agents()) + 3 + 5, 11),  # 最多同时记录所有飞机、基地、牛眼和5个导弹的信息
                 dtype=np.float32)
 
         # type, is_enemy, destroyed, r, theta, psi, speed, missile_count, fuel, radar_radius
         self.agent_observation_space = gym.spaces.Box(
                 low=-10,
                 high=10,
-                shape=(len(options.agents) + 3 + 5, 11),  # 最多同时记录所有飞机、基地、牛眼和5个导弹的信息
+                shape=(len(options.agents()) + 3 + 5, 11),  # 最多同时记录所有飞机、基地、牛眼和5个导弹的信息
                 dtype=np.float32)
 
         self.screen = None
@@ -88,10 +89,19 @@ class Dogfight2dEnv(gym.Env):
         # TODO 敌人的heatmap
 
         self.update_event = { }
-        for agent_name in self.options.agents:
+        for agent_name in self.options.agents():
             self.update_event[agent_name] = threading.Event()
 
         self.agent_memory = { }
+
+        self.after_update_handlers: list[typing.Callable[['Dogfight2dEnv'], None]] = []
+        self.after_reset_handlers: list[typing.Callable[['Dogfight2dEnv'], None]] = []
+
+    def add_after_update_handler(self, handler: typing.Callable[['Dogfight2dEnv'], None]):
+        self.after_update_handlers.append(handler)
+
+    def add_after_reset_handler(self, handler: typing.Callable[['Dogfight2dEnv'], None]):
+        self.after_reset_handlers.append(handler)
 
     @property
     def time(self):
@@ -100,14 +110,6 @@ class Dogfight2dEnv(gym.Env):
     def get_agent(self, name) -> Aircraft:
         obj = self.battle_area.get_obj(name)
         assert isinstance(obj, Aircraft)
-        return obj
-
-    def get_home(self, color) -> Home:
-        if color == 'red':
-            obj = self.battle_area.get_obj(self.options.red_home)
-        else:
-            obj = self.battle_area.get_obj(self.options.blue_home)
-        assert isinstance(obj, Home)
         return obj
 
     def reset(
@@ -155,6 +157,10 @@ class Dogfight2dEnv(gym.Env):
             # if self.clock is None:
             #     self.clock = pygame.time.Clock()
             self.render()
+
+        for handler in self.after_reset_handlers:
+            handler(self)
+
         return self.gen_obs(), self.gen_info()
 
     def gen_obs(self):
@@ -376,7 +382,7 @@ class Dogfight2dEnv(gym.Env):
         for i, act in enumerate(action):
             if act[0] == 0:
                 continue
-            agent_name = self.options.agents[i]
+            agent_name = self.options.agents()[i]
             agent = self.battle_area.get_obj(agent_name)
             agent.put_action(act)
 
@@ -392,6 +398,9 @@ class Dogfight2dEnv(gym.Env):
 
         for agent_name in self.update_event:
             self.update_event[agent_name].set()  # 设置事件，表示更新完成
+
+        for handler in self.after_update_handlers:
+            handler(self)
 
     async def agent_step(self, agent_name: str, action: list | np.ndarray | tuple[float, float, float]):
         old_info = self.gen_info()

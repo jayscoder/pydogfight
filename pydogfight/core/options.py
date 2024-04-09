@@ -1,4 +1,6 @@
 import random
+import typing
+
 from pydogfight.core.models import *
 
 
@@ -16,10 +18,10 @@ class Options:
     max_duration = 60 * 30  # 一局对战最多时长30分钟，超过这个就会truncated
     screen_size = (800, 800)  # 屏幕宽度 屏幕高度
     render_fps = 50  # 渲染的fps
-    delta_time = 0.01  # 更新步长
-    update_interval = 1  # 每次env更新的时间间隔
+    delta_time = 0.01  # 每次env的更新步长
+    update_interval = 1  # 每轮env更新的时间间隔（在一轮更新中会进行多次更新，更新次数=update_interval/delta_time）
     simulation_rate = 100.0  # 仿真的速率倍数，越大代表越快，update_interval内更新几次（仅在render模式下生效）
-    policy_interval = 0.1  # 每次策略的处理间隔时长
+    policy_interval = 0  # 每次策略的处理间隔时长（为0代表每次更新后都会处理策略）
     reach_location_threshold = 2  # 用来判断是否接近目标点的时间片尺度（乘以policy_interval*速度后就能得出距离多近就算到达目标点）
 
     obs_ignore_radar = False  # 是否忽略雷达（设置为true的话，生成单机观测时不会观测到雷达范围以内的敌机）
@@ -28,7 +30,7 @@ class Options:
     obs_ignore_enemy_missile_count = False  # 是否忽略敌方的剩余导弹数
     obs_ignore_destroyed = True  # 忽略掉被摧毁的实体
 
-    obs_allow_memory = True  # 是否允许记忆
+    obs_allow_memory = True  # 是否允许记忆敌机最近一次出现的位置
 
     ### 常量 ###
     g = 9.8  # 重力加速度 m/s
@@ -38,9 +40,9 @@ class Options:
     destroy_on_boundary_exit = True  # 飞出战场边界是否会摧毁飞机
 
     ### 飞机 ###
-    aircraft_missile_count: int = 2  # 飞机上装载的导弹数量
+    aircraft_missile_count: int = 10  # 飞机上装载的导弹数量
     aircraft_speed: float = 200  # 飞机飞行速度200m/s
-    aircraft_collision_radius: float = max(10.0, aircraft_speed * delta_time * 1)  # 飞机的碰撞半径，用来进行碰撞检查，设为0就不会检查碰撞了
+    aircraft_collision_radius: float = max(15.0, aircraft_speed * delta_time * 1)  # 飞机的碰撞半径，用来进行碰撞检查，设为0就不会检查碰撞了
 
     aircraft_fuel_consumption_rate: float = 1  # 飞机耗油速度，每秒消耗多少油
     aircraft_fuel_capacity: float = aircraft_fuel_consumption_rate * 1800  # 飞机载油量，在这里飞机最多能飞1800秒
@@ -53,7 +55,7 @@ class Options:
     aircraft_predict_distance = aircraft_speed * 5  # 预测未来5秒的位置
 
     # aircraft_radar_radius = 1e4  # 雷达半径 10km
-    aircraft_radar_radius = 3e4  # 雷达半径 30km
+    aircraft_radar_radius = 1e4  # 雷达半径 30km
 
     ### 导弹 ###
     # missile_max_threat_distance = 8e3  # 导弹最大威胁距离8km
@@ -63,12 +65,12 @@ class Options:
     missile_speed = aircraft_speed * 5  # 导弹速度是飞机速度的5倍
     missile_min_turn_radius = missile_speed ** 2 / missile_max_centripetal_acceleration  # 导弹最小转弯半径 4023m
 
-    missile_collision_radius = max(10.0, missile_speed * delta_time * 1)  # 导弹的碰撞半径
+    missile_collision_radius = max(15.0, missile_speed * delta_time * 5)  # 导弹的碰撞半径
 
     missile_fuel_consumption_rate = 1
-    missile_fuel_capacity = missile_fuel_consumption_rate * 30  # 导弹只能飞20秒: 26640m
+    missile_fuel_capacity = missile_fuel_consumption_rate * 30  # 导弹只能飞30秒: 26640m
     missile_reroute_interval = 1  # 导弹重新规划路径时间间隔
-    missile_fire_interval = 5 # 每隔5 s最多发射一枚导弹
+    missile_fire_interval = 5  # 每隔5 s最多发射一枚导弹
 
     ### 基地 ###
     home_area_radius = 2e3  # 基地范围半径
@@ -108,66 +110,33 @@ class Options:
     def validate(self):
         """校验是否合法"""
         assert self.delta_time > 0
-        assert self.policy_interval >= self.delta_time
+        # assert self.policy_interval >= self.delta_time
         assert self.red_home != ''
         assert self.blue_home != ''
 
     def to_dict(self):
-        return {
-            'red_agents'                            : self.red_agents,
-            'blue_agents'                           : self.blue_agents,
-            'red_home'                              : self.red_home,
-            'blue_home'                             : self.blue_home,
-            'self_side'                             : self.self_side,
-
-            'max_duration'                          : self.max_duration,
-            'screen_size'                           : self.screen_size,
-            'delta_time'                            : self.delta_time,
-            'simulation_rate'                       : self.simulation_rate,
-            'render_fps'                            : self.render_fps,
-            'update_interval'                       : self.update_interval,
-
-            'g'                                     : self.g,
-            'game_size'                             : self.game_size,
-            'destroy_on_boundary_exit'              : self.destroy_on_boundary_exit,
-
-            'aircraft_collision_radius'             : self.aircraft_collision_radius,
-            'aircraft_missile_count'                : self.aircraft_missile_count,
-            'aircraft_speed'                        : self.aircraft_speed,
-            'aircraft_fuel_capacity'                : self.aircraft_fuel_capacity,
-            'aircraft_fuel_consumption_rate'        : self.aircraft_fuel_consumption_rate,
-            'aircraft_fuel_bingo_fuel'              : self.aircraft_fuel_bingo_fuel,
-            'aircraft_max_centripetal_acceleration' : self.aircraft_max_centripetal_acceleration,
-            'aircraft_min_turn_radius'              : self.aircraft_min_turn_radius,
-            'aircraft_predict_distance'             : self.aircraft_predict_distance,
-            'aircraft_radar_radius'                 : self.aircraft_radar_radius,
-
-            # 'missile_max_threat_distance'           : self.missile_max_threat_distance,
-            # 'missile_no_escape_distance'            : self.missile_no_escape_distance,
-            'missile_max_centripetal_acceleration'  : self.missile_max_centripetal_acceleration,
-            'missile_speed'                         : self.missile_speed,
-            'missile_min_turn_radius'               : self.missile_min_turn_radius,
-            'missile_collision_radius'              : self.missile_collision_radius,
-            'missile_fuel_consumption_rate'         : self.missile_fuel_consumption_rate,
-            'missile_fuel_capacity'                 : self.missile_fuel_capacity,
-            'missile_reroute_interval'              : self.missile_reroute_interval,
-
-            'home_area_radius'                      : self.home_area_radius,
-            'home_refuel'                           : self.home_refuel,
-            'home_refuel_threshold_capacity'        : self.home_refuel_threshold_capacity,
-            'home_replenish_missile'                : self.home_replenish_missile,
-            'home_replenish_missile_threshold_count': self.home_replenish_missile_threshold_count,
-            'home_attack'                           : self.home_attack,
-
-            'win_reward'                            : self.win_reward,
-            'lose_reward'                           : self.lose_reward,
-            'draw_reward'                           : self.draw_reward,
-            'step_punish_reward'                    : self.time_punish_reward,
+        d = { }
+        temp_dict = {
+            **self.__class__.__dict__,
+            **self.__dict__
         }
+        for k in temp_dict:
+            v = temp_dict[k]
+            if k.startswith('__'):
+                continue
+            if isinstance(v, type):
+                continue
+            if isinstance(v, typing.Callable):
+                continue
+            d[k] = v
+        return d
 
     def from_dict(self, d: dict):
         for k, v in d.items():
-            setattr(self, k, v)
+            try:
+                setattr(self, k, v)
+            except Exception as e:
+                print(f'setting {k} to {v} is not valid: {e}')
 
     def __str__(self):
         return json.dumps(self.to_dict(), indent=4, ensure_ascii=False)
@@ -175,7 +144,6 @@ class Options:
     def __repr__(self):
         return self.__str__()
 
-    @property
     def agents(self) -> list[str]:
         return self.red_agents + self.blue_agents
 
@@ -230,6 +198,14 @@ class Options:
 
 
 if __name__ == '__main__':
-    options = Options()
-    print(options.aircraft_collision_radius)
-    print(options.missile_collision_radius)
+    pass
+    # options = Options()
+    # options.red_agents = []
+    # # print(Options.red_agents)
+    # # print(options.to_dict())
+    # di = options.to_dict()
+    # options.from_dict(di)
+    # print(options.to_dict())
+    # print(di['__dict__'])
+    # print(Options.__dict__)
+    # print(options.missile_collision_radius)

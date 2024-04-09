@@ -156,3 +156,4 @@ cython_debug/
 /results/
 logs/*
 models/*
+workspace/*

@@ -24,22 +24,18 @@ class PPONode(BTPolicyNode, RLOnPolicyNode, ABC):
     def __init__(self,
                  path: str,
                  policy: str = 'MlpPolicy',
-                 save_interval: int = 10,
+                 save_interval: int | str = 30,
                  tensorboard_log: typing.Optional[str] = None,
-                 log_interval: int = 1,
+                 log_interval: int | str = 10,
                  **kwargs
                  ):
         super().__init__(**kwargs)
         RLOnPolicyNode.__init__(self)
         self.path = path
         self.policy = policy
-        self.save_interval = save_interval
+        self.save_interval = int(save_interval)
         self.tensorboard_log = tensorboard_log
-        self.log_interval = log_interval
-
-    @classmethod
-    def creator(cls, d: dict, c: list):
-        return cls(**d)
+        self.log_interval = int(log_interval)
 
     def to_data(self):
         return {
@@ -50,15 +46,13 @@ class PPONode(BTPolicyNode, RLOnPolicyNode, ABC):
         }
 
     def setup(self, **kwargs: typing.Any) -> None:
-        self.path = jinja2.Template(self.path).render({
-            'color'     : self.agent.color,
-            'agent_name': self.agent_name
-        })
+        super().setup(**kwargs)
+        self.path = self.converter.render(
+                value=self.path,
+        )
+
         if self.tensorboard_log is not None:
-            self.tensorboard_log = jinja2.Template(self.tensorboard_log).render({
-                'color'     : self.agent.color,
-                'agent_name': self.agent_name
-            })
+            self.tensorboard_log = self.converter.render(self.tensorboard_log)
 
         self.rl_ppo_setup_model(
                 train=self.env.options.train,
@@ -89,6 +83,10 @@ class PPONode(BTPolicyNode, RLOnPolicyNode, ABC):
     def rl_gen_reward(self) -> float:
         return self.env.gen_reward(color=self.agent.color, previous=self.rl_info) + self.rl_gen_status_reward()
 
+    def rl_gen_done(self) -> bool:
+        info = self.env.gen_info()
+        return info['terminated'] or info['truncated'] or not self.env.isopen
+
     def rl_gen_status_reward(self) -> float:
         # 生成节点运行状态的奖励
         status_reward = self.env.options.status_reward[self.status.name] * max(
@@ -100,32 +98,13 @@ class PPONode(BTPolicyNode, RLOnPolicyNode, ABC):
         super().reset()
         if self.env.options.train:
             self.rl_model.logger.record("reward/round", self.rl_reward)
-            self.rl_model.logger.record("wins", self.env.game_info[f'{self.agent.color}_wins'])
-            self.rl_model.logger.record("loses", self.env.game_info[f'{self.agent.enemy_color}_wins'])
-            self.rl_model.logger.record("draws", self.env.game_info['draws'])
+            self.rl_model.logger.record("wins/round", self.env.game_info[f'{self.agent.color}_wins'])
+            self.rl_model.logger.record("loses/round", self.env.game_info[f'{self.agent.enemy_color}_wins'])
+            self.rl_model.logger.record("draws/round", self.env.game_info['draws'])
         RLOnPolicyNode.reset(self)
 
 
-class PPOComposite(PPONode, Composite):
-    def __init__(self,
-                 children: typing.Optional[typing.List[py_trees.behaviour.Behaviour]] = None,
-                 **kwargs
-                 ):
-        PPONode.__init__(
-                self,
-                **kwargs
-        )
-        Composite.__init__(self, children=children, **kwargs)
-
-    @classmethod
-    def creator(cls, d: dict, c: list):
-        return cls(
-                **d,
-                children=c,
-        )
-
-
-class PPOSwitcher(PPOComposite):
+class PPOSwitcher(PPONode):
     """
     选择其中一个子节点来执行
     """
@@ -177,12 +156,16 @@ class ReactivePPOSwitcher(PPOSwitcher):
         yield from self.switcher_tick(tick_again_status=[])
 
 
-class PPOSelector(PPOComposite, Selector):
+class PPOSelector(PPONode, Selector):
     """
     将某个子节点作为开头，重置children并执行（事后回还原）
     self.children = self.children[index:] + self.children[:index]
     """
-    init_children: list[py_trees.behaviour.Behaviour]
+
+    def __init__(self, **kwargs):
+        Selector.__init__(self, **kwargs)
+        PPONode.__init__(**kwargs)
+        self.init_children: list[py_trees.behaviour.Behaviour] = self.children[:]
 
     def rl_action_space(self) -> gym.spaces.Space:
         return gym.spaces.Discrete(len(self.children))
@@ -234,12 +217,6 @@ class PPOAction(PPONode):
             allow_actions = 'keep,go_to_location,fire_missile,go_home'
         self.allow_actions = allow_actions.split(',')
 
-    @classmethod
-    def creator(cls, d: dict, c: list):
-        return cls(
-                **d,
-        )
-
     def to_data(self):
         return {
             **super().to_data(),
@@ -247,8 +224,12 @@ class PPOAction(PPONode):
             'allow_actions': self.allow_actions
         }
 
-    # def rl_action_space(self) -> gym.spaces.Space:
-    #     return self.env.agent_action_space
+    def rl_action_space(self) -> gym.spaces.Space:
+        return gym.spaces.Box(
+                low=-1,
+                high=1,
+                shape=(3,)
+        )
 
     def update(self) -> Status:
         action = self.rl_take_action(
@@ -268,87 +249,65 @@ class PPOAction(PPONode):
         self.actions.put_nowait((action_type, relative_wpt.x, relative_wpt.y))
         return Status.SUCCESS
 
-    def rl_action_space(self) -> gym.spaces.Space:
-        return gym.spaces.Box(low=-1, high=1, shape=(3,))
 
-
-class PPOActionPPA(PPOComposite, PPOAction):
+class PPOActionPPA(PPOAction):
     """
-    执行反向链式动作
+    执行反向链式动作，子节点只能是PreCondition和PostCondition
 
-    只有一个子节点：
-    - 后置条件：
-        不满足：奖励为0
-        满足：奖励为1
+    - PostCondition 后置条件：
+        奖励为success_ratio
+    - PreCondition 前置条件：
+        惩罚为success_ratio-1
 
-    有两个子节点：
-    - 前置条件：
-        不满足：奖励为-1
-        满足：奖励为为0
-    - 后置条件：同上
+    【后置条件优先级大于前置条件】如果后置条件的success_ratio > 0，则不考虑前置条件
 
-    后置条件优先级大于前置条件
     状态：
-    - 后置条件满足：SUCCESS
-    - 前置条件满足：RUNNING
-    - 否则：FAILURE
+    - if 后置条件存在:
+        success_ratio == 1: SUCCESS
+    - elif 前置条件存在且success_ratio > 0:
+        返回RUNNING
+    - else:
+        返回FAILURE
     """
 
     def __init__(self, **kwargs):
         PPOAction.__init__(self, **kwargs)
-        PPOComposite.__init__(self, **kwargs)
-
-    @classmethod
-    def creator(cls, d: dict, c: list):
-        return cls(
-                children=c,
-                **d,
-        )
+        self.pre_condition: pybts.PostCondition | None = None
+        self.post_condition: pybts.PreCondition | None = None
 
     def setup(self, **kwargs: typing.Any) -> None:
         super().setup(**kwargs)
         assert len(self.children) in [1, 2], f'PPOActionPPA: children count ({len(self.children)}) must be 1 or 2'
-
-    def post_condition(self) -> pybts.Node | None:
-        assert len(self.children) in [1, 2]
-        return self.children[-1]
-
-    def pre_condition(self) -> pybts.Node | None:
-        if len(self.children) == 2:
-            return self.children[0]
-        return None
+        for child in self.children:
+            if isinstance(child, pybts.PostCondition):
+                self.post_condition = child
+            elif isinstance(child, pybts.PreCondition):
+                self.pre_condition = child
 
     def rl_action_space(self) -> gym.spaces.Space:
         return gym.spaces.Box(low=-1, high=1, shape=(3,))
 
     def rl_gen_reward(self) -> float:
-        pre_c = self.pre_condition()
-        post_c = self.post_condition()
+        if self.post_condition is not None:
+            self.post_condition.tick_once()
+            if self.post_condition.success_ratio > 0:
+                return self.post_condition.success_ratio
 
-        if post_c is not None:
-            post_c.tick_once()
-            if post_c.status == Status.SUCCESS:
-                return 1
-
-        if pre_c is not None:
-            pre_c.tick_once()
-            if pre_c.status != Status.SUCCESS:
-                return -1
+        if self.pre_condition is not None:
+            self.pre_condition.tick_once()
+            return self.pre_condition.success_ratio - 1
 
         return 0
 
     def update(self) -> Status:
         PPOAction.update(self)
 
-        pre_c = self.pre_condition()
-        post_c = self.post_condition()
-
-        if post_c is not None:
-            post_c.tick_once()
-            if post_c.status == Status.SUCCESS:
+        if self.post_condition is not None:
+            self.post_condition.tick_once()
+            if self.post_condition.success_ratio == 1:
                 return Status.SUCCESS
-        if pre_c is not None:
-            pre_c.tick_once()
-            if pre_c.status == Status.SUCCESS:
+        if self.pre_condition is not None:
+            self.pre_condition.tick_once()
+            if self.pre_condition.success_ratio > 0:
                 return Status.RUNNING
         return Status.FAILURE

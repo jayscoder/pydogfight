@@ -16,7 +16,7 @@ class AgentWrapper(gym.Wrapper):
         if agent_name == '':
             agent_name = self.options.red_agents[0]
         self.agent_name = agent_name
-        for i, agent in enumerate(self.options.agents):
+        for i, agent in enumerate(self.options.agents()):
             if agent == agent_name:
                 self.agent_index = i
                 break

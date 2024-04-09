@@ -94,6 +94,14 @@ class BattleArea:
         assert isinstance(obj, Bullseye)
         return obj
 
+    def get_home(self, color) -> Home:
+        if color == 'red':
+            obj = self.get_obj(self.options.red_home)
+        else:
+            obj = self.get_obj(self.options.blue_home)
+        assert isinstance(obj, Home)
+        return obj
+
     def render(self, screen):
         for obj in self.objs.values():
             obj.render(screen)

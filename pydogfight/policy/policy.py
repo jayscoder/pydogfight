@@ -8,13 +8,30 @@ from pydogfight.core.world_obj import Aircraft
 
 
 class Policy(ABC):
-    def __init__(self, env: Dogfight2dEnv, update_interval: float = 1):
+    @abstractmethod
+    def reset(self):
+        raise NotImplemented
+
+    @abstractmethod
+    def take_action(self):
+        raise NotImplemented
+
+    @abstractmethod
+    def put_action(self):
+        raise NotImplementedError
+
+
+class AgentPolicy(Policy, ABC):
+
+    def __init__(self, env: Dogfight2dEnv, agent_name: str, update_interval: float = 0):
+        super().__init__()
         self.env = env
         self.options = env.options
         self.update_interval = update_interval
         self.last_time = 0
         self.actions = Queue()
         self._has_setup = False
+        self.agent_name = agent_name
 
     def _setup(self):
         self._has_setup = True
@@ -29,36 +46,9 @@ class Policy(ABC):
             # 清空actions
             self.actions.get_nowait()
 
-    def take_action(self):
-        # 根据当前状态选择动作，obs的第一个是自己
-        delta_time = self.env.time - self.last_time
-        if delta_time < self.update_interval:
-            return
-        self.last_time = self.env.time
-        self.execute(observation=self.gen_obs(), delta_time=delta_time)
-
-    @abstractmethod
-    def gen_obs(self):
-        raise NotImplementedError
-
-    @abstractmethod
-    def execute(self, observation, delta_time: float):
-        pass
-
-    @abstractmethod
-    def put_action(self):
-        raise NotImplementedError
-
-
-class AgentPolicy(Policy, ABC):
-
-    def __init__(self, env: Dogfight2dEnv, agent_name: str, update_interval: float = 1):
-        super().__init__(env=env, update_interval=update_interval)
-        self.agent_name = agent_name
-
     @property
     def agent_index(self):
-        for i, name in enumerate(self.options.agents):
+        for i, name in enumerate(self.options.agents()):
             if name == self.agent_name:
                 return i
 
@@ -71,12 +61,32 @@ class AgentPolicy(Policy, ABC):
             action = self.actions.get_nowait()
             self.agent.put_action(action)
 
-    def gen_obs(self):
-        return self.env.gen_agent_obs(agent_name=self.agent_name)
+    def take_action(self):
+        # 根据当前状态选择动作，obs的第一个是自己，确保策略更新满足时间间隔
+        delta_time = self.env.time - self.last_time
+        if self.update_interval == 0 and delta_time == 0:
+            return
+        if self.update_interval > 0 and delta_time < self.update_interval:
+            return
+        self.last_time = self.env.time
+        self.execute(observation=self.env.gen_agent_obs(agent_name=self.agent_name), delta_time=delta_time)
 
+    @abstractmethod
+    def execute(self, observation, delta_time: float):
+        """
+        执行具体策略
+        Args:
+            observation:
+            delta_time:
 
-class MultiAgentPolicy:
-    def __init__(self, *policies: AgentPolicy):
+        Returns:
+
+        """
+        pass
+    
+
+class MultiAgentPolicy(Policy):
+    def __init__(self, policies: list[Policy]):
         self.policies = policies
 
     def reset(self):
