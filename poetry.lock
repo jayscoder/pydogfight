@@ -208,13 +208,13 @@ reference = "tsinghua"
 
 [[package]]
 name = "filelock"
-version = "3.13.3"
+version = "3.13.4"
 description = "A platform independent file lock."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "filelock-3.13.3-py3-none-any.whl", hash = "sha256:5ffa845303983e7a0b7ae17636509bc97997d58afeafa72fb141a17b152284cb"},
-    {file = "filelock-3.13.3.tar.gz", hash = "sha256:a79895a25bbefdf55d1a2a0a80968f7dbb28edcd6d4234a0afb3f37ecde4b546"},
+    {file = "filelock-3.13.4-py3-none-any.whl", hash = "sha256:404e5e9253aa60ad457cae1be07c0f0ca90a63931200a47d9b6a6af84fd7b45f"},
+    {file = "filelock-3.13.4.tar.gz", hash = "sha256:d13f466618bfde72bd2c18255e269f72542c6e70e7bac83a0232d6b1cc5c8cf4"},
 ]
 
 [package.extras]
@@ -229,13 +229,13 @@ reference = "tsinghua"
 
 [[package]]
 name = "flask"
-version = "3.0.2"
+version = "3.0.3"
 description = "A simple framework for building complex web applications."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "flask-3.0.2-py3-none-any.whl", hash = "sha256:3232e0e9c850d781933cf0207523d1ece087eb8d87b23777ae38456e2fbe7c6e"},
-    {file = "flask-3.0.2.tar.gz", hash = "sha256:822c03f4b799204250a7ee84b1eddc40665395333973dfb9deebfe425fefcb7d"},
+    {file = "flask-3.0.3-py3-none-any.whl", hash = "sha256:34e815dfaa43340d1d15a5c3a02b8476004037eb4840b34910c6e21679d288f3"},
+    {file = "flask-3.0.3.tar.gz", hash = "sha256:ceb27b0af3823ea2737928a4d99d125a06175b8512c445cbd9a9ce200ef76842"},
 ]
 
 [package.dependencies]
@@ -1405,13 +1405,13 @@ reference = "tsinghua"
 
 [[package]]
 name = "pybts"
-version = "1.3.1"
+version = "1.3.7"
 description = ""
 optional = false
 python-versions = ">=3.9,<4.0"
 files = [
-    {file = "pybts-1.3.1-py3-none-any.whl", hash = "sha256:5b35656d5f59c6f3d7d633b5b7135c637914741c951eafcd58518d32d6731df3"},
-    {file = "pybts-1.3.1.tar.gz", hash = "sha256:4a3ff02951aa86e15369dfe85bc969b52a5ecfc9f13488b25ea0b6888386f719"},
+    {file = "pybts-1.3.7-py3-none-any.whl", hash = "sha256:7c6ab1a69f9240d16f6c5dc08a7d2a546c00c7230cbc35a87eb806ac4e95a5b4"},
+    {file = "pybts-1.3.7.tar.gz", hash = "sha256:7cc2d37e85a7645ff1439e7cb6d2d59583d58f577d86faadd4b39ff089d5b6e3"},
 ]
 
 [package.dependencies]
@@ -1419,6 +1419,9 @@ flask = ">=3.0.2,<4.0.0"
 jinja2 = ">=3.1.3,<4.0.0"
 py-trees = ">=2.2.3,<3.0.0"
 tqdm = ">=4.66.2,<5.0.0"
+
+[package.extras]
+rl = ["gymnasium (>=0.29.1,<0.30.0)", "stable-baselines3 (>=2.3.0,<3.0.0)", "torch (>=2.2.2,<3.0.0)"]
 
 [package.source]
 type = "legacy"
@@ -2093,4 +2096,4 @@ reference = "tsinghua"
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.9,<4.0"
-content-hash = "8c9c77b7818e196e8ac351071243dcf37e0e5c6079ad9186d70c580ae9a1aa1f"
+content-hash = "a73f7292f66281eef45e947bec0a7e33cdfef272d0d3e251145fbfb3c8a47acb"
