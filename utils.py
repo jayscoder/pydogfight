@@ -107,6 +107,7 @@ class BTManager:
 
             def on_tree_post_tick(t):
                 if track_throttle.should_call(env.time):
+                    self.update_game_info()
                     board.track({
                         'env_time': env.time,
                         **env.render_info,
@@ -123,27 +124,29 @@ class BTManager:
 
         self.policies.append(policy)
 
-    def update_render_info(self):
-        self.env.render_info = {
-            **self.env.render_info,
-            'time': int(self.env.time),
-            **self.env.game_info,
-        }
-
+    def update_game_info(self):
         for agent in self.env.battle_area.agents:
-            self.env.render_info[f'{agent.name}_destroyed'] = agent.destroyed_count
-            self.env.render_info[f'{agent.name}_missile_hit_self'] = agent.missile_hit_self_count
-            self.env.render_info[f'{agent.name}_missile_hit_enemy'] = agent.missile_hit_enemy_count
-            self.env.render_info[f'{agent.name}_missile_missile_miss'] = agent.missile_miss_count
-            self.env.render_info[f'{agent.name}_return_home'] = agent.return_home_count
-            self.env.render_info[f'{agent.name}_fuel'] = agent.fuel
-            self.env.render_info[f'{agent.name}_missile_count'] = agent.missile_count
+            self.env.game_info[f'{agent.name}_destroyed'] = agent.destroyed_count
+            self.env.game_info[f'{agent.name}_missile_hit_self'] = agent.missile_hit_self_count
+            self.env.game_info[f'{agent.name}_missile_hit_enemy'] = agent.missile_hit_enemy_count
+            self.env.game_info[f'{agent.name}_missile_missile_miss'] = agent.missile_miss_count
+            self.env.game_info[f'{agent.name}_return_home'] = agent.return_home_count
+            self.env.game_info[f'{agent.name}_fuel'] = agent.fuel
+            self.env.game_info[f'{agent.name}_missile_count'] = agent.missile_count
 
             for policy in self.policies:
                 if isinstance(policy, BTPolicy) and policy.agent_name == agent.name:
                     rl_reward = policy.tree.context['rl_reward']
                     for k, v in rl_reward.items():
-                        self.env.render_info[f'{policy.agent_name}_reward_{k}'] = v
+                        self.env.game_info[f'{policy.agent_name}_reward_{k}'] = v
+
+    def update_render_info(self):
+        self.update_game_info()
+        self.env.render_info = {
+            **self.env.render_info,
+            'time': int(self.env.time),
+            **self.env.game_info,
+        }
 
     def run(self, num_episodes: int):
         env = self.env
