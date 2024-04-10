@@ -1,5 +1,5 @@
 folder: output/ppo_vs_ppo
-render: true
+render: false
 num_episodes: 1000
 track: 10
 policy:
@@ -13,19 +13,64 @@ options:
     collision_scale: 1.5
 ---
 # 后面的配置会继承前面的
-num_episodes: 1000
+num_episodes: 100
+policy:
+    red: scripts/ppo.xml
+    blue: scripts/ppo.xml
 options:
     train: false
     indestructible: true
     collision_scale: 1.5
 ---
 num_episodes: 1000
+policy:
+    red: scripts/ppo.xml
+    blue: scripts/ppo.xml
 options:
     train: true
     indestructible: false
     collision_scale: 1.3
 ---
+num_episodes: 100
+policy:
+    red: scripts/ppo.xml
+    blue: scripts/ppo.xml
+options:
+    train: false
+    indestructible: false
+    collision_scale: 1.3
+---
 num_episodes: 1000
+policy:
+    red: scripts/ppo.xml
+    blue: scripts/greedy.xml
+options:
+    train: true
+    indestructible: true
+    collision_scale: 1.3
+---
+num_episodes: 100
+policy:
+    red: scripts/ppo.xml
+    blue: scripts/greedy.xml
+options:
+    train: false
+    indestructible: true
+    collision_scale: 1.3
+---
+num_episodes: 1000
+policy:
+    red: scripts/ppo.xml
+    blue: scripts/greedy.xml
+options:
+    train: true
+    indestructible: false
+    collision_scale: 1.3
+---
+num_episodes: 100
+policy:
+    red: scripts/ppo.xml
+    blue: scripts/greedy.xml
 options:
     train: false
     indestructible: false
