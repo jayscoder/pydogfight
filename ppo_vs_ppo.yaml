@@ -1,7 +1,7 @@
 folder: output/ppo_vs_ppo
 render: false
 num_episodes: 1000
-track: 10
+track: 60
 policy:
     red: scripts/ppo.xml
     blue: scripts/ppo.xml
