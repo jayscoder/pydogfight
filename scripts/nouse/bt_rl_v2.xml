@@ -4,7 +4,7 @@
         <PPOActionPPA
                 path="models/PPOActionPPA_V2/{{agent_name}}"
                 tensorboard_log="logs/PPOActionPPA_V2">
-            <EnemyDetected/>
+            <IsEnemyDetected/>
             <Failure/>
         </PPOActionPPA>
     </Parallel>

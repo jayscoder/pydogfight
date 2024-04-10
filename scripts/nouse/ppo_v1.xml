@@ -1,10 +1,18 @@
-<!--完整的贪心策略-->
 <Sequence>
     <Parallel>
-        <AttackNearestEnemy/>
-        <Selector>
+        <!--        <AttackNearestEnemy/>-->
+        <ReactiveSequence>
+            <PPOCondition
+                    path="models/ppo_v1/{{agent_color}}/PPOCondition_attack"
+                    tensorboard_log="logs/ppo_v1/PPOCondition_attack"
+            />
+            <AttackNearestEnemy/>
+        </ReactiveSequence>
+        <PPOSwitcher
+                path="models/ppo_v1/{{agent_color}}/PPOSwitcher_1"
+                tensorboard_log="logs/ppo_v1/PPOSwitcher_1">
             <ReactiveSequence>
-                <MissileThreatDetected/>
+                <IsMissileThreatDetected/>
                 <EvadeMissile/>
             </ReactiveSequence>
 
@@ -25,7 +33,12 @@
 
             <ReactiveSequence>
                 <EnemyDetected/>
-                <PursueNearestEnemy attack_ratio="0.5" evade_ratio="0.5"/>
+                <GoToNearestEnemy />
+            </ReactiveSequence>
+
+            <ReactiveSequence>
+                <EnemyDetected/>
+                <PursueNearestEnemy attack_ratio="1" />
             </ReactiveSequence>
 
             <ReactiveSequence>
@@ -35,6 +48,6 @@
                 </Inverter>
                 <Explore/>
             </ReactiveSequence>
-        </Selector>
+        </PPOSwitcher>
     </Parallel>
 </Sequence>

@@ -1,0 +1,52 @@
+<!--完整的贪心策略-->
+<Root name="Greedy">
+    <Include path="global_reward.xml"/>
+
+    <AttackNearestEnemy/>
+    <Selector>
+        <ReactiveSequence>
+            <IsMissileThreatDetected/>
+            <include path="subtree/evade_missile.xml"/>
+        </ReactiveSequence>
+
+        <ReactiveSequence>
+            <Selector>
+                <IsMissileDepleted/>
+                <IsFuelBingo/>
+            </Selector>
+            <include path="subtree/go_home.xml"/>
+        </ReactiveSequence>
+
+        <ReactiveSequence>
+            <Inverter>
+                <IsInSafeArea/>
+            </Inverter>
+            <include path="subtree/go_to_center.xml"/>
+        </ReactiveSequence>
+
+        <ReactiveSequence>
+            <IsEnemyDetected/>
+
+            <Selector>
+                <ReactiveSequence>
+                    <IsNearEnemy distance="2000"/>
+                    <!--                    <include path="subtree/away_from_enemy.xml"/>-->
+                    <!--靠近敌机时往优势高的地方飞-->
+                    <PursueNearestEnemy attack_ratio="0.5" evade_ratio="0.5"/>
+                </ReactiveSequence>
+                <include path="subtree/go_to_enemy.xml"/>
+            </Selector>
+
+            <!--PursueNearestEnemy会更智能一些，会往优势更高的敌方飞-->
+            <!--                <PursueNearestEnemy attack_ratio="0.5" evade_ratio="0.5"/>-->
+        </ReactiveSequence>
+        
+        <ReactiveSequence>
+            <IsInSafeArea/>
+            <Inverter>
+                <IsEnemyDetected/>
+            </Inverter>
+            <include path="subtree/explore.xml"/>
+        </ReactiveSequence>
+    </Selector>
+</Root>

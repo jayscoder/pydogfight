@@ -23,6 +23,7 @@ class PPONode(BTPolicyNode, RLOnPolicyNode, ABC):
 
     def __init__(self,
                  path: str,
+                 reward_scope: str = '',
                  policy: str = 'MlpPolicy',
                  save_interval: int | str = 30,
                  tensorboard_log: typing.Optional[str] = None,
@@ -31,6 +32,7 @@ class PPONode(BTPolicyNode, RLOnPolicyNode, ABC):
                  ):
         super().__init__(**kwargs)
         RLOnPolicyNode.__init__(self)
+        self.reward_scope = reward_scope  # 如果scope设置成default或其他不为空的值，则认为奖励要从context.rl_reward[scope]中拿
         self.path = path
         self.policy = policy
         self.save_interval = int(save_interval)
@@ -41,8 +43,9 @@ class PPONode(BTPolicyNode, RLOnPolicyNode, ABC):
         return {
             **super().to_data(),
             **RLOnPolicyNode.to_data(self),
-            'policy': self.policy,
-            'path'  : self.path,
+            'policy'      : self.policy,
+            'path'        : self.path,
+            'reward_scope': self.reward_scope
         }
 
     def setup(self, **kwargs: typing.Any) -> None:
@@ -50,7 +53,7 @@ class PPONode(BTPolicyNode, RLOnPolicyNode, ABC):
         self.path = self.converter.render(
                 value=self.path,
         )
-
+        self.reward_scope = self.converter.render(self.reward_scope)
         if self.tensorboard_log is not None:
             self.tensorboard_log = self.converter.render(self.tensorboard_log)
 
@@ -81,7 +84,12 @@ class PPONode(BTPolicyNode, RLOnPolicyNode, ABC):
         return self.env.gen_info()
 
     def rl_gen_reward(self) -> float:
+        if self.reward_scope != '':
+            return RLOnPolicyNode.rl_gen_reward(self)
         return self.env.gen_reward(color=self.agent.color, previous=self.rl_info) + self.rl_gen_status_reward()
+
+    def rl_reward_scope(self) -> str:
+        return self.reward_scope
 
     def rl_gen_done(self) -> bool:
         info = self.env.gen_info()
@@ -189,7 +197,7 @@ class PPOCondition(PPONode, pybts.Condition):
     """
     条件节点：用PPO来判断是否需要执行
     """
-
+    
     def rl_action_space(self) -> gym.spaces.Space:
         return gym.spaces.Discrete(2)
 

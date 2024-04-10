@@ -2,11 +2,11 @@
     <Parallel success_threshold="1">
         <Selector>
             <Sequence>
-                <EnemyDetected/>
+                <IsEnemyDetected/>
                 <AttackNearestEnemy/>
             </Sequence>
             <Sequence>
-                <MissileThreatDetected/>
+                <IsMissileThreatDetected/>
                 <EvadeMissile/>
             </Sequence>
             <GoHome condition="IsMissileDepleted or IsFuelBingo"/>
@@ -16,7 +16,7 @@
             <Selector>
                 <Sequence>
                     <IsOnActiveRoute/>
-                    <PursueNearestEnemy attack_ratio="1" evade_ratio="0"/>
+                    <PursueNearestEnemy attack_ratio="0" evade_ratio="1"/>
                 </Sequence>
                 <Explore memory_sep="200"/>
             </Selector>

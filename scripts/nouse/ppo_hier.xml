@@ -13,12 +13,12 @@
         <!--前置条件-->
         <PreCondition>
             <Inverter>
-                <EnemyDetected/>
+                <IsEnemyDetected/>
             </Inverter>
         </PreCondition>
         <!--后置条件-->
         <PostCondition>
-            <EnemyDetected/>
+            <IsEnemyDetected/>
         </PostCondition>
     </PPOActionPPA>
 

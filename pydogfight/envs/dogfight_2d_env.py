@@ -77,14 +77,12 @@ class Dogfight2dEnv(gym.Env):
         self.render_info = { }  # 渲染在屏幕上的信息
 
         self.game_info = {
-            'red_wins'         : 0,
-            'blue_wins'        : 0,
-            'draws'            : 0,  # 平局几次
-            'round'            : 0,  # 第几轮
-            'red_accum_reward' : 0,  # 红方累积奖励
-            'blue_accum_reward': 0,  # 蓝方累积奖励
-            'truncated_count'  : 0,
-            'terminated_count' : 0,
+            'red_wins'        : 0,
+            'blue_wins'       : 0,
+            'draws'           : 0,  # 平局几次
+            'round'           : 0,  # 第几轮
+            'truncated_count' : 0,
+            'terminated_count': 0,
         }  # 游戏对战累积数据，在reset的时候更新
         # TODO 敌人的heatmap
 
@@ -144,8 +142,6 @@ class Dogfight2dEnv(gym.Env):
             self.game_info['terminated_count'] += 1
 
         self.game_info['round'] += 1
-        self.game_info['red_accum_reward'] += info['red_reward']
-        self.game_info['blue_accum_reward'] += info['blue_reward']
 
         super().reset(seed=seed)
 
@@ -409,7 +405,6 @@ class Dogfight2dEnv(gym.Env):
 
         if self.render_mode == 'human':
             self.last_update_time = time.time()
-            self.render_info.update(self.gen_info())
 
         for agent_name in self.update_event:
             self.update_event[agent_name].set()  # 设置事件，表示更新完成
@@ -519,7 +514,7 @@ class Dogfight2dEnv(gym.Env):
             pygame.display.quit()
             pygame.quit()
             self.isopen = False
-
+    
     def gen_reward(self, color: str, previous: dict | float | None):
         """
         生成某方的累积奖励
@@ -528,7 +523,7 @@ class Dogfight2dEnv(gym.Env):
             previous: 之前的奖励/info，填0代表返回累积奖励
         Returns:
         """
-        reward = self.options.time_punish_reward * self.time  # 时间惩罚
+        reward = self.options.step_reward * self.time  # 时间惩罚
         winner = self.battle_area.winner
         if winner != '':
             # 某一方获胜了

@@ -1,0 +1,42 @@
+<Root name="PPO">
+    <Include path="global_reward.xml"/>
+
+    <Selector>
+        <include path="subtree/handle_abnormal.xml"/>
+        <Parallel>
+            <!--        <AttackNearestEnemy/>-->
+            <!--使用scope表示reward从contex.rl_reward中拿-->
+
+            <ReactiveSequence>
+                <PPOCondition
+                        reward_scope="attack"
+                        path="{{folder}}/models/{{agent_name}}/PPOCondition_attack"
+                        tensorboard_log="{{folder}}/{{runtime}}/{{agent_name}}/PPOCondition_attack"
+                />
+                <Selector>
+                    <AttackNearestEnemy/>
+                    <!--攻击敌机失败，给出惩罚，奖励放在attack域里-->
+                    <Reward reward="-1" scope="attack"/>
+                </Selector>
+            </ReactiveSequence>
+
+            <ReactivePPOSwitcher
+                    reward_scope="control"
+                    path="{{folder}}/models/{{agent_name}}/ReactivePPOSwitcher"
+                    tensorboard_log="{{folder}}/{{runtime}}/ReactivePPOSwitcher">
+
+                <include path="subtree/evade_missile.xml"/>
+                <include path="subtree/go_home.xml"/>
+                <!--去战场中心-->
+                <include path="subtree/go_to_center.xml"/>
+                <include path="subtree/go_to_enemy.xml"/>
+                <!--计算敌我优势点，飞到优势点上-->
+                <include path="subtree/pursue_enemy.xml"/>
+                <!--远离敌机-->
+                <include path="subtree/away_from_enemy.xml"/>
+                <!--探索未知区域-->
+                <include path="subtree/explore.xml"/>
+            </ReactivePPOSwitcher>
+        </Parallel>
+    </Selector>
+</Root>

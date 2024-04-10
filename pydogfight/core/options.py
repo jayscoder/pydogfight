@@ -5,11 +5,9 @@ from pydogfight.core.models import *
 
 
 class Options:
-    version = 'v1'  # 版本
-
     ### 实体设置 ###
-    red_agents = ['red_1']
-    blue_agents = ['blue_1']
+    red_agents = ['red']
+    blue_agents = ['blue']
     red_home = 'red_home'
     blue_home = 'blue_home'
     bullseye = 'bullseye'
@@ -17,13 +15,13 @@ class Options:
     self_side = 'red'  # 自己所处的战队（奖励会根据这个来给）
 
     ### 场景 ###
-    max_duration = 60 * 30  # 一局对战最多时长30分钟，超过这个就会truncated
+    max_duration = 60 * 60  # 一局对战最多时长60分钟，超过这个就会truncated
     screen_size = (800, 800)  # 屏幕宽度 屏幕高度
     render_fps = 50  # 渲染的fps
-    delta_time = 0.01  # 每次env的更新步长
+    delta_time = 1 / 50  # 每次env的更新步长
     update_interval = 1  # 每轮env更新的时间间隔（在一轮更新中会进行多次更新，更新次数=update_interval/delta_time）
     simulation_rate = 100.0  # 仿真的速率倍数，越大代表越快，update_interval内更新几次（仅在render_mode=human模式下生效）
-    policy_interval = 0  # 每次策略的处理间隔时长（为0代表每次更新后都会处理策略）
+    policy_interval = 1  # 每次策略的处理间隔时长
     reach_location_threshold = 2  # 用来判断是否接近目标点的时间片尺度（乘以policy_interval*速度后就能得出距离多近就算到达目标点）
 
     obs_ignore_radar = False  # 是否忽略雷达（设置为true的话，生成单机观测时不会观测到雷达范围以内的敌机）
@@ -34,6 +32,8 @@ class Options:
 
     obs_allow_memory = True  # 是否允许记忆敌机最近一次出现的位置
 
+    indestructible = False  # 是否开启无敌模式，飞机不可被摧毁
+
     ### 常量 ###
     g = 9.8  # 重力加速度 m/s
 
@@ -41,7 +41,7 @@ class Options:
     game_size = (5e4, 5e4)  # 战场宽度 50km 战场高度 50km
     destroy_on_boundary_exit = True  # 飞出战场边界是否会摧毁飞机
 
-    collision_scale = 1.5  # 碰撞半径的倍数，越大代表越容易碰撞
+    collision_scale = 1.2  # 碰撞半径的倍数，越大代表越容易碰撞
 
     ### 飞机 ###
     aircraft_missile_count: int = 10  # 飞机上装载的导弹数量
@@ -67,7 +67,6 @@ class Options:
 
     aircraft_fire_missile_interval = 5  # 发射导弹时间间隔
 
-    aircraft_indestructible = False  # 飞机是否不可被摧毁
     aircraft_position_memory_sep = 1000  # 飞机记忆走过的路径点，以1000作为分隔点
 
     ### 导弹 ###
@@ -103,10 +102,15 @@ class Options:
     home_attack = False  # 基地是否具备攻击功能（进入基地范围的敌机会被自动毁灭）
 
     ### 训练 ###
-    win_reward = 3000
-    lose_reward = -1000
-    draw_reward = -500  #
-    time_punish_reward = -1  # 时间惩罚（每s惩罚多少分）
+    win_reward = 100  # 胜利奖励
+    lose_reward = -100  # 失败奖励
+    draw_reward = -100  # 平局奖励
+    step_reward = -0.1  # 每步的惩罚
+
+    # missile_hit_enemy_reward = 100  # 导弹命中敌机的奖励
+    # missile_hit_self_reward = -100  # 被导弹命中的奖励
+    # missile_miss_reward = -10  # 导弹没有命中的奖励
+    # fuel_depletion_reward = -100 # 燃油耗尽奖励
     train = True  # 是否是训练模式
 
     status_reward = {  # 状态奖励
@@ -131,7 +135,7 @@ class Options:
     def validate(self):
         """校验是否合法"""
         assert self.delta_time > 0
-        # assert self.policy_interval >= self.delta_time
+        assert self.policy_interval >= self.delta_time
         assert self.red_home != ''
         assert self.blue_home != ''
 
@@ -152,7 +156,7 @@ class Options:
             d[k] = v
         return d
 
-    def from_dict(self, d: dict):
+    def load_dict(self, d: dict):
         for k, v in d.items():
             try:
                 setattr(self, k, v)

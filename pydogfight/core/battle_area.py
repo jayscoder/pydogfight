@@ -5,8 +5,6 @@ from pydogfight.core.options import Options
 from collections import defaultdict
 
 
-
-
 class BattleArea:
     def __init__(self, options: Options, render_mode: str = 'rgb_array'):
         self.options = options
@@ -14,10 +12,12 @@ class BattleArea:
         self.time = 0  # 对战累积时长
         self.objs: dict[str, WorldObj] = { }
         self.render_mode = render_mode
+        self.cache = { }  # 缓存
 
     def reset(self):
         self.time = 0
         self.objs = { }
+        self.cache.clear()
 
         home_position = self.options.generate_home_init_position()
         assert self.options.red_home != ''
@@ -118,15 +118,21 @@ class BattleArea:
                 continue
             obj.update(delta_time=self.options.delta_time)
 
-        # 检查碰撞
+        # 检查碰撞，通过缓存来确保只触发一次（需要先进入非碰撞状态才能触发碰撞）
         obj_list = list(self.objs.values())
         for i in range(len(obj_list)):
             for j in range(i + 1, len(obj_list)):
                 if obj_list[i].destroyed or obj_list[j].destroyed:
                     continue
-                if obj_list[i].check_collision(obj_list[j]):
-                    obj_list[i].on_collision(obj_list[j])
-                    obj_list[j].on_collision(obj_list[i])
+                obj_1 = obj_list[i]
+                obj_2 = obj_list[j]
+                new_collided = obj_1.check_collision(obj_2)
+                collided_key = f'collided-{obj_1.name}-{obj_2.name}'
+                old_collided = self.cache.get(collided_key, False)
+                if new_collided and not old_collided:
+                    obj_1.on_collision(obj_2)
+                    obj_2.on_collision(obj_1)
+                self.cache[collided_key] = new_collided
 
         self.time += self.options.delta_time
 

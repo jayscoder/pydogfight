@@ -3,7 +3,7 @@
         <AttackNearestEnemy/>
         <Selector>
             <ReactiveSequence>
-                <MissileThreatDetected/>
+                <IsMissileThreatDetected/>
                 <EvadeMissile/>
             </ReactiveSequence>
 
@@ -23,14 +23,14 @@
             </ReactiveSequence>
 
             <ReactiveSequence>
-                <EnemyDetected/>
+                <IsEnemyDetected/>
                 <PursueNearestEnemy attack_ratio="0.1" evade_ratio="1"/>
             </ReactiveSequence>
 
             <ReactiveSequence>
                 <IsInSafeArea/>
                 <Inverter>
-                    <EnemyDetected/>
+                    <IsEnemyDetected/>
                 </Inverter>
                 <Explore/>
             </ReactiveSequence>

@@ -15,8 +15,8 @@ class BTPolicyBuilder(pybts.rl.builder.RLBuilder):
         super().register_default()
 
         self.register_node(
-                MissileThreatDetected,
-                EnemyDetected,
+                IsMissileThreatDetected,
+                IsEnemyDetected,
                 GoToCenter,
                 IsInSafeArea,
                 IsOnActiveRoute,
@@ -35,7 +35,13 @@ class BTPolicyBuilder(pybts.rl.builder.RLBuilder):
                 ManualControl,
                 IsWin,
                 IsLose,
-                IsDraw
+                IsDraw,
+                IsNearEnemy,
+                AwayFromNearestEnemy,
+                IsInGameRange,
+                IsOutOfGameRange,
+                IsFuelDepleted,
+                IsMissileFull
         )
 
         # 强化学习节点

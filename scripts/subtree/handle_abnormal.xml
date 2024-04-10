@@ -1,0 +1,16 @@
+<Root name="HandleAbnormal">
+    <!--处理异常行为-->
+    <Sequence>
+        <IsOutOfGameRange/>
+        <!--不在游戏区域的时候强制去战场中心-->
+        <GoToCenter/>
+        <Reward reward="-1" scope="control"/>
+    </Sequence>
+
+    <Sequence>
+        <IsFuelDepleted/>
+        <!--燃油耗尽的时候强制回基地 -->
+        <GoHome/>
+        <Reward reward="-1" scope="control"/>
+    </Sequence>
+</Root>

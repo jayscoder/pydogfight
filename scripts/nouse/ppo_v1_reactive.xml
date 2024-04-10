@@ -8,12 +8,12 @@
             />
             <AttackNearestEnemy/>
         </ReactiveSequence>
-        
+
         <ReactivePPOSwitcher
                 path="models/ppo_v1_reactive/{{agent_color}}/PPOSwitcher_1/{{version}}"
                 tensorboard_log="logs/ppo_v1_reactive/PPOSwitcher_1/{{version}}">
             <ReactiveSequence>
-                <MissileThreatDetected/>
+                <IsMissileThreatDetected/>
                 <EvadeMissile/>
             </ReactiveSequence>
 
@@ -33,19 +33,19 @@
             </ReactiveSequence>
 
             <ReactiveSequence>
-                <EnemyDetected/>
+                <IsEnemyDetected/>
                 <GoToNearestEnemy/>
             </ReactiveSequence>
 
             <ReactiveSequence>
-                <EnemyDetected/>
+                <IsEnemyDetected/>
                 <PursueNearestEnemy attack_ratio="1"/>
             </ReactiveSequence>
 
             <ReactiveSequence>
                 <IsInSafeArea/>
                 <Inverter>
-                    <EnemyDetected/>
+                    <IsEnemyDetected/>
                 </Inverter>
                 <Explore/>
             </ReactiveSequence>

@@ -61,6 +61,8 @@ class WorldObj:
         self.consumed_actions = Queue(maxsize=10)  # 最近消费的10个动作
 
         self._area = None  # 战场
+        self._last_is_game_range = True  # 用来保存之前是否在游戏区域，避免超出游戏区域后每次都触发摧毁自己
+
         # (0, -, -) 0代表什么也不做
         # （1, x, y）飞到指定位置
         # (2, x, y) 朝目标点发射导弹
@@ -121,6 +123,7 @@ class WorldObj:
             'route_index'     : self.route_index,
             'waiting_actions' : [str(act) for act in read_queue_without_destroying(self.waiting_actions)],
             'consumed_actions': [str(act) for act in read_queue_without_destroying(self.consumed_actions)],
+            'is_in_game_range': self.is_in_game_range
         }
 
     def __str__(self):
@@ -212,15 +215,13 @@ class WorldObj:
         """
         pass
 
-    def check_in_game_range(self):
-        if self.options.destroy_on_boundary_exit:
-            # 检查是否跑出了游戏范围
-            game_x_range = (-self.options.game_size[0] / 2, self.options.game_size[0] / 2)
-            game_y_range = (-self.options.game_size[1] / 2, self.options.game_size[1] / 2)
-            boundary = BoundingBox.from_range(x_range=game_x_range, y_range=game_y_range)
-            if boundary.contains(self.location):
-                return
-            self.destroy(reason=DestroyReason.OUT_OF_GAME_RANGE)
+    @property
+    def is_in_game_range(self) -> bool:
+        # 检查是否跑出了游戏范围
+        game_x_range = (-self.options.game_size[0] / 2, self.options.game_size[0] / 2)
+        game_y_range = (-self.options.game_size[1] / 2, self.options.game_size[1] / 2)
+        boundary = BoundingBox.from_range(x_range=game_x_range, y_range=game_y_range)
+        return boundary.contains(self.location)
 
     def follow_route(self, route) -> bool:
         """
@@ -369,7 +370,7 @@ class Aircraft(WorldObj):
 
         self.fuel_depletion_count = 0  # 燃油耗尽次数
         self.missile_depletion_count = 0  # 导弹耗尽次数
-        self.indestructible = options.aircraft_indestructible
+        self.indestructible = options.indestructible
 
         self.return_home_count = 0  # 到基地次数
 
@@ -476,17 +477,6 @@ class Aircraft(WorldObj):
         if not self.follow_route(route=self.route):
             self.move_forward(delta_time=delta_time)
 
-        # 消耗汽油
-        self.fuel -= self.fuel_consumption_rate * delta_time
-        # 检查剩余油量
-        if self.fuel <= 0:
-            # 耗尽燃油
-            self.destroy(reason=DestroyReason.FUEL_DEPLETION)
-            self.fuel_depletion_count += 1
-
-        if self.destroyed:
-            return
-
         while not self.waiting_actions.empty():
             # 执行动作
             action = self.waiting_actions.get_nowait()
@@ -505,10 +495,26 @@ class Aircraft(WorldObj):
             elif action_type == Actions.go_home:
                 self.go_home(delta_time=delta_time)
 
-        self.check_in_game_range()
-
+        if self.options.destroy_on_boundary_exit and not self.is_in_game_range and self._last_is_game_range:
+            self.destroy(reason=DestroyReason.OUT_OF_GAME_RANGE)
+        self._last_is_game_range = self.is_in_game_range
         # 记忆路径点
         self.position_memory.add_position(self.location)
+
+        if self.fuel <= 0:
+            return
+
+        # 消耗汽油
+        self.fuel -= self.fuel_consumption_rate * delta_time
+        # 检查剩余油量
+        if self.fuel <= 0:
+            # 只会在油量耗尽的那一刻触发一次被摧毁
+            # 耗尽燃油
+            self.destroy(reason=DestroyReason.FUEL_DEPLETION)
+            self.fuel_depletion_count += 1
+
+        if self.destroyed:
+            return
 
     def go_home(self, delta_time: float):
         home_position = self.area.get_obj(self.options.red_home).location

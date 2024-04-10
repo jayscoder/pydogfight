@@ -1,0 +1,26 @@
+folder: output/greedy_vs_greedy
+render: true
+num_episodes: 1
+track: 10
+policy:
+    red: scripts/greedy_vs_greedy/red.xml
+    blue: scripts/greedy_vs_greedy/blue.xml
+options:
+    train: true
+    red_agents: ['red']
+    blue_agents: ['blue']
+    indestructible: false
+    collision_scale: 1.5
+---
+# 后面的配置会继承前面的
+num_episodes: 1
+options:
+    train: false
+    indestructible: true
+    collision_scale: 1.3
+---
+num_episodes: 1
+options:
+    train: true
+    indestructible: false
+    collision_scale: 1.0
