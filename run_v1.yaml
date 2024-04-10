@@ -1,4 +1,4 @@
-folder: output/ppo_vs_ppo
+folder: output/run_v1
 render: false
 num_episodes: 1000
 track: 60
