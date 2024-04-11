@@ -42,10 +42,9 @@ options:
 
 ## 强化学习结合的行为树
 
-https://docs.ros.org/en/melodic/api/py_trees/html/index.html
-https://github.com/splintered-reality/py_trees
+行为树框架：https://github.com/wangtong2015/pybts
 
-具体请看scripts中写的行为树xml
+具体请看scripts中写的行为树xml和 pydogfight/policy/bt/ 中的代码
 
 ## 行为树节点定义
 
