@@ -365,6 +365,8 @@ class Aircraft(WorldObj):
         self.missile_miss = []  # 自己发射的哪些导弹没有命中敌机
         self.missile_miss_count = 0  # 自己发射的导弹没有命中敌机的次数
 
+        self.collided_aircraft_count = 0  # 与飞机相撞次数
+
         self.last_fire_missile_time = 0  # 上次发射导弹时间
 
         self.fuel_depletion_count = 0  # 燃油耗尽次数
@@ -400,8 +402,12 @@ class Aircraft(WorldObj):
         self.missile_hit_enemy_count = obj.missile_hit_enemy_count
         self.missile_hit_self = obj.missile_hit_self.copy()  # 自己被导弹命中的次数
         self.missile_hit_self_count = obj.missile_hit_self_count
+        self.missile_evade_success = obj.missile_evade_success  # 自己规避的导弹
+        self.missile_evade_success_count = obj.missile_evade_success_count  # 自己规避导弹成功次数
+
         self.missile_miss = obj.missile_miss.copy()  # 自己发射的哪些导弹没有命中敌机
         self.missile_miss_count = obj.missile_miss_count  # 自己发射的导弹没有命中敌机的次数
+        self.collided_aircraft_count = obj.collided_aircraft_count
 
         self.last_fire_missile_time = obj.last_fire_missile_time  # 上次发射导弹时间
 
@@ -432,7 +438,8 @@ class Aircraft(WorldObj):
             'missile_evade_success'      : self.missile_evade_success,
             'missile_evade_success_count': self.missile_evade_success_count,
             'return_home_count'          : self.return_home_count,
-            'fired_missiles'             : self.fired_missiles
+            'fired_missiles'             : self.fired_missiles,
+            'collided_aircraft_count'    : self.collided_aircraft_count,
         }
 
     def render(self, screen):
@@ -594,6 +601,7 @@ class Aircraft(WorldObj):
             return
         if isinstance(obj, Aircraft):
             self.destroy(reason=DestroyReason.COLLIDED_WITH_AIRCRAFT, source=obj.name)
+            self.collided_aircraft_count += 1
         elif isinstance(obj, Missile) and obj.source.name != self.name:
             if self.options.missile_can_only_hit_enemy and obj.color == self.color:
                 # 导弹只能攻击敌人

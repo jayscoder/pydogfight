@@ -24,7 +24,8 @@ parser.add_argument('--indestructible', action='store_true',
                     help='战机是否开启无敌模式，在做强化学习训练的时候就不能靠战机是否被摧毁来获得奖励，需要靠导弹命中敌机来获得奖励')
 parser.add_argument('--simulation-rate', type=int, default=0,
                     help='仿真的速率倍数，越大代表越快，update_interval内更新几次（仅在render_mode=human模式下生效）')
-parser.add_argument('--record', action='store_true', help='是否记录完整的环境数据，方便之后回放')
+# parser.add_argument('--record', action='store_true', help='是否记录完整的环境数据，方便之后回放')
+parser.add_argument('--rl-algo', type=str, default='', help='强化学习模型')
 
 
 def main():
@@ -82,6 +83,9 @@ def main():
 
         if args.models_dir != '':
             config['context']['models_dir'] = args.models_dir
+
+        if args.rl_algo != '':
+            config['context']['rl_algo'] = args.rl_algo
 
         if args.red:
             config['policy']['red'] = args.red

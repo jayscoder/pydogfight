@@ -8,7 +8,8 @@
             <!--使用scope表示reward从contex.rl_reward中拿-->
 
             <ReactiveSequence>
-                <PPOCondition
+                <RLCondition
+                        algo="{{rl_algo}}"
                         reward_scope="fire"
                         path="{{models_dir}}/{{agent_name}}/PPOCondition_attack"
                         tensorboard_log="{{output_dir}}/{{runtime}}/{{agent_name}}/PPOCondition_attack"
@@ -16,7 +17,8 @@
                 <include path="subtree/fire_missile.xml"/>
             </ReactiveSequence>
 
-            <ReactivePPOSwitcher
+            <ReactiveRLSwitcher
+                    algo="{{rl_algo}}"
                     reward_scope="control,replenish,explore"
                     path="{{models_dir}}/{{agent_name}}/ReactivePPOSwitcher"
                     tensorboard_log="{{output_dir}}/{{runtime}}/ReactivePPOSwitcher">
@@ -25,14 +27,14 @@
                 <include path="subtree/go_home.xml"/>
                 <!--去战场中心-->
                 <include path="subtree/go_to_center.xml"/>
-                <!--追逐敌机-->
-                <include path="subtree/pure_pursue_enemy.xml"/>
-                <include path="subtree/lag_pursue_enemy.xml"/>
-                <include path="subtree/lead_pursue_enemy.xml"/>
-                <include path="subtree/f_pole_pursue_enemy.xml"/>
+                <include path="subtree/go_to_enemy.xml"/>
+                <!--计算敌我优势点，飞到优势点上-->
+                <include path="subtree/pursue_enemy.xml"/>
+                <!--远离敌机-->
+                <include path="subtree/away_from_enemy.xml"/>
                 <!--探索未知区域-->
                 <include path="subtree/explore.xml"/>
-            </ReactivePPOSwitcher>
+            </ReactiveRLSwitcher>
         </Parallel>
     </Selector>
 </Root>

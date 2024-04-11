@@ -3,7 +3,7 @@
     <Include path="subtree/global_reward.xml"/>
 
     <include path="subtree/fire_missile.xml"/>
-    <Selector>
+    <ReactiveSelector>
         <ReactiveSequence>
             <IsMissileThreatDetected/>
             <include path="subtree/evade_missile.xml"/>
@@ -38,5 +38,5 @@
             </Inverter>
             <include path="subtree/explore.xml"/>
         </ReactiveSequence>
-    </Selector>
+    </ReactiveSelector>
 </Root>

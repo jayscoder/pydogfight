@@ -3,7 +3,7 @@ from __future__ import annotations
 import pybts
 from py_trees.behaviour import Behaviour
 from stable_baselines3.common.policies import ActorCriticPolicy
-
+from stable_baselines3.common.base_class import BaseAlgorithm
 from pydogfight.policy.bt.nodes import *
 
 from typing import Any, SupportsFloat, Union
@@ -11,19 +11,20 @@ from typing import Any, SupportsFloat, Union
 from gymnasium.core import ActType, ObsType
 from py_trees.common import Status
 from pybts.composites import Composite, Selector, Sequence
-from stable_baselines3 import PPO
+from stable_baselines3 import PPO, SAC, HER
 import py_trees
 import gymnasium as gym
-from pybts.rl import RLOnPolicyNode
+from pybts.rl import RLBaseNode
 import typing
 import jinja2
 from pydogfight.core.actions import Actions
 
 
-class PPONode(BTPolicyNode, RLOnPolicyNode, ABC):
+class RLNode(BTPolicyNode, RLBaseNode, ABC):
 
     def __init__(self,
                  path: str,
+                 algo: str | BaseAlgorithm = 'PPO',
                  reward_scope: str = '',
                  save_interval: int | str = 30,
                  tensorboard_log: typing.Optional[str] = None,
@@ -31,7 +32,8 @@ class PPONode(BTPolicyNode, RLOnPolicyNode, ABC):
                  **kwargs
                  ):
         super().__init__(**kwargs)
-        RLOnPolicyNode.__init__(self)
+        RLBaseNode.__init__(self)
+        self.algo = algo
         self.reward_scope = reward_scope  # 如果scope设置成default或其他不为空的值，则认为奖励要从context.rl_reward[scope]中拿
         self.path = path
         self.save_interval = int(save_interval)
@@ -41,7 +43,8 @@ class PPONode(BTPolicyNode, RLOnPolicyNode, ABC):
     def to_data(self):
         return {
             **super().to_data(),
-            **RLOnPolicyNode.to_data(self),
+            **RLBaseNode.to_data(self),
+            'algo'        : str(self.algo),
             'path'        : self.path,
             'reward_scope': self.reward_scope
         }
@@ -51,6 +54,15 @@ class PPONode(BTPolicyNode, RLOnPolicyNode, ABC):
 
     def setup(self, **kwargs: typing.Any) -> None:
         super().setup(**kwargs)
+        if isinstance(self.algo, str):
+            print(self.context)
+            self.algo = self.converter.render(self.algo)
+            self.algo = {
+                'PPO': PPO,
+                'SAC': SAC,
+                'HER': HER
+            }[self.algo.upper()]
+
         self.path = self.converter.render(
                 value=self.path,
         )
@@ -58,15 +70,30 @@ class PPONode(BTPolicyNode, RLOnPolicyNode, ABC):
         if self.tensorboard_log is not None:
             self.tensorboard_log = self.converter.render(self.tensorboard_log)
 
-        self.rl_ppo_setup_model(
-                train=self.env.options.train,
-                path=self.path,
-                tensorboard_log=self.tensorboard_log,
-                verbose=1,
-                # n_steps=8,
-                # batch_size=8,
-                tb_log_name=self.agent_name
-        )
+        if isinstance(self.algo, PPO.__class__):
+            self.rl_setup_model(
+                    model_class=PPO,
+                    train=self.env.options.train,
+                    path=self.path,
+                    tensorboard_log=self.tensorboard_log,
+                    verbose=1,
+                    tb_log_name=self.agent_name,
+                    n_steps=32,
+                    batch_size=32,
+            )
+        elif isinstance(self.algo, SAC.__class__):
+            self.rl_setup_model(
+                    model_class=SAC,
+                    train=self.env.options.train,
+                    path=self.path,
+                    tensorboard_log=self.tensorboard_log,
+                    verbose=1,
+                    tb_log_name=self.agent_name,
+                    learning_starts=32,
+                    batch_size=64
+            )
+        else:
+            raise Exception('Unsupported algo type {}'.format(type(self.algo)))
 
     def rl_env(self) -> gym.Env:
         return self.env
@@ -85,7 +112,7 @@ class PPONode(BTPolicyNode, RLOnPolicyNode, ABC):
 
     def rl_gen_reward(self) -> float:
         if self.reward_scope != '':
-            return RLOnPolicyNode.rl_gen_reward(self)
+            return RLBaseNode.rl_gen_reward(self)
         return self.env.gen_reward(color=self.agent.color, previous=self.rl_info) + self.rl_gen_status_reward()
 
     def rl_reward_scope(self) -> str:
@@ -108,11 +135,17 @@ class PPONode(BTPolicyNode, RLOnPolicyNode, ABC):
             self.rl_model.logger.record("wins/round", self.env.game_info[f'{self.agent.color}_wins'])
             self.rl_model.logger.record("loses/round", self.env.game_info[f'{self.agent.enemy_color}_wins'])
             self.rl_model.logger.record("draws/round", self.env.game_info['draws'])
+            self.rl_model.logger.record("destroyed_count/round", self.agent.destroyed_count)
+            self.rl_model.logger.record("missile_hit_enemy_count/round", self.agent.missile_hit_enemy_count)
+            self.rl_model.logger.record("missile_miss_count/round", self.agent.missile_miss_count)
+            self.rl_model.logger.record("missile_evade_success_count/round", self.agent.missile_evade_success_count)
+            self.rl_model.logger.record("collided_aircraft_count/round", self.agent.collided_aircraft_count)
+
         super().reset()
-        RLOnPolicyNode.reset(self)
+        RLBaseNode.reset(self)
 
 
-class PPOSwitcher(PPONode, Composite):
+class RLSwitcher(RLNode, Composite):
     """
     选择其中一个子节点来执行
     """
@@ -159,7 +192,7 @@ class PPOSwitcher(PPONode, Composite):
         yield from self.switcher_tick(tick_again_status=[Status.RUNNING])
 
 
-class ReactivePPOSwitcher(PPOSwitcher):
+class ReactiveRLSwitcher(RLSwitcher):
     """
     每次都会重新开始
     """
@@ -168,7 +201,7 @@ class ReactivePPOSwitcher(PPOSwitcher):
         yield from self.switcher_tick(tick_again_status=[])
 
 
-class PPOSelector(PPONode, Selector):
+class RLSelector(RLNode, Selector):
     """
     将某个子节点作为开头，重置children并执行（事后回还原）
     self.children = self.children[index:] + self.children[:index]
@@ -176,7 +209,7 @@ class PPOSelector(PPONode, Selector):
 
     def __init__(self, **kwargs):
         Selector.__init__(self, **kwargs)
-        PPONode.__init__(**kwargs)
+        RLNode.__init__(**kwargs)
         self.init_children: list[py_trees.behaviour.Behaviour] = self.children[:]
 
     def rl_action_space(self) -> gym.spaces.Space:
@@ -197,9 +230,9 @@ class PPOSelector(PPONode, Selector):
         yield from Selector.tick(self)
 
 
-class PPOCondition(PPONode, pybts.Condition):
+class RLCondition(RLNode, pybts.Condition):
     """
-    条件节点：用PPO来判断是否需要执行
+    条件节点：用RL来判断是否需要执行
     """
 
     def rl_action_space(self) -> gym.spaces.Space:
@@ -218,7 +251,7 @@ class PPOCondition(PPONode, pybts.Condition):
             return Status.SUCCESS
 
 
-class PPOAction(PPONode):
+class RLAction(RLNode):
     def __init__(
             self,
             allow_actions: str = 'keep,go_to_location,fire_missile,go_home',
@@ -233,7 +266,6 @@ class PPOAction(PPONode):
     def to_data(self):
         return {
             **super().to_data(),
-            **RLOnPolicyNode.to_data(self),
             'allow_actions': self.allow_actions
         }
 
@@ -263,7 +295,7 @@ class PPOAction(PPONode):
         return Status.SUCCESS
 
 
-class PPOOneAction(PPONode):
+class RLOneAction(RLNode):
     def __init__(self, action_type: str, **kwargs):
         super().__init__(**kwargs)
         self.action_type = action_type
@@ -298,17 +330,17 @@ class PPOOneAction(PPONode):
         return Status.SUCCESS
 
 
-class PPOFireMissile(PPOOneAction):
+class RLFireMissile(RLOneAction):
     def __init__(self, **kwargs):
         super().__init__(action_type='fire_missile', **kwargs)
 
 
-class PPOGoToLocation(PPOOneAction):
+class RLGoToLocation(RLOneAction):
     def __init__(self, **kwargs):
         super().__init__(action_type='go_to_location', **kwargs)
 
 
-class PPOActionPPA(PPOAction):
+class RLActionPPA(RLAction):
     """
     执行反向链式动作，子节点只能是PreCondition和PostCondition
 
@@ -329,13 +361,13 @@ class PPOActionPPA(PPOAction):
     """
 
     def __init__(self, **kwargs):
-        PPOAction.__init__(self, **kwargs)
+        RLAction.__init__(self, **kwargs)
         self.pre_condition: pybts.PostCondition | None = None
         self.post_condition: pybts.PreCondition | None = None
 
     def setup(self, **kwargs: typing.Any) -> None:
         super().setup(**kwargs)
-        assert len(self.children) in [1, 2], f'PPOActionPPA: children count ({len(self.children)}) must be 1 or 2'
+        assert len(self.children) in [1, 2], f'RLActionPPA: children count ({len(self.children)}) must be 1 or 2'
         for child in self.children:
             if isinstance(child, pybts.PostCondition):
                 self.post_condition = child
@@ -358,7 +390,7 @@ class PPOActionPPA(PPOAction):
         return 0
 
     def update(self) -> Status:
-        PPOAction.update(self)
+        RLAction.update(self)
 
         if self.post_condition is not None:
             self.post_condition.tick_once()

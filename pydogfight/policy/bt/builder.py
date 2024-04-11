@@ -57,11 +57,11 @@ class BTPolicyBuilder(pybts.rl.builder.RLBuilder):
 
         # 强化学习节点
         self.register_node(
-                PPOSwitcher,
-                ReactivePPOSwitcher,
-                PPOSelector,
-                PPOCondition,
-                PPOAction,
-                PPOActionPPA,
+                RLSwitcher,
+                ReactiveRLSwitcher,
+                RLSelector,
+                RLCondition,
+                RLAction,
+                RLActionPPA,
         )
 
