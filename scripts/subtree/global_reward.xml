@@ -2,16 +2,15 @@
     <!--全局奖励，分为两个域来提供，强化学习节点可以自由选择不同域来提取奖励-->
     <!--attack: 进攻域，控制发射导弹-->
     <!--control: 控制域，控制飞机位置-->
-
     <Sequence>
         <IsChanged value="{{agent.missile_hit_enemy_count}}"/>
         <!--发射的导弹命中敌机，给出奖励-->
-        <Reward reward="1000" scope="attack,control"/>
+        <Reward reward="1000" scope="fire,control"/>
     </Sequence>
     <Sequence>
         <IsChanged value="{{agent.missile_miss_count}}"/>
         <!--发射的导弹没有命中敌机，需要给出惩罚-->
-        <Reward reward="-100" scope="attack"/>
+        <Reward reward="-100" scope="fire,control"/>
     </Sequence>
 
     <Sequence>
@@ -23,7 +22,7 @@
     <Sequence>
         <IsMissileDepleted/>
         <!--导弹用完的情况下，给出步长惩罚-->
-        <Reward reward="-1" scope="attack,control"/>
+        <Reward reward="-1" scope="fire,control"/>
     </Sequence>
 
     <Sequence>
@@ -32,7 +31,7 @@
             <IsChanged value="{{agent.missile_count}}"/>
         </Inverter>
         <!--发现敌人的情况下如果没有发射导弹，则给出惩罚-->
-        <Reward reward="-1" scope="attack"/>
+        <Reward reward="-1" scope="fire"/>
     </Sequence>
 
     <Sequence>
@@ -40,6 +39,7 @@
         <!--燃油不够用的情况下，给出步长惩罚-->
         <Reward reward="-1" scope="control"/>
     </Sequence>
+
     <!--        <Throttle duration="1">-->
     <!--            &lt;!&ndash;每隔1s给出一个步长惩罚&ndash;&gt;-->
     <!--            <Reward reward="-1" />-->

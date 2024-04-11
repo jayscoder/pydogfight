@@ -1,6 +1,6 @@
 <!--完整的贪心策略-->
 <Root name="Greedy">
-    <Include path="global_reward.xml"/>
+    <Include path="subtree/global_reward.xml"/>
 
     <AttackNearestEnemy/>
     <Selector>

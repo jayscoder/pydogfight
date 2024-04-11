@@ -1,0 +1,5 @@
+<Selector name="FireMissile">
+    <FireMissileAtNearestEnemy/>
+    <!--攻击敌机失败，给出惩罚，奖励放在发射域里-->
+    <Reward reward="-1" scope="fire"/>
+</Selector>

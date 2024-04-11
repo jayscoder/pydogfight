@@ -1,8 +1,0 @@
-# 可视化训练
-python main.py --dir=scripts/ppo_vs_greedy --train --render --indestructible --num-episodes=1000 --track=10
-
-# 训练
-python main.py --dir=scripts/ppo_vs_greedy --train --indestructible --num-episodes=5000
-
-# 测试
-python main.py --dir=scripts/ppo_vs_greedy --render --indestructible --num-episodes=1000

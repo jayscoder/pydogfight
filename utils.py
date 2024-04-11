@@ -37,12 +37,12 @@ class Throttle:
 class BTManager:
     """用来做训练/测试，保存运行的数据"""
 
-    def __init__(self, folder: str, env: Dogfight2dEnv, builder: pybts.Builder, track: int = -1):
+    def __init__(self, output_dir: str, env: Dogfight2dEnv, builder: pybts.Builder, track: int = -1):
         self.env = env
         self.runtime = now_str()
 
-        self.folder = folder
-        self.folder_runtime = os.path.join(folder, self.runtime)
+        self.output_dir = output_dir
+        self.folder_runtime = os.path.join(output_dir, self.runtime)
 
         self.shell = 'python ' + ' '.join(sys.argv)
         self.builder = builder
@@ -59,7 +59,8 @@ class BTManager:
             self,
             agent_name: str,
             filepath: str,
-            tree_name_suffix: str = ''
+            tree_name_suffix: str = '',
+            context: dict = None
     ):
         env = self.env
         tree = pydogfight.policy.DogfightTree(
@@ -68,10 +69,11 @@ class BTManager:
                 root=self.builder.build_from_file(filepath),
                 name=agent_name + tree_name_suffix,
                 context={
-                    'filename': self.builder.get_relative_filename(filepath=filepath),
-                    'filepath': self.builder.find_filepath(filepath=filepath),
-                    'folder'  : self.folder,
-                    'runtime' : self.runtime,  # 执行时间
+                    'filename'  : self.builder.get_relative_filename(filepath=filepath),
+                    'filepath'  : self.builder.find_filepath(filepath=filepath),
+                    'output_dir': self.output_dir,
+                    'runtime'   : self.runtime,  # 执行时间
+                    **(context or { })
                 }
         )
 
@@ -225,31 +227,33 @@ class BTManager:
 
 
 def create_manager(
-        folder: str,
+        output_dir: str,
         policy_path: dict,  # 策略的文件，key是agent_name
         options=Options(),
         render: bool = False,
         track: int = -1,
+        context: dict = None
 ):
     """
 
     Args:
-        folder:
+        output_dir: 输出目录
         policy_path: 策略路径字典，key是战队颜色或agent_name
         options:
         render:
         track:
+        context: 传递的环境变量
 
     Returns:
 
     """
-    builder = pydogfight.policy.BTPolicyBuilder(folders=[folder, 'scripts'])
+    builder = pydogfight.policy.BTPolicyBuilder(folders=[output_dir, 'scripts'])
     render_mode = 'human' if render else 'rgb_array'  # 是否开启可视化窗口
     env = Dogfight2dEnv(options=options, render_mode=render_mode)
     env.reset()
 
     manager = BTManager(
-            folder=folder,
+            output_dir=output_dir,
             env=env,
             builder=builder,
             track=track)
@@ -258,12 +262,14 @@ def create_manager(
         manager.add_bt_policy(
                 agent_name=agent_name,
                 filepath=policy_path.get(agent_name, policy_path['red']),
+                context=context
         )
 
     for agent_name in options.blue_agents:
         manager.add_bt_policy(
                 agent_name=agent_name,
                 filepath=policy_path.get(agent_name, policy_path['blue']),
+                context=context
         )
 
     return manager

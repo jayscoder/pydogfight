@@ -103,12 +103,12 @@ class PPONode(BTPolicyNode, RLOnPolicyNode, ABC):
         return status_reward
 
     def reset(self):
-        super().reset()
         if self.env.options.train:
             self.rl_model.logger.record("reward/round", self.rl_reward)
             self.rl_model.logger.record("wins/round", self.env.game_info[f'{self.agent.color}_wins'])
             self.rl_model.logger.record("loses/round", self.env.game_info[f'{self.agent.enemy_color}_wins'])
             self.rl_model.logger.record("draws/round", self.env.game_info['draws'])
+        super().reset()
         RLOnPolicyNode.reset(self)
 
 
@@ -197,7 +197,7 @@ class PPOCondition(PPONode, pybts.Condition):
     """
     条件节点：用PPO来判断是否需要执行
     """
-    
+
     def rl_action_space(self) -> gym.spaces.Space:
         return gym.spaces.Discrete(2)
 

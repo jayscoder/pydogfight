@@ -6,7 +6,7 @@
         <IsEnemyDetected/>
         <!--发现敌机的时候执行动作，给出奖励-->
         <Reward reward="1" scope="control"/>
-        <!--否则，给出惩罚，奖励放在switcher域里-->
+        <!--否则，给出惩罚-->
         <Reward reward="-1" scope="control"/>
     </ConditionBranch>
 </Root>

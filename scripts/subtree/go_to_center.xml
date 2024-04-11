@@ -4,8 +4,8 @@
     <ConditionBranch>
         <IsInSafeArea/>
         <!--在安全区域内的时候飞去战场中心没有奖励-->
-        <Reward reward="0" scope="control"/>
+        <Reward reward="0" scope="replenish"/>
         <!--不在安全区域的时候去中心会给奖励-->
-        <Reward reward="1" scope="control"/>
+        <Reward reward="1" scope="replenish"/>
     </ConditionBranch>
 </Root>

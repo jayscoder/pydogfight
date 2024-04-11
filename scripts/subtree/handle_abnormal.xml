@@ -4,13 +4,13 @@
         <IsOutOfGameRange/>
         <!--不在游戏区域的时候强制去战场中心-->
         <GoToCenter/>
-        <Reward reward="-1" scope="control"/>
+        <Reward reward="-1" scope="replenish"/>
     </Sequence>
 
     <Sequence>
         <IsFuelDepleted/>
         <!--燃油耗尽的时候强制回基地 -->
         <GoHome/>
-        <Reward reward="-1" scope="control"/>
+        <Reward reward="-1" scope="replenish"/>
     </Sequence>
 </Root>

@@ -7,8 +7,8 @@
             <IsMissileThreatDetected/>
         </Or>
         <!--发现敌机或导弹的时候执行探索动作，给出惩罚-->
-        <Reward reward="-1" scope="control"/>
+        <Reward reward="-1" scope="explore"/>
         <!--否则，给出奖励，奖励放在switcher域里-->
-        <Reward reward="1" scope="control"/>
+        <Reward reward="1" scope="explore"/>
     </ConditionBranch>
 </Root>

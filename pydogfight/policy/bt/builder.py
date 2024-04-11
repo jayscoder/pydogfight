@@ -21,7 +21,7 @@ class BTPolicyBuilder(pybts.rl.builder.RLBuilder):
                 IsInSafeArea,
                 IsOnActiveRoute,
                 EvadeMissile,
-                AttackNearestEnemy,
+                FireMissileAtNearestEnemy,
                 GoToNearestEnemy,
                 PursueNearestEnemy,
                 Explore,

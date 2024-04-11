@@ -87,9 +87,9 @@ class EvadeMissile(BTPolicyNode):
         yield Status.SUCCESS
 
 
-class AttackNearestEnemy(BTPolicyNode):
+class FireMissileAtNearestEnemy(BTPolicyNode):
     """
-    行为节点: 攻击最近的敌机（发射导弹）
+    行为节点: 朝着最近的敌机发射导弹
     - SUCCESS: 发射导弹成功
     - FAILURE: 发射导弹失败（可能是没有发现最近敌机、剩余导弹为空、无法攻击到敌机）
     """
@@ -116,7 +116,7 @@ class AttackNearestEnemy(BTPolicyNode):
             # 有可能命中敌机
             self.actions.put_nowait((Actions.fire_missile, enemy.x, enemy.y))
             self.put_update_message(f'可以命中敌机 fire missile {enemy.x} {enemy.y}')
-            # 每隔3s最多发射一枚导弹
+            # 每隔N秒最多发射一枚导弹
             yield from delay_updater(env=self.env, time=self.env.options.missile_fire_interval, status=Status.SUCCESS)
         else:
             yield Status.FAILURE

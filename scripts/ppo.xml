@@ -1,5 +1,5 @@
 <Root name="PPO">
-    <Include path="global_reward.xml"/>
+    <include path="subtree/global_reward.xml"/>
 
     <Selector>
         <include path="subtree/handle_abnormal.xml"/>
@@ -9,21 +9,17 @@
 
             <ReactiveSequence>
                 <PPOCondition
-                        reward_scope="attack"
-                        path="{{folder}}/models/{{agent_name}}/PPOCondition_attack"
-                        tensorboard_log="{{folder}}/{{runtime}}/{{agent_name}}/PPOCondition_attack"
+                        reward_scope="fire"
+                        path="{{models_dir}}/{{agent_name}}/PPOCondition_attack"
+                        tensorboard_log="{{output_dir}}/{{runtime}}/{{agent_name}}/PPOCondition_attack"
                 />
-                <Selector>
-                    <AttackNearestEnemy/>
-                    <!--攻击敌机失败，给出惩罚，奖励放在attack域里-->
-                    <Reward reward="-1" scope="attack"/>
-                </Selector>
+                <include path="subtree/fire_missile.xml"/>
             </ReactiveSequence>
 
             <ReactivePPOSwitcher
-                    reward_scope="control"
-                    path="{{folder}}/models/{{agent_name}}/ReactivePPOSwitcher"
-                    tensorboard_log="{{folder}}/{{runtime}}/ReactivePPOSwitcher">
+                    reward_scope="control,replenish,explore"
+                    path="{{models_dir}}/{{agent_name}}/ReactivePPOSwitcher"
+                    tensorboard_log="{{output_dir}}/{{runtime}}/ReactivePPOSwitcher">
 
                 <include path="subtree/evade_missile.xml"/>
                 <include path="subtree/go_home.xml"/>
