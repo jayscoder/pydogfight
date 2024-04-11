@@ -12,6 +12,7 @@ import time
 from datetime import datetime
 import json
 from pybts.display import render_node
+import bt
 
 
 def now_str():
@@ -247,7 +248,7 @@ def create_manager(
     Returns:
 
     """
-    builder = pydogfight.policy.BTPolicyBuilder(folders=[output_dir, 'scripts'])
+    builder = bt.CustomBTBuilder(folders=[output_dir, 'scripts'])
     render_mode = 'human' if render else 'rgb_array'  # 是否开启可视化窗口
     env = Dogfight2dEnv(options=options, render_mode=render_mode)
     env.reset()
