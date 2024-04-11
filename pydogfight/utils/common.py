@@ -18,32 +18,6 @@ def cal_distance(a: Tuple[float, float] | np.ndarray | list[float],
     return math.sqrt((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2)
 
 
-def cal_relative_polar_wpt(wpt1: Tuple[float, float, float], wpt2: Tuple[float, float, float]) -> Tuple[
-    float, float, float]:
-    """
-    Calculate the relative polar coordinate of the two waypoints
-    :param wpt1: 航迹点1（x, y, psi）
-    :param wpt2: 航迹点2（x, y, psi）
-    :return: 航迹点2相对于航迹点1的相对极坐标
-    """
-    # 计算距离 r
-    r = math.sqrt((wpt2[0] - wpt1[0]) ** 2 + (wpt2[1] - wpt1[1]) ** 2)
-
-    # 计算角度 theta，结果转换为度
-    theta = math.degrees(math.atan2(wpt2[1] - wpt1[1], wpt2[0] - wpt1[0]) - math.radians(wpt1[2]))
-
-    # 保证theta在-180到180度之间
-    theta = (theta + 180) % 360 - 180
-
-    # 计算相对朝向 phi，结果转换为度
-    phi = wpt2[2] - wpt1[2]
-
-    # 保证phi在-180到180度之间
-    phi = (phi + 180) % 360 - 180
-
-    return r, theta, phi
-
-
 # def generate_random_point(rect: ((int, int), (int, int))) -> ((int, int)):
 
 def wrap_angle_to_360(angle):

@@ -63,11 +63,11 @@ class Options:
     aircraft_predict_distance = aircraft_speed * 5  # 预测未来5秒的位置
 
     # aircraft_radar_radius = 1e4  # 雷达半径 10km
-    aircraft_radar_radius = 1e4  # 雷达半径 30km
+    aircraft_radar_radius = 1e4  # 雷达半径 10km
 
     aircraft_fire_missile_interval = 5  # 发射导弹时间间隔
 
-    aircraft_position_memory_sep = 1000  # 飞机记忆走过的路径点，以1000作为分隔点
+    aircraft_position_memory_sep = 10000  # 飞机记忆走过的路径点（用来提取未走过的敌方），以10000作为分隔点
 
     ### 导弹 ###
     # missile_max_threat_distance = 8e3  # 导弹最大威胁距离8km

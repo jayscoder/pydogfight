@@ -198,6 +198,7 @@ class WorldObj:
         return distance < (self.collision_radius + to.collision_radius)
 
     def update(self, delta_time: float):
+        """更新状态"""
         pass
 
     def calc_optimal_path(self, target: tuple[float, float], turn_radius: float) -> OptimalPathParam:
@@ -255,14 +256,10 @@ class WorldObj:
     def move_forward(self, delta_time: float):
         # 朝着psi的方向移动, psi是航向角，0度指向正北，90度指向正东
         # 将航向角从度转换为弧度
-        x_theta = self.waypoint.standard_rad
-        # 计算 x 和 y 方向上的速度分量
-        dx = self.speed * math.cos(x_theta) * delta_time  # 正东方向为正值
-        dy = self.speed * math.sin(x_theta) * delta_time  # 正北方向为正值
-
+        new_wpt = self.waypoint.move(d=delta_time * self.speed)
         # 更新 obj 的位置
-        self.x += dx
-        self.y += dy
+        self.x = new_wpt.x
+        self.y = new_wpt.y
 
     def move_toward_once(self, target: tuple[float, float], delta_time: float):
         next_wpt = calc_optimal_path(
@@ -363,6 +360,8 @@ class Aircraft(WorldObj):
         self.missile_hit_enemy_count = 0
         self.missile_hit_self = []  # 自己被导弹命中的次数
         self.missile_hit_self_count = 0
+        self.missile_evade_success = []  # 自己规避的导弹
+        self.missile_evade_success_count = 0  # 自己规避导弹成功次数
         self.missile_miss = []  # 自己发射的哪些导弹没有命中敌机
         self.missile_miss_count = 0  # 自己发射的导弹没有命中敌机的次数
 
@@ -418,20 +417,22 @@ class Aircraft(WorldObj):
     def to_dict(self):
         return {
             **super().to_dict(),
-            'collision_radius'       : self.collision_radius,
-            'missile_count'          : self.missile_count,
-            'fuel'                   : self.fuel,
-            'fuel_consumption_rate'  : self.fuel_consumption_rate,
-            'radar_radius'           : self.radar_radius,
-            'last_fire_missile_time' : self.last_fire_missile_time,
-            'missile_hit_enemy'      : self.missile_hit_enemy,
-            'missile_hit_enemy_count': self.missile_hit_enemy_count,
-            'missile_hit_self'       : self.missile_hit_self,
-            'missile_hit_self_count' : self.missile_hit_self_count,
-            'missile_miss'           : self.missile_miss,
-            'missile_missile_count'  : self.missile_miss_count,
-            'return_home_count'      : self.return_home_count,
-            'fired_missiles'         : self.fired_missiles
+            'collision_radius'           : self.collision_radius,
+            'missile_count'              : self.missile_count,
+            'fuel'                       : self.fuel,
+            'fuel_consumption_rate'      : self.fuel_consumption_rate,
+            'radar_radius'               : self.radar_radius,
+            'last_fire_missile_time'     : self.last_fire_missile_time,
+            'missile_hit_enemy'          : self.missile_hit_enemy,
+            'missile_hit_enemy_count'    : self.missile_hit_enemy_count,
+            'missile_hit_self'           : self.missile_hit_self,
+            'missile_hit_self_count'     : self.missile_hit_self_count,
+            'missile_miss'               : self.missile_miss,
+            'missile_missile_count'      : self.missile_miss_count,
+            'missile_evade_success'      : self.missile_evade_success,
+            'missile_evade_success_count': self.missile_evade_success_count,
+            'return_home_count'          : self.return_home_count,
+            'fired_missiles'             : self.fired_missiles
         }
 
     def render(self, screen):
@@ -622,6 +623,9 @@ class Aircraft(WorldObj):
     def on_missile_miss(self, missile: Missile):
         self.missile_miss.append(missile.name)
         self.missile_miss_count += 1
+        # 导弹针对的飞机规避成功
+        missile.target.missile_evade_success_count += 1
+        missile.target.missile_evade_success.append(missile.name)
 
     def on_return_home(self):
         """

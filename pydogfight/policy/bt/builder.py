@@ -2,6 +2,7 @@ import pybts.rl.builder
 
 from pydogfight.policy.bt.nodes_actions import *
 from pydogfight.policy.bt.nodes_conditions import *
+from pydogfight.policy.bt.nodes_pursue import *
 from pydogfight.policy.bt.nodes import *
 from pydogfight.policy.bt.manual import ManualControl
 from pydogfight.policy.bt.rl import *
@@ -23,7 +24,6 @@ class BTPolicyBuilder(pybts.rl.builder.RLBuilder):
                 EvadeMissile,
                 FireMissileAtNearestEnemy,
                 GoToNearestEnemy,
-                PursueNearestEnemy,
                 Explore,
                 GoHome,
                 IsMissileDepleted,
@@ -37,16 +37,26 @@ class BTPolicyBuilder(pybts.rl.builder.RLBuilder):
                 IsLose,
                 IsDraw,
                 IsNearEnemy,
-                AwayFromNearestEnemy,
                 IsInGameRange,
                 IsOutOfGameRange,
                 IsFuelDepleted,
-                IsMissileFull
+                IsMissileFull,
+        )
+
+        # pursue
+        self.register_node(
+                AwayFromNearestEnemy,
+                PursueNearestEnemy,
+                LeadPursueNearestEnemy,
+                FPolePursueNearestEnemy,
+                GoToNearestEnemy,
+                PurePursueNearestEnemy,
+                AutoPursueNearestEnemy,
+                LagPursueNearestEnemy
         )
 
         # 强化学习节点
         self.register_node(
-                BTPPOGoToLocationModel,
                 PPOSwitcher,
                 ReactivePPOSwitcher,
                 PPOSelector,
@@ -55,4 +65,3 @@ class BTPolicyBuilder(pybts.rl.builder.RLBuilder):
                 PPOActionPPA,
         )
 
-        # Ricky注册

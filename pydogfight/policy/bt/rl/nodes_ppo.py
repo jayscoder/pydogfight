@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import pybts
 from py_trees.behaviour import Behaviour
+from stable_baselines3.common.policies import ActorCriticPolicy
 
 from pydogfight.policy.bt.nodes import *
 
-from typing import Any, SupportsFloat
+from typing import Any, SupportsFloat, Union
 
 from gymnasium.core import ActType, ObsType
 from py_trees.common import Status
@@ -24,7 +25,6 @@ class PPONode(BTPolicyNode, RLOnPolicyNode, ABC):
     def __init__(self,
                  path: str,
                  reward_scope: str = '',
-                 policy: str = 'MlpPolicy',
                  save_interval: int | str = 30,
                  tensorboard_log: typing.Optional[str] = None,
                  log_interval: int | str = 10,
@@ -34,7 +34,6 @@ class PPONode(BTPolicyNode, RLOnPolicyNode, ABC):
         RLOnPolicyNode.__init__(self)
         self.reward_scope = reward_scope  # 如果scope设置成default或其他不为空的值，则认为奖励要从context.rl_reward[scope]中拿
         self.path = path
-        self.policy = policy
         self.save_interval = int(save_interval)
         self.tensorboard_log = tensorboard_log
         self.log_interval = int(log_interval)
@@ -43,10 +42,12 @@ class PPONode(BTPolicyNode, RLOnPolicyNode, ABC):
         return {
             **super().to_data(),
             **RLOnPolicyNode.to_data(self),
-            'policy'      : self.policy,
             'path'        : self.path,
             'reward_scope': self.reward_scope
         }
+
+    def rl_policy(self) -> Union[str, typing.Type[ActorCriticPolicy]]:
+        return ActorCriticPolicy
 
     def setup(self, **kwargs: typing.Any) -> None:
         super().setup(**kwargs)
@@ -60,7 +61,6 @@ class PPONode(BTPolicyNode, RLOnPolicyNode, ABC):
         self.rl_ppo_setup_model(
                 train=self.env.options.train,
                 path=self.path,
-                policy=self.policy,
                 tensorboard_log=self.tensorboard_log,
                 verbose=1,
                 # n_steps=8,
@@ -112,10 +112,14 @@ class PPONode(BTPolicyNode, RLOnPolicyNode, ABC):
         RLOnPolicyNode.reset(self)
 
 
-class PPOSwitcher(PPONode):
+class PPOSwitcher(PPONode, Composite):
     """
     选择其中一个子节点来执行
     """
+
+    def __init__(self, **kwargs):
+        Composite.__init__(self, **kwargs)
+        super().__init__(**kwargs)
 
     def rl_action_space(self) -> gym.spaces.Space:
         return gym.spaces.Discrete(len(self.children))
@@ -224,6 +228,7 @@ class PPOAction(PPONode):
         if allow_actions == '':
             allow_actions = 'keep,go_to_location,fire_missile,go_home'
         self.allow_actions = allow_actions.split(',')
+        self.allow_actions = list(map(lambda x: Actions.build(x), self.allow_actions))
 
     def to_data(self):
         return {
@@ -233,6 +238,7 @@ class PPOAction(PPONode):
         }
 
     def rl_action_space(self) -> gym.spaces.Space:
+        # （action_type, distance, angle）
         return gym.spaces.Box(
                 low=-1,
                 high=1,
@@ -247,15 +253,59 @@ class PPOAction(PPONode):
                 save_path=self.path
         )
 
-        relative_wpt = self.agent.waypoint.relative_move(
-                dx=action[1] * self.agent.radar_radius,
-                dy=action[2] * self.agent.radar_radius)
+        new_wpt = self.agent.waypoint.move(
+                d=action[1] * self.agent.radar_radius,
+                angle=action[2] * 180)
 
-        allow_actions = list(map(lambda x: Actions.from_str(x), self.allow_actions))
-
-        action_type = Actions.extract_action_in_value_range(actions=allow_actions, value=action[0], value_range=(-1, 1))
-        self.actions.put_nowait((action_type, relative_wpt.x, relative_wpt.y))
+        action_type = Actions.extract_action_in_value_range(actions=self.allow_actions, value=action[0],
+                                                            value_range=(-1, 1))
+        self.actions.put_nowait((action_type, new_wpt.x, new_wpt.y))
         return Status.SUCCESS
+
+
+class PPOOneAction(PPONode):
+    def __init__(self, action_type: str, **kwargs):
+        super().__init__(**kwargs)
+        self.action_type = action_type
+
+    def to_data(self):
+        return {
+            **super().to_data(),
+            'action_type': self.action_type
+        }
+
+    def rl_action_space(self) -> gym.spaces.Space:
+        # （action_type, distance, angle）
+        return gym.spaces.Box(
+                low=-1,
+                high=1,
+                shape=(2,)
+        )
+
+    def update(self) -> Status:
+        action = self.rl_take_action(
+                train=self.env.options.train,
+                log_interval=self.log_interval,
+                save_interval=self.save_interval,
+                save_path=self.path
+        )
+
+        new_wpt = self.agent.waypoint.move(
+                d=action[1] * self.agent.radar_radius,
+                angle=action[2] * 180)
+
+        self.actions.put_nowait((Actions.build(self.action_type), new_wpt.x, new_wpt.y))
+        return Status.SUCCESS
+
+
+class PPOFireMissile(PPOOneAction):
+    def __init__(self, **kwargs):
+        super().__init__(action_type='fire_missile', **kwargs)
+
+
+class PPOGoToLocation(PPOOneAction):
+    def __init__(self, **kwargs):
+        super().__init__(action_type='go_to_location', **kwargs)
 
 
 class PPOActionPPA(PPOAction):

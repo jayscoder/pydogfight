@@ -1,0 +1,12 @@
+<Root name="PursueEnemy">
+    <!--计算敌我优势点，飞到优势点上-->
+    <PurePursueNearestEnemy/>
+
+    <ConditionBranch>
+        <IsEnemyDetected/>
+        <!--发现敌机的时候执行动作，给出奖励-->
+        <Reward reward="1" scope="control"/>
+        <!--否则，给出惩罚-->
+        <Reward reward="-1" scope="control"/>
+    </ConditionBranch>
+</Root>

@@ -181,20 +181,41 @@ class BattleArea:
         """
         remain_count = self.remain_count
 
-        if remain_count['missile']['red'] + remain_count['missile']['blue'] > 0:
-            return ''
+        if self.options.indestructible:
+            # 无敌模式下，用到达结束时间时双方的被摧毁数量来判断胜负
+            if self.time < self.options.max_duration:
+                return ''
 
-        if remain_count['aircraft']['red'] == 0 or remain_count['aircraft']['blue'] == 0:
-            if remain_count['aircraft']['red'] > 0:
-                return 'red'
-            elif remain_count['aircraft']['blue'] > 0:
+            destroyed_count = {
+                'red' : 0,
+                'blue': 0
+            }
+
+            for agent in self.agents:
+                destroyed_count[agent.color] += agent.destroyed_count
+
+            if destroyed_count['red'] > destroyed_count['blue']:
+                # 红方被摧毁次数多，蓝方获胜
                 return 'blue'
+            elif destroyed_count['blue'] > destroyed_count['red']:
+                return 'red'
             else:
                 return 'draw'
-        elif self.time >= self.options.max_duration:
-            # 超时就认为是平局
-            return 'draw'  # 不这么做的话，强化学习就会一直停留原地打转，等待敌机找上门或失误
+        else:
+            if self.time >= self.options.max_duration:
+                # 超时就认为是平局
+                return 'draw'
 
+            if remain_count['missile']['red'] + remain_count['missile']['blue'] > 0:
+                return ''
+
+            if remain_count['aircraft']['red'] == 0 or remain_count['aircraft']['blue'] == 0:
+                if remain_count['aircraft']['red'] > 0:
+                    return 'red'
+                elif remain_count['aircraft']['blue'] > 0:
+                    return 'blue'
+                else:
+                    return 'draw'
         return ''
 
     def detect_missiles(self, agent_name: str, ignore_radar: bool = False, only_enemy: bool = True) -> list[Missile]:

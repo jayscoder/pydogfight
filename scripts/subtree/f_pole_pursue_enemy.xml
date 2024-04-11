@@ -1,11 +1,11 @@
-<Root name="FireMissile">
-    <FireMissileAtNearestEnemy/>
+<Root name="PursueEnemy">
+    <FPolePursueNearestEnemy/>
 
     <ConditionBranch>
         <IsEnemyDetected/>
         <!--发现敌机的时候执行动作，给出奖励-->
-        <Reward reward="10" scope="fire"/>
+        <Reward reward="1" scope="control"/>
         <!--否则，给出惩罚-->
-        <Reward reward="-1" scope="fire"/>
+        <Reward reward="-1" scope="control"/>
     </ConditionBranch>
 </Root>

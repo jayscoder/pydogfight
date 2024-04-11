@@ -11,7 +11,6 @@ from pydogfight.core.world_obj import *
 from pydogfight.core.options import Options
 from pydogfight.core.battle_area import BattleArea
 from pydogfight.core.actions import Actions
-from pydogfight.utils.common import cal_relative_polar_wpt
 import time
 import threading
 import asyncio
@@ -255,7 +254,7 @@ class Dogfight2dEnv(gym.Env):
             agent.turn_radius / agent.radar_radius,  # 7
             agent.fuel / self.options.aircraft_fuel_capacity,  # 8
             agent.radar_radius / agent.radar_radius,  # 9
-            agent.missile_count / self.options.aircraft_missile_count,  # 10
+            agent.missile_count,  # 10
         ]
         i = 1
         # 隐藏掉雷达探测范围以外的obs，并且移除一些无法获取的信息
@@ -267,19 +266,19 @@ class Dogfight2dEnv(gym.Env):
                 continue
 
             def _obj_obs(obj: Aircraft, is_memory: bool):
-                rel_polar_wpt = cal_relative_polar_wpt(wpt1=(agent.x, agent.y, agent.psi), wpt2=(obj.x, obj.y, obj.psi))
+                rel_polar_wpt = agent.waypoint.relative_polar_waypoint(other=obj.waypoint)
                 obj_obs = [
                     OBJECT_TO_IDX[obj.type],  # 0
                     int(obj.color != agent.color),  # 1
                     -1 if is_memory else 0,  # is_destroyed 2
-                    rel_polar_wpt[0],  # r 3
-                    rel_polar_wpt[1],  # theta 4
-                    rel_polar_wpt[2],  # psi 5
+                    rel_polar_wpt.r,  # r 3
+                    rel_polar_wpt.theta,  # theta 4
+                    rel_polar_wpt.phi,  # psi 5
                     obj.speed / agent.radar_radius,  # 6
                     obj.turn_radius / agent.radar_radius,  # 7
                     obj.fuel / self.options.aircraft_fuel_capacity,  # 8
                     obj.radar_radius / agent.radar_radius,  # 9
-                    obj.missile_count / self.options.aircraft_missile_count,  # 10
+                    obj.missile_count,  # 10
                 ]
                 if obj.color != agent.color:
                     if self.options.obs_ignore_enemy_fuel:
@@ -306,13 +305,13 @@ class Dogfight2dEnv(gym.Env):
 
         # 基地默认是知道的（不考虑雷达）
         for obj in self.battle_area.homes:
-            rel_polar_wpt = cal_relative_polar_wpt(wpt1=(agent.x, agent.y, agent.psi), wpt2=(obj.x, obj.y, obj.psi))
+            rel_polar_wpt = agent.waypoint.relative_polar_waypoint(other=obj.waypoint)
             obs[i, :] = [
                 OBJECT_TO_IDX[obj.type],  # 0
                 int(obj.color != agent.color),  # 1
                 int(obj.destroyed),  # 2
-                rel_polar_wpt[0],  # 3
-                rel_polar_wpt[1],  # 4
+                rel_polar_wpt.r,  # 3
+                rel_polar_wpt.theta,  # 4
                 0,  # 5
                 0,  # 6
                 0,  # 7
@@ -324,14 +323,13 @@ class Dogfight2dEnv(gym.Env):
 
         # 牛眼
         bullseye = self.battle_area.bullseye
-        rel_polar_wpt = cal_relative_polar_wpt(wpt1=(agent.x, agent.y, agent.psi),
-                                               wpt2=(bullseye.x, bullseye.y, bullseye.psi))
+        rel_polar_wpt = agent.waypoint.relative_polar_waypoint(other=bullseye.waypoint)
         obs[i, :] = [
             OBJECT_TO_IDX[bullseye.type],  # 0
             0,  # 1
             int(bullseye.destroyed),  # 2
-            rel_polar_wpt[0],  # 3
-            rel_polar_wpt[1],  # 4
+            rel_polar_wpt.r,  # 3
+            rel_polar_wpt.theta,  # 4
             0,  # 5
             0,  # 6
             0,  # 7
@@ -347,14 +345,14 @@ class Dogfight2dEnv(gym.Env):
                 continue
             if i >= len(obs):
                 break
-            rel_polar_wpt = cal_relative_polar_wpt(wpt1=(agent.x, agent.y, agent.psi), wpt2=(obj.x, obj.y, obj.psi))
+            rel_polar_wpt = agent.waypoint.relative_polar_waypoint(other=obj.waypoint)
             obs[i, :] = [
                 OBJECT_TO_IDX[obj.type],  # 0
                 int(obj.color != agent.color),  # 1
                 int(obj.destroyed),  # 2
-                rel_polar_wpt[0],  # 3
-                rel_polar_wpt[1],  # 4
-                rel_polar_wpt[2],  # 5
+                rel_polar_wpt.r,  # 3
+                rel_polar_wpt.theta,  # 4
+                rel_polar_wpt.phi,  # 5
                 obj.speed / agent.radar_radius,  # 6
                 obj.turn_radius / agent.radar_radius,  # 7
                 obj.fuel / self.options.missile_fuel_capacity,  # 8
@@ -514,7 +512,7 @@ class Dogfight2dEnv(gym.Env):
             pygame.display.quit()
             pygame.quit()
             self.isopen = False
-    
+
     def gen_reward(self, color: str, previous: dict | float | None):
         """
         生成某方的累积奖励

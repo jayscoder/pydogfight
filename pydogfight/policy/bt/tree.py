@@ -28,7 +28,7 @@ class DogfightTree(RLTree):
         super().__init__(root=root, name=name, context=context)
         self.env = env
         self.agent_name = agent_name
-
+    
     def tick(
             self,
             pre_tick_handler: typing.Optional[

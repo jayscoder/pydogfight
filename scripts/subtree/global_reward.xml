@@ -2,21 +2,28 @@
     <!--全局奖励，分为两个域来提供，强化学习节点可以自由选择不同域来提取奖励-->
     <!--attack: 进攻域，控制发射导弹-->
     <!--control: 控制域，控制飞机位置-->
+
     <Sequence>
         <IsChanged value="{{agent.missile_hit_enemy_count}}"/>
         <!--发射的导弹命中敌机，给出奖励-->
-        <Reward reward="1000" scope="fire,control"/>
+        <Reward reward="3600" scope="fire,control"/>
     </Sequence>
     <Sequence>
         <IsChanged value="{{agent.missile_miss_count}}"/>
         <!--发射的导弹没有命中敌机，需要给出惩罚-->
-        <Reward reward="-100" scope="fire,control"/>
+        <Reward reward="-60" scope="fire,control"/>
     </Sequence>
+    <Sequence>
+        <IsChanged value="{{agent.missile_evade_success_count}}"/>
+        <!--成功规避导弹，给出奖励-->
+        <Reward reward="1200" scope="fire,control"/>
+    </Sequence>
+
 
     <Sequence>
         <IsChanged value="{{agent.destroyed_count}}"/>
         <!--自己被摧毁，给出惩罚-->
-        <Reward reward="-1000" scope="control"/>
+        <Reward reward="-1200" scope="control"/>
     </Sequence>
 
     <Sequence>

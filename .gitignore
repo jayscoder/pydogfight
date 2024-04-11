@@ -160,3 +160,4 @@ workspace/*
 output/*
 
 download_models_from_gulab.py
+shells.sh

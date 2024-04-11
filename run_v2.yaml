@@ -1,10 +1,10 @@
-output_dir: output/run_v1 # 输出目录
+output_dir: output/run_v2 # 输出目录
 render: false # 是否渲染
 num_episodes: 1000 # 运行轮数
 track: 60 # 是否捕获行为树运行数据
 policy:
-    red: scripts/v1/ppo.xml # 红方行为树
-    blue: scripts/v1/greedy.xml # 蓝方行为树
+    red: scripts/v2/ppo.xml # 红方行为树
+    blue: scripts/v2/greedy.xml # 蓝方行为树
 options:
     train: true # 是否开启训练
     red_agents: ['red'] # 红方agents
@@ -12,7 +12,7 @@ options:
 #     indestructible: true # 是否开启无敌模式
     collision_scale: 1.5 # 碰撞倍数，越大越容易发生碰撞
 context: # 行为树环境变量，可以在行为树中通过{{}}来传递
-    models_dir: 'models/run_v1' # 模型目录
+    models_dir: 'models/run_v2' # 模型目录
 ---
 # 后面的配置会继承前面的
 num_episodes: 100

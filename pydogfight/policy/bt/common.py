@@ -32,12 +32,14 @@ def go_to_location_updater(self: BTPolicyNode, location: (float, float)) -> typi
     yield Status.RUNNING
     while not self.agent.is_reach_location(location):
         yield Status.RUNNING
-        if self.env.time - start_time >= 15:
-            # 最多持续探索10秒
-            self.put_update_message('最多持续运行15秒')
-            break
+        # if self.env.time - start_time >= 15:
+        #     # 最多持续探索10秒
+        #     self.put_update_message('最多持续运行15秒')
+        #     break
         if not self.agent.is_current_route_target(location):
             # 当前目标点改变了
             self.put_update_message('当前目标点改变了')
-            break
+            yield Status.FAILURE
+            return
+    yield Status.SUCCESS
     return

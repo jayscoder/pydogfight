@@ -114,7 +114,7 @@ class GreedyPolicy(AgentPolicy):
         if enemy is not None:
             self.enemy = enemy.__copy__()
         elif self.enemy is not None:
-            self.enemy.move_forward(delta_time=delta_time)  # 假设之前发现的敌方按照原来的路线继续飞行
+            self.enemy.move(delta_time=delta_time)  # 假设之前发现的敌方按照原来的路线继续飞行
         # 如果发现敌方，则朝敌方发射导弹
         if enemy is not None:
             hit_point = agent.predict_missile_intercept_point(target=enemy)

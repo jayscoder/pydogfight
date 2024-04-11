@@ -2,7 +2,7 @@
 <Root name="Greedy">
     <Include path="subtree/global_reward.xml"/>
 
-    <AttackNearestEnemy/>
+    <include path="subtree/fire_missile.xml"/>
     <Selector>
         <ReactiveSequence>
             <IsMissileThreatDetected/>
@@ -26,21 +26,11 @@
 
         <ReactiveSequence>
             <IsEnemyDetected/>
-
-            <Selector>
-                <ReactiveSequence>
-                    <IsNearEnemy distance="2000"/>
-                    <!--                    <include path="subtree/away_from_enemy.xml"/>-->
-                    <!--靠近敌机时往优势高的地方飞-->
-                    <PursueNearestEnemy attack_ratio="0.5" evade_ratio="0.5"/>
-                </ReactiveSequence>
-                <include path="subtree/go_to_enemy.xml"/>
-            </Selector>
-
+            <include path="subtree/auto_pursue_enemy.xml"/>
             <!--PursueNearestEnemy会更智能一些，会往优势更高的敌方飞-->
             <!--                <PursueNearestEnemy attack_ratio="0.5" evade_ratio="0.5"/>-->
         </ReactiveSequence>
-        
+
         <ReactiveSequence>
             <IsInSafeArea/>
             <Inverter>

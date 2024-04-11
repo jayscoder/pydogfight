@@ -107,7 +107,7 @@ def main():
                 policy_path=policy,
                 context=context
         )
-        
+
         manager.write(path='run-config.json', content=config)
         manager.run(num_episodes=config['num_episodes'])
         cost_time = time.time() - start_time

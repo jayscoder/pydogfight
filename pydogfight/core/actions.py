@@ -17,6 +17,7 @@ class Actions(IntEnum):
                                       actions: list[Actions] = None) -> Actions:
         if actions is None:
             actions = [cls.keep, cls.go_to_location, cls.fire_missile, cls.go_home]
+
         assert value_range[0] < value_range[1]
         assert len(actions) > 0
         value_length = value_range[1] - value_range[0]
@@ -27,14 +28,25 @@ class Actions(IntEnum):
         return actions[-1]
 
     @classmethod
-    def from_str(cls, action_str: str) -> Actions:
-        return ACTIONS_MAP[action_str.strip().lower()]
+    def build(cls, value: str | int | Actions) -> Actions:
+        if isinstance(value, int):
+            return ACTIONS_MAP[value]
+        elif isinstance(value, str):
+            return ACTIONS_MAP[value.strip().lower()]
+        elif isinstance(value, Actions):
+            return value
+        raise Exception('Invalid action value')
+
 
 ACTIONS_MAP = {
-    'keep'          : Actions.keep,
-    'go_to_location': Actions.go_to_location,
-    'go_home'       : Actions.go_home,
-    'fire_missile'  : Actions.fire_missile
+    'keep'                      : Actions.keep,
+    'go_to_location'            : Actions.go_to_location,
+    'go_home'                   : Actions.go_home,
+    'fire_missile'              : Actions.fire_missile,
+    Actions.keep.value          : Actions.keep,
+    Actions.go_to_location.value: Actions.go_to_location,
+    Actions.go_home.value       : Actions.go_home,
+    Actions.fire_missile.value  : Actions.fire_missile
 }
 
 if __name__ == '__main__':

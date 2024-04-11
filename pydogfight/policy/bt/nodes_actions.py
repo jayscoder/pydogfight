@@ -27,7 +27,6 @@ class GoHome(BTPolicyNode):
     def updater(self) -> typing.Iterator[Status]:
         home_obj = self.env.battle_area.get_home(self.agent.color)
         yield from go_to_location_updater(self, home_obj.location)
-        yield Status.SUCCESS
 
 
 class GoToCenter(BTPolicyNode):
@@ -38,7 +37,6 @@ class GoToCenter(BTPolicyNode):
 
     def updater(self) -> typing.Iterator[Status]:
         yield from go_to_location_updater(self, (0, 0))
-        yield Status.SUCCESS
 
 
 class EvadeMissile(BTPolicyNode):
@@ -84,7 +82,6 @@ class EvadeMissile(BTPolicyNode):
             return
 
         yield from go_to_location_updater(self, go_to_location)
-        yield Status.SUCCESS
 
 
 class FireMissileAtNearestEnemy(BTPolicyNode):
@@ -122,114 +119,6 @@ class FireMissileAtNearestEnemy(BTPolicyNode):
             yield Status.FAILURE
 
 
-class GoToNearestEnemy(BTPolicyNode):
-    """
-    飞到最近的敌机的位置
-    """
-
-    def updater(self) -> typing.Iterator[Status]:
-        enemy = self.env.battle_area.find_nearest_enemy(
-                agent_name=self.agent_name,
-                ignore_radar=False)
-
-        if enemy is None:
-            self.put_update_message('No nearest enemy')
-            yield Status.FAILURE
-            return
-
-        yield from go_to_location_updater(self, enemy.location)
-        yield Status.SUCCESS
-        return
-
-
-class AwayFromNearestEnemy(BTPolicyNode):
-    """
-    远离最近的敌机
-    """
-
-    def updater(self) -> typing.Iterator[Status]:
-        enemy = self.env.battle_area.find_nearest_enemy(
-                agent_name=self.agent_name,
-                ignore_radar=False)
-
-        if enemy is None:
-            self.put_update_message('No nearest enemy')
-            yield Status.FAILURE
-            return
-
-        agent = self.agent
-        vec = (agent.x - enemy.x, agent.y - enemy.y)
-        target = (agent.x + vec[0], agent.y + vec[1])
-        yield from go_to_location_updater(self, target)
-        yield Status.SUCCESS
-        return
-
-
-class PursueNearestEnemy(BTPolicyNode):
-    """
-    行为节点：追击最近的敌机
-    此节点用于判断并执行对最近敌机的追击动作。它会评估并选择一个位置，该位置既能提高对敌机的命中率，又能降低被敌机命中的风险。
-
-    - SUCCESS: 追击成功，表示本节点控制的飞机成功调整了位置，优化了对最近敌机的攻击角度或位置。
-    - FAILURE: 追击失败，可能因为以下原因：
-        - 未能检测到最近的敌机，可能是因为敌机超出了雷达的探测范围。
-        - 未能计算出一个更有利的位置，或者在当前情况下调整位置不会带来明显的优势。
-        - 其他因素，如环境变量、飞机状态或策略设置，导致追击行动无法执行。
-
-    Parameters:
-    - name (str): 此行为节点的名称。
-    - attack_ratio (float): 进攻比例，用于决定在追击过程中进攻的倾向性，较高值意味着更偏向于进攻。
-    - evade_ratio (float): 逃避比例，用于决定在追击过程中防御的倾向性，较高值意味着更偏向于防御。
-    """
-
-    def __init__(self, attack_ratio: float | str = 0.5, evade_ratio: float | str = 0.5, **kwargs):
-        super().__init__(**kwargs)
-        self.attack_ratio = float(attack_ratio)
-        self.evade_ratio = float(evade_ratio)
-
-    def updater(self) -> typing.Iterator[Status]:
-        enemy = self.env.battle_area.find_nearest_enemy(
-                agent_name=self.agent_name,
-                ignore_radar=False)
-
-        if enemy is None:
-            self.put_update_message('No nearest enemy')
-            yield Status.FAILURE
-            return
-
-        # 如果没有要躲避的任务，则尝试飞到更容易命中敌机，且更不容易被敌机命中的位置上（两者命中时间之差最大）
-        min_time = float('inf')
-        go_to_location = None
-
-        if enemy.distance(self.agent) > self.env.options.aircraft_radar_radius:
-            # 超出雷达探测范围了，则朝着敌机的位置飞
-            go_to_location = (enemy.x, enemy.y)
-            self.put_update_message('超出雷达探测范围了，则朝着敌机的位置飞')
-        else:
-            test_agents = self.agent.generate_test_moves(
-                    in_safe_area=True
-            )
-            self.put_update_message(f'test_agents={len(test_agents)} ')
-            for agent_tmp in test_agents:
-                assert isinstance(agent_tmp, Aircraft)
-                hit_point = agent_tmp.predict_missile_intercept_point(target=enemy)  # 我方命中敌机
-                under_hit_point = enemy.predict_missile_intercept_point(target=agent_tmp)  # 敌机命中我方
-                if hit_point.time == float('inf'):
-                    hit_point.time = 10000
-                if under_hit_point.time == float('inf'):
-                    under_hit_point.time = 10000
-                time_tmp = hit_point.time * self.attack_ratio - under_hit_point.time * self.evade_ratio  # 让我方命中敌机的时间尽可能小，敌方命中我方的时间尽可能大
-                if time_tmp < min_time:
-                    min_time = time_tmp
-                    go_to_location = agent_tmp.location
-
-        if go_to_location is None:
-            yield Status.FAILURE
-            return
-
-        yield from go_to_location_updater(self, go_to_location)
-        yield Status.SUCCESS
-        return
 
 
 class Explore(BTPolicyNode):
@@ -249,7 +138,6 @@ class Explore(BTPolicyNode):
             yield Status.RUNNING
         go_to_location = self.agent.position_memory.pick_position()
         yield from go_to_location_updater(self, go_to_location)
-        yield Status.SUCCESS
 
 
 class KeepFly(BTPolicyNode):
@@ -278,7 +166,6 @@ class FollowRoute(BTPolicyNode):
             for index in range(len(self.route)):
                 self.route_index = index
                 yield from go_to_location_updater(self, self.route[index])
-        yield Status.SUCCESS
 
     def to_data(self):
         return {
@@ -302,7 +189,6 @@ class GoToLocation(BTPolicyNode):
 
     def updater(self) -> typing.Iterator[Status]:
         yield from go_to_location_updater(self, (self.x, self.y))
-        yield Status.SUCCESS
 
     def to_data(self):
         return {
