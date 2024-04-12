@@ -4,10 +4,11 @@ from typing import Optional, Union
 from typing import Tuple
 from pydogfight.core.options import Options
 import types
-from pydogfight.core.models import BoundingBox
+from pydogfight.utils.models import BoundingBox
 import math
 from pydogfight.core.constants import *
 import os
+import numpy as np
 
 
 def pygame_load_img(path):
@@ -18,9 +19,9 @@ def pygame_load_img(path):
 
 
 def game_point_to_screen_point(
-        game_point: Tuple[float, float],
-        game_size: Tuple[float, float],
-        screen_size: Tuple[float, float]) -> Tuple[
+        game_point: Tuple[float, float] | np.ndarray,
+        game_size: Tuple[float, float] | np.ndarray,
+        screen_size: Tuple[float, float] | np.ndarray) -> Tuple[
     float, float]:
     """
     Converts a game_point into a screen coordinate
@@ -38,9 +39,9 @@ def game_point_to_screen_point(
 
 
 def screen_point_to_game_point(
-        screen_point: Tuple[float, float],
-        game_size: Tuple[float, float],
-        screen_size: Tuple[float, float]) -> Tuple[float, float]:
+        screen_point: Tuple[float, float] | np.ndarray,
+        game_size: Tuple[float, float] | np.ndarray,
+        screen_size: Tuple[float, float] | np.ndarray) -> Tuple[float, float]:
     w_ratio = game_size[0] / screen_size[0]
     h_ratio = game_size[1] / screen_size[1]
 

@@ -4,7 +4,7 @@ import pybts
 from py_trees.behaviour import Behaviour
 from stable_baselines3.common.policies import ActorCriticPolicy
 from stable_baselines3.common.base_class import BaseAlgorithm
-from pydogfight.policy.bt.nodes import *
+from pydogfight.policy.bt.base_class import *
 
 from typing import Any, SupportsFloat, Union
 
@@ -23,12 +23,14 @@ from pydogfight.core.actions import Actions
 class RLNode(BTPolicyNode, RLBaseNode, ABC):
 
     def __init__(self,
-                 path: str,
+                 path: str = '',
                  algo: str | BaseAlgorithm = 'PPO',
                  reward_scope: str = '',
                  save_interval: int | str = 30,
                  tensorboard_log: typing.Optional[str] = None,
                  log_interval: int | str = 10,
+                 batch_size: int | str = 64,
+                 n_steps: int | str = 32,
                  **kwargs
                  ):
         super().__init__(**kwargs)
@@ -36,17 +38,21 @@ class RLNode(BTPolicyNode, RLBaseNode, ABC):
         self.algo = algo
         self.reward_scope = reward_scope  # 如果scope设置成default或其他不为空的值，则认为奖励要从context.rl_reward[scope]中拿
         self.path = path
-        self.save_interval = int(save_interval)
         self.tensorboard_log = tensorboard_log
-        self.log_interval = int(log_interval)
+        self.save_interval = save_interval
+        self.log_interval = log_interval
+        self.batch_size = batch_size
+        self.n_steps = n_steps
 
     def to_data(self):
         return {
             **super().to_data(),
             **RLBaseNode.to_data(self),
-            'algo'        : str(self.algo),
-            'path'        : self.path,
-            'reward_scope': self.reward_scope
+            'algo'         : str(self.algo),
+            'path'         : self.path,
+            'reward_scope' : self.reward_scope,
+            'save_interval': self.save_interval,
+            'log_interval' : self.log_interval
         }
 
     def rl_policy(self) -> Union[str, typing.Type[ActorCriticPolicy]]:
@@ -70,6 +76,11 @@ class RLNode(BTPolicyNode, RLBaseNode, ABC):
         if self.tensorboard_log is not None:
             self.tensorboard_log = self.converter.render(self.tensorboard_log)
 
+        self.save_interval = self.converter.int(self.save_interval)
+        self.log_interval = self.converter.int(self.log_interval)
+        self.batch_size = self.converter.int(self.batch_size)
+        self.n_steps = self.converter.int(self.n_steps)
+
         if isinstance(self.algo, PPO.__class__):
             self.rl_setup_model(
                     model_class=PPO,
@@ -78,8 +89,8 @@ class RLNode(BTPolicyNode, RLBaseNode, ABC):
                     tensorboard_log=self.tensorboard_log,
                     verbose=1,
                     tb_log_name=self.agent_name,
-                    n_steps=32,
-                    batch_size=32,
+                    n_steps=self.n_steps,
+                    batch_size=self.batch_size,
             )
         elif isinstance(self.algo, SAC.__class__):
             self.rl_setup_model(
@@ -89,8 +100,8 @@ class RLNode(BTPolicyNode, RLBaseNode, ABC):
                     tensorboard_log=self.tensorboard_log,
                     verbose=1,
                     tb_log_name=self.agent_name,
-                    learning_starts=32,
-                    batch_size=64
+                    learning_starts=self.n_steps,
+                    batch_size=self.batch_size
             )
         else:
             raise Exception('Unsupported algo type {}'.format(type(self.algo)))
@@ -113,7 +124,7 @@ class RLNode(BTPolicyNode, RLBaseNode, ABC):
     def rl_gen_reward(self) -> float:
         if self.reward_scope != '':
             return RLBaseNode.rl_gen_reward(self)
-        return self.env.gen_reward(color=self.agent.color, previous=self.rl_info) + self.rl_gen_status_reward()
+        return self.env.gen_reward(color=self.agent.color, previous=self.rl_info)
 
     def rl_reward_scope(self) -> str:
         return self.reward_scope
@@ -121,13 +132,6 @@ class RLNode(BTPolicyNode, RLBaseNode, ABC):
     def rl_gen_done(self) -> bool:
         info = self.env.gen_info()
         return info['terminated'] or info['truncated'] or not self.env.isopen
-
-    def rl_gen_status_reward(self) -> float:
-        # 生成节点运行状态的奖励
-        status_reward = self.env.options.status_reward[self.status.name] * max(
-                self.env.options.update_interval,
-                self.env.options.policy_interval)
-        return status_reward
 
     def reset(self):
         if self.env.options.train:
@@ -143,6 +147,14 @@ class RLNode(BTPolicyNode, RLBaseNode, ABC):
 
         super().reset()
         RLBaseNode.reset(self)
+
+    def take_action(self):
+        return self.rl_take_action(
+                train=self.env.options.train,
+                log_interval=self.log_interval,
+                save_interval=self.save_interval,
+                save_path=self.path
+        )
 
 
 class RLSwitcher(RLNode, Composite):
@@ -169,12 +181,7 @@ class RLSwitcher(RLNode, Composite):
             # 重新执行上次执行的子节点
             assert self.current_child is not None
         else:
-            index = self.rl_take_action(
-                    train=self.env.options.train,
-                    log_interval=self.log_interval,
-                    save_interval=self.save_interval,
-                    save_path=self.path
-            )
+            index = self.take_action()
             self.current_child = self.children[index]
         yield from self.current_child.tick()
 
@@ -220,12 +227,7 @@ class RLSelector(RLNode, Selector):
         super().setup(**kwargs)
 
     def tick(self) -> typing.Iterator[Behaviour]:
-        index = self.rl_take_action(
-                train=self.env.options.train,
-                log_interval=self.log_interval,
-                save_interval=self.save_interval,
-                save_path=self.path
-        ) or 0
+        index = self.take_action()
         self.children = self.init_children[index:] + self.init_children[:index]
         yield from Selector.tick(self)
 
@@ -239,16 +241,83 @@ class RLCondition(RLNode, pybts.Condition):
         return gym.spaces.Discrete(2)
 
     def update(self) -> Status:
-        action = self.rl_take_action(
-                train=self.env.options.train,
-                log_interval=self.log_interval,
-                save_interval=self.save_interval,
-                save_path=self.path
-        ) or 0
+        action = self.take_action()
         if action == 0:
             return Status.FAILURE
         else:
             return Status.SUCCESS
+
+
+class RLIntValue(RLNode, pybts.Condition):
+    """
+    强化学习int值生成，将生成的值保存到context[key]里
+    """
+
+    def __init__(self, key: str, high: int | str, low: int | str = 0, **kwargs):
+        super().__init__(**kwargs)
+        self.key = key
+        self.high = high
+        self.low = low
+
+    def setup(self, **kwargs: typing.Any) -> None:
+        super().setup(**kwargs)
+        self.key = self.converter.render(self.key)
+        self.high = self.converter.int(self.high)
+        self.low = self.converter.int(self.low)
+
+        assert self.high > self.low, "RLIntValue high must > low"
+
+    def to_data(self):
+        return {
+            **super().to_data(),
+            "key" : self.key,
+            "high": self.high,
+            "low" : self.low,
+        }
+
+    def rl_action_space(self) -> gym.spaces.Space:
+        return gym.spaces.Discrete(self.high - self.low + 1, start=self.low)
+
+    def update(self) -> Status:
+        action = self.take_action()
+        self.context[self.key] = int(action)
+        return Status.SUCCESS
+
+
+class RLFloatValue(RLNode, pybts.Condition):
+    """
+    强化学习float值生成，将生成的值保存到context[key]里
+    """
+
+    def __init__(self, key: str, high: float | str, low: float | str = 0, **kwargs):
+        super().__init__(**kwargs)
+        self.key = key
+        self.high = high
+        self.low = low
+
+    def setup(self, **kwargs: typing.Any) -> None:
+        super().setup(**kwargs)
+        self.key = self.converter.render(self.key)
+        self.high = self.converter.float(self.high)
+        self.low = self.converter.float(self.low)
+
+        assert self.high > self.low, "RLIntValue high must > low"
+
+    def to_data(self):
+        return {
+            **super().to_data(),
+            "key" : self.key,
+            "high": self.high,
+            "low" : self.low,
+        }
+
+    def rl_action_space(self) -> gym.spaces.Space:
+        return gym.spaces.Box(low=self.low, high=self.high, shape=(1,))
+
+    def update(self) -> Status:
+        action = self.take_action()
+        self.context[self.key] = float(action[0])
+        return Status.SUCCESS
 
 
 class RLAction(RLNode):

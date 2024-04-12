@@ -1,0 +1,6 @@
+<Root name="RandomGridExplore">
+    <Sequence>
+        <RandomIntValue key="random_grid_explore_index" high="8"/>
+        <GridExplore W="3" H="3" index="{{random_grid_explore_index}}"/>
+    </Sequence>
+</Root>

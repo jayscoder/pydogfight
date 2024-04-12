@@ -16,19 +16,22 @@ class BattleArea:
 
     def reset(self):
         self.time = 0
-        self.objs = { }
+        self.objs.clear()
         self.cache.clear()
 
-        home_position = self.options.generate_home_init_position()
         assert self.options.red_home != ''
         assert self.options.blue_home != ''
+        assert len(self.options.red_agents) > 0
+        assert len(self.options.blue_agents) > 0
+
+        red_home_pos = self.options.generate_home_init_position(color='red')
+        blue_home_pos = self.options.generate_home_init_position(color='blue')
         self.add_obj(
                 Home(
                         name=self.options.red_home,
                         options=self.options,
                         color='red',
-                        x=home_position[0][0],
-                        y=home_position[0][1],
+                        waypoint=Waypoint.build(x=red_home_pos[0], y=red_home_pos[1], psi=0)
                 )
         )
 
@@ -37,8 +40,7 @@ class BattleArea:
                         name=self.options.blue_home,
                         options=self.options,
                         color='blue',
-                        x=home_position[1][0],
-                        y=home_position[1][1],
+                        waypoint=Waypoint.build(x=blue_home_pos[0], y=blue_home_pos[1], psi=0)
                 )
         )
 
@@ -48,25 +50,21 @@ class BattleArea:
 
         for name in self.options.red_agents:
             # 随机生成飞机位置
-            wpt = self.options.generate_aircraft_init_waypoint(home_position[0], self.options.home_area_radius)
+            wpt = self.options.generate_aircraft_init_waypoint(color='red', home_position=red_home_pos)
             self.add_obj(Aircraft(
                     name=name,
                     options=self.options,
                     color='red',
-                    x=wpt[0],
-                    y=wpt[1],
-                    psi=wpt[2]))
+                    waypoint=Waypoint(data=wpt)))
 
         for name in self.options.blue_agents:
             # 随机生成飞机位置
-            wpt = self.options.generate_aircraft_init_waypoint(home_position[1], self.options.home_area_radius)
+            wpt = self.options.generate_aircraft_init_waypoint(color='blue', home_position=blue_home_pos)
             self.add_obj(Aircraft(
                     name=name,
                     options=self.options,
                     color='blue',
-                    x=wpt[0],
-                    y=wpt[1],
-                    psi=wpt[2]))
+                    waypoint=Waypoint(data=wpt)))
 
     def add_obj(self, obj: WorldObj):
         self.objs[obj.name] = obj
@@ -96,12 +94,17 @@ class BattleArea:
         assert isinstance(obj, Bullseye)
         return obj
 
-    def get_home(self, color) -> Home:
+    def get_home(self, color: str) -> Home:
         if color == 'red':
             obj = self.get_obj(self.options.red_home)
         else:
             obj = self.get_obj(self.options.blue_home)
         assert isinstance(obj, Home)
+        return obj
+
+    def get_agent(self, agent_name: str) -> Aircraft:
+        obj = self.get_obj(agent_name)
+        assert isinstance(obj, Aircraft)
         return obj
 
     def render(self, screen):
@@ -121,15 +124,19 @@ class BattleArea:
         # 检查碰撞，通过缓存来确保只触发一次（需要先进入非碰撞状态才能触发碰撞）
         obj_list = list(self.objs.values())
         for i in range(len(obj_list)):
+            obj_1 = obj_list[i]
+            if obj_1.collision_radius <= 0 or obj_1.destroyed:
+                continue
             for j in range(i + 1, len(obj_list)):
-                if obj_list[i].destroyed or obj_list[j].destroyed:
-                    continue
-                obj_1 = obj_list[i]
                 obj_2 = obj_list[j]
-                new_collided = obj_1.check_collision(obj_2)
+
+                if obj_2.collision_radius <= 0 or obj_2.destroyed:
+                    continue
+
+                new_collided = obj_1.will_collide(obj_2)
                 collided_key = f'collided-{obj_1.name}-{obj_2.name}'
-                old_collided = self.cache.get(collided_key, False)
-                if new_collided and not old_collided:
+                old_collided = self.cache.get(collided_key, None)
+                if new_collided and old_collided == False:
                     obj_1.on_collision(obj_2)
                     obj_2.on_collision(obj_1)
                 self.cache[collided_key] = new_collided
@@ -242,7 +249,7 @@ class BattleArea:
                 # 不检测相同战队的导弹
                 continue
             missiles.append((obj, obj.distance(agent)))
-        return list(map(lambda x: x[0], sorted(missiles, key=lambda x: x[1])))
+        return list(map(lambda it: it[0], sorted(missiles, key=lambda it: it[1])))
 
     def detect_aircraft(self, agent_name: str, ignore_radar: bool = False, only_enemy: bool = True) -> list[Aircraft]:
         """
@@ -268,7 +275,7 @@ class BattleArea:
                 # 只检测敌机
                 continue
             aircraft_items.append((obj, obj.distance(agent)))
-        return list(map(lambda x: x[0], sorted(aircraft_items, key=lambda x: x[1])))
+        return list(map(lambda it: it[0], sorted(aircraft_items, key=lambda it: it[1])))
 
     def find_nearest_enemy(self, agent_name: str, ignore_radar: bool = False) -> Aircraft | None:
         """

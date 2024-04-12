@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from pydogfight.core.models import Waypoint
+from pydogfight.utils.models import Waypoint
 from typing import List, Callable, Tuple
 import numpy as np
 import json
@@ -36,11 +36,11 @@ def predict_intercept_point(
         target_speed: float,
         self_speed: float,
         calc_optimal_dis: Callable[[Tuple[float, float]], float],
-        precision: float = 0.5
+        precision: float = 1
 ) -> InterceptPointResult | None:
     """
     预测拦截目标点
-    :param target:
+    :param target: 目标现在的航迹点
     :param target_speed: 敌方的速度 m/s
     :param self_speed: 我方的速度 m/s
     :param calc_optimal_dis: 计算我方飞到目标点的距离函数（黑盒函数）
@@ -48,19 +48,15 @@ def predict_intercept_point(
     :return: InterceptResult
     """
     if not isinstance(target, Waypoint):
-        target = Waypoint(x=target[0], y=target[1], psi=target[2])
-
-    def _calc(d: float):
-        # 最多尝试100次
-        hit_point = (target.x + d * np.cos(target.standard_rad), target.y + d * np.sin(target.standard_rad))
-        mt = calc_optimal_dis(hit_point) / self_speed  # 导弹飞到目标点需要多久
-        et = d / target_speed
-        return mt, et, hit_point
+        target = Waypoint(data=target)
 
     d = 0  # 预测敌机飞行距离
     for i in range(100):
         # 最多尝试100次
-        mt, et, hit_point = _calc(d)
+        hit_point = (target.x + d * np.cos(target.standard_rad), target.y + d * np.sin(target.standard_rad))
+        mt = calc_optimal_dis(hit_point) / self_speed  # 导弹飞到目标点需要多久
+        et = d / target_speed  # 敌人飞到目标点需要多久
+
         # print(f'i={i}, mt={mt}, et={et}, d={d}')
         if mt == float('inf') or et == float('inf'):
             return None
@@ -80,6 +76,40 @@ def predict_intercept_point(
             d -= diff_t * target_speed
 
     return None
+
+
+def optimal_predict_intercept_point(
+        self_wpt: Waypoint | tuple[float, float, float] | np.ndarray,
+        self_speed: float,
+        self_turn_radius: float,
+        target_wpt: Waypoint | tuple[float, float, float] | np.ndarray,
+        target_speed: float,
+        precision: float = 1
+):
+    """
+    Calculate the optimal 交点
+    Args:
+        self_wpt: 我方当前的航迹点
+        self_speed: 我方当前的速度
+        self_turn_radius: 我方的转弯半径
+        target_wpt: 目标当前的航迹点
+        target_speed: 目标当前的速度
+        precision: 计算精度，精确到1m
+
+    Returns:
+
+    """
+
+    from pydogfight.utils.traj import calc_optimal_path
+    return predict_intercept_point(
+            target=target_wpt, target_speed=target_speed,
+            self_speed=self_speed,
+            calc_optimal_dis=lambda p: calc_optimal_path(
+                    start=self_wpt,
+                    target=target_wpt,
+                    turn_radius=self_turn_radius
+            ).length,
+            precision=precision)
 
 
 # def predict_missile_hit_prob(self, source: Aircraft, target: Aircraft):
@@ -120,12 +150,12 @@ def predict_intercept_point(
 
 def _main():
     import matplotlib.pyplot as plt
-    from pydogfight.algos.traj import calc_optimal_path
+    from pydogfight.utils.traj import calc_optimal_path
 
-    enemy = Waypoint(100, 100, 90)
+    enemy = Waypoint.build(100, 100, 90)
     enemy_speed = 1
     missile_speed = 10
-    missile = Waypoint(0, 0, 0)
+    missile = Waypoint.build(0, 0, 0)
     missile_turn_radius = 10
     enemy_turn_radius = 5
 

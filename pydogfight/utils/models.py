@@ -4,45 +4,72 @@ from typing import Tuple, List, Union
 import json
 import numpy
 import numpy as np
+from pydogfight.utils.common import *
 
 POINT = Union[Tuple[float, float], List[float]]
 
 
-# WAYPOINT = Union[Tuple[float, float, float], List[float]]
-
 class Waypoint:
 
-    def __init__(self, x: float = 0, y: float = 0, psi: float = 0):
+    def __init__(self, data: np.ndarray | tuple[float, float, float] | list[float] = None):
+        if data is None:
+            data = [0, 0, 0]
+        assert len(data) == 3, "Waypoint must have 3 elements"
+        self.data: np.ndarray = np.array(data, dtype=np.float32)
+        self.format_coordinates()
+
+    @classmethod
+    def build(cls, x: float | np.float32 = 0, y: float | np.float32 = 0, psi: float | np.float32 = 0):
         """
         航迹点
-        :param x:
-        :param y:
-        :param psi: 航向角角度，（0表示正北方向，90度航向角表示正东方向）
+       :param x:
+       :param y:
+       :param psi: 航向角角度，（0表示正北方向，90度航向角表示正东方向）
         """
-        self.x = x
-        self.y = y
-        self.psi = psi
+        return cls([x, y, psi])
+
+    @property
+    def x(self):
+        return self.data[0]
+
+    @x.setter
+    def x(self, value):
+        self.data[0] = value
+
+    @property
+    def y(self):
+        return self.data[1]
+
+    @y.setter
+    def y(self, value):
+        self.data[1] = value
+
+    @property
+    def psi(self):
+        return self.data[2]
+
+    @psi.setter
+    def psi(self, value):
+        self.data[2] = value
+
+    @property
+    def location(self):
+        return self.data[:2]
 
     def __str__(self):
         return "x: " + str(self.x) + ", y: " + str(self.y) + ", psi: " + str(self.psi)
 
+    def __repr__(self):
+        return self.__str__()
+
+    def __eq__(self, other: 'Waypoint'):
+        return np.all(self.data == other.data)
+
     def to_dict(self):
         return { "x": self.x, "y": self.y, "psi": self.psi }
 
-    def to_tuple(self):
-        return self.x, self.y, self.psi
-
-    def to_list(self):
-        return [self.x, self.y, self.psi]
-
-    def to_numpy(self) -> numpy.ndarray:
-        return np.array(self.to_list(), dtype=np.float32)
-
-    def to_location(self):
-        return self.x, self.y
-
     def __copy__(self):
-        return Waypoint(x=self.x, y=self.y, psi=self.psi)
+        return Waypoint(self.data)
 
     @property
     def standard_rad(self):
@@ -53,59 +80,88 @@ class Waypoint:
 
     @property
     def standard_angle(self):
-        import pydogfight.utils.common as common_utils
-        return common_utils.heading_to_standard(self.psi)
+        return heading_to_standard(self.psi)
 
-    def distance(self, other: 'Waypoint'):
-        dx = other.x - self.x
-        dy = other.y - self.y
-        return (dx * dx + dy * dy) ** 0.5
+    def format_coordinates(self, decimal_places: int = 3):
+        """
+        将 Waypoint 对象的坐标和方向角度格式化为指定小数点后几位
+        Args:
+            decimal_places: 小数点后保留的位数
+        """
+        self.data = np.round(self.data, decimal_places)
 
-    def move(self, d: float, angle: float = 0):
+    def distance(self, other: 'Waypoint' | tuple[float, float] | list[float] | np.ndarray):
+        if isinstance(other, np.ndarray):
+            return np.linalg.norm(self.data[:2] - other[:2])
+        elif isinstance(other, Waypoint):
+            return np.linalg.norm(self.data[:2] - other.data[:2])
+        else:
+            other_data = np.array(other)
+            return np.linalg.norm(self.data[:2] - other_data[:2])
+
+    def move_towards(self, target: tuple[float, float] | np.ndarray | list[float], d: float,
+                     allow_over: bool = True) -> Waypoint:
+        """
+        朝着指定目标点飞行一定距离，允许飞过头
+        Args:
+            target: 目标点
+            d: 移动的距离，如果d是负数，表示远离目标点
+            allow_over: 是否允许飞过头
+
+        Returns: 移动后的Waypoint
+        """
+        dist = self.distance(target)
+        if dist == 0:
+            return self
+        ratio = d / dist
+        if not allow_over:
+            ratio = min(1, ratio)  # 不允许飞过头的情况下，最多飞到目标点的位置
+
+        x = self.x + (target[0] - self.x) * ratio
+        y = self.y + (target[1] - self.y) * ratio
+
+        psi = standard_to_heading(math.degrees((math.atan2(y - self.y, x - self.x))))
+        return Waypoint.build(x=x, y=y, psi=psi)
+
+    def optimal_move_towards(self, target: tuple[float, float] | np.ndarray, d: float, turn_radius: float):
+        # 按照最优轨迹朝着目标点飞行一定距离
+        from pydogfight.utils.traj import calc_optimal_path
+        next_wpt = calc_optimal_path(
+                start=self,
+                target=target,
+                turn_radius=turn_radius
+        ).next_wpt(step=d)
+        if next_wpt is None:
+            return self.__copy__()
+        return next_wpt
+
+    def move(self, d: float, angle: float = 0) -> Waypoint:
         """
         转弯并移动一定距离
         Args:
             d: 距离
-            angle: 转弯角度，0代表前进
+            angle: 转弯角度，0代表前进，正值代表向右转，负值代表向左转
 
-        Returns:
+        Returns: 移动后的Waypoint
 
         """
         # 朝着psi的方向移动, psi是航向角，0度指向正北，90度指向正东
         # 将航向角从度转换为弧度
-        new_wpt = self.__copy__()
-        new_wpt.psi += angle
-        x_theta = new_wpt.standard_rad
+        x_theta = self.standard_rad
         # 计算 x 和 y 方向上的速度分量
         dx = d * math.cos(x_theta)  # 正东方向为正值
         dy = d * math.sin(x_theta)  # 正北方向为正值
 
         # 更新 obj 的位置
-        new_wpt.x += dx
-        new_wpt.y += dy
+        new_wpt = Waypoint.build(x=self.x + dx, y=self.y + dy, psi=self.psi + angle)
         return new_wpt
-
-    def relative_move(self, dx: float, dy: float) -> Waypoint:
-        """
-        以自身为原点，前方为正方向移动，不改变航向角
-        Args:
-            dx:
-            dy:
-
-        Returns:
-
-        """
-        rad = self.standard_rad
-        x = self.x + dx * math.cos(rad)
-        y = self.y + dy * math.sin(rad)
-        return Waypoint(x=x, y=y, psi=self.psi)
 
     def relative_waypoint(self, other: 'Waypoint') -> Waypoint:
         """以自身为原点的相对航迹点"""
-        dx = other.x - self.x
-        dy = other.y - self.y
-        dpsi = other.psi - self.psi
-        return Waypoint(x=dx, y=dy, psi=dpsi)
+        # dx = other.x - self.x
+        # dy = other.y - self.y
+        # dpsi = other.psi - self.psi
+        return Waypoint(data=other.data - self.data)
 
     def relative_polar_waypoint(self, other: 'Waypoint') -> PolarWaypoint:
         """
@@ -123,13 +179,13 @@ class Waypoint:
         theta = math.degrees(math.atan2(other.y - self.y, other.x - self.x) - math.radians(self.psi))
 
         # 保证theta在-180到180度之间
-        theta = (theta + 180) % 360 - 180
+        theta = wrap_angle_to_180(theta)
 
         # 计算相对朝向 phi，结果转换为度
         phi = other.psi - self.psi
 
         # 保证phi在-180到180度之间
-        phi = (phi + 180) % 360 - 180
+        phi = wrap_angle_to_180(phi)
 
         return PolarWaypoint(r, theta, phi)
 
@@ -145,9 +201,31 @@ class PolarWaypoint:
         :param theta: 角度
         :param phi: 相对朝向 -180到180度之间
         """
-        self.r = r
-        self.theta = theta
-        self.phi = phi
+        self.data: np.ndarray = np.array([r, theta, phi], dtype=np.float32)
+
+    @property
+    def r(self) -> float:
+        return self.data[0]
+
+    @r.setter
+    def r(self, value: float) -> None:
+        self.data[0] = value
+
+    @property
+    def theta(self) -> float:
+        return self.data[1]
+
+    @theta.setter
+    def theta(self, value: float) -> None:
+        self.data[1] = value
+
+    @property
+    def phi(self) -> float:
+        return self.data[2]
+
+    @phi.setter
+    def phi(self, value: float) -> None:
+        self.data[2] = value
 
     def __str__(self):
         return "r: " + str(self.r) + ", theta: " + str(self.theta) + ", phi: " + str(self.phi)
@@ -159,10 +237,7 @@ class PolarWaypoint:
         return self.r, self.theta, self.phi
 
     def to_list(self):
-        return [self.r, self.theta, self.phi]
-
-    def to_numpy(self) -> numpy.ndarray:
-        return np.array(self.to_list(), dtype=np.float32)
+        return self.data.tolist()
 
 
 class BoundingBox(object):
@@ -305,9 +380,8 @@ class ObjPositioning:
         else:
             self.value = ObjPositioning.OTHERS
 
-
-if __name__ == '__main__':
-    bounding_box = BoundingBox.from_range(x_range=[0, 100], y_range=[0, 100])
-    print(bounding_box.contains([0, 0]))
-    print(bounding_box.contains([-1, -1]))
-    print(bounding_box)
+# if __name__ == '__main__':
+#     bounding_box = BoundingBox.from_range(x_range=[0, 100], y_range=[0, 100])
+#     print(bounding_box.contains([0, 0]))
+#     print(bounding_box.contains([-1, -1]))
+#     print(bounding_box)

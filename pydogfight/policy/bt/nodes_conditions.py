@@ -1,17 +1,5 @@
 from __future__ import annotations
 
-import json
-import typing
-
-from pydogfight.core.models import BoundingBox
-
-from pydogfight.policy.bt.nodes import *
-from pydogfight.core.world_obj import Aircraft, Missile
-from pydogfight.algos.traj import calc_optimal_path
-from pydogfight.core.actions import Actions
-import pybts
-from pybts import Status
-import os
 from pydogfight.policy.bt.common import *
 
 
@@ -47,21 +35,25 @@ class IsReachLocation(BTPolicyNode, pybts.Condition):
 
     def __init__(self, x: float, y: float, **kwargs):
         super().__init__(**kwargs)
-        self.x = self.converter.float(x)
-        self.y = self.converter.float(y)
+        self.x = x
+        self.y = y
 
     def to_data(self):
+        x = self.converter.float(self.x)
+        y = self.converter.float(self.y)
         return {
             **super().to_data(),
-            'x': self.x,
-            'y': self.y,
+            'x': x,
+            'y': y
         }
 
+    def setup(self, **kwargs: typing.Any) -> None:
+        super().setup(**kwargs)
+
     def update(self) -> Status:
-        reach_distance = self.agent.speed * max(
-                self.env.options.delta_time,
-                self.env.options.policy_interval * 2) * self.env.options.reach_location_threshold
-        if self.agent.distance((self.x, self.y)) <= reach_distance:
+        x = self.converter.float(self.x)
+        y = self.converter.float(self.y)
+        if self.agent.is_reach_location((x, y)):
             return Status.SUCCESS
         return Status.FAILURE
 
@@ -113,9 +105,9 @@ class IsInSafeArea(BTPolicyNode, pybts.Condition):
         }
 
     def update(self) -> Status:
-        if self.agent.distance((0, 0)) >= self.env.options.bullseye_safe_radius():
-            return Status.FAILURE
-        return Status.SUCCESS
+        if self.agent.distance((0, 0)) <= self.env.options.bullseye_safe_radius():
+            return Status.SUCCESS
+        return Status.FAILURE
 
 
 class IsInGameRange(BTPolicyNode, pybts.Condition):

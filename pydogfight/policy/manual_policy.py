@@ -6,8 +6,8 @@ from pydogfight.core.actions import Actions
 
 class ManualPolicy(AgentPolicy):
 
-    def __init__(self, env: Dogfight2dEnv, control_agents: list[str] | None = None, update_interval: float = 0.01):
-        super().__init__(env=env, agent_name=control_agents[0], update_interval=update_interval)
+    def __init__(self, env: Dogfight2dEnv, control_agents: list[str] | None = None):
+        super().__init__(env=env, agent_name=control_agents[0])
         self.control_index = 0
         self.control_agents = control_agents
 

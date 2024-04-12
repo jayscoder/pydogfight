@@ -44,12 +44,11 @@ COLOR_TO_IDX = {
 
 # Map of object type to integers
 OBJECT_TO_IDX = {
-    "unseen"  : 0,
-    "empty"   : 1,
-    "aircraft": 2,
-    "missile" : 3,
-    'home'    : 4,
-    'bullseye': 5,  # 战场中心，牛眼
+    "empty"   : 0,
+    "aircraft": 1,
+    "missile" : 2,
+    'home'    : 3,
+    'bullseye': 4,  # 战场中心，牛眼
 }
 
 IDX_TO_OBJECT = dict(zip(OBJECT_TO_IDX.values(), OBJECT_TO_IDX.keys()))

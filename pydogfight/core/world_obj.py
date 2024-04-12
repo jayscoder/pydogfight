@@ -6,14 +6,14 @@ import numpy as np
 
 from pydogfight.core.actions import *
 from queue import Queue
-from pydogfight.core.models import Waypoint
-from pydogfight.algos.traj import calc_optimal_path, OptimalPathParam
-from pydogfight.algos.intercept import predict_intercept_point, InterceptPointResult
+from pydogfight.utils.models import Waypoint
+from pydogfight.utils.traj import calc_optimal_path, OptimalPathParam
+from pydogfight.utils.intercept import *
 from pydogfight.utils.rendering import *
-from pydogfight.utils.common import read_queue_without_destroying, cal_distance
 import weakref
-import json
 from pydogfight.utils.position_memory import PositionMemory
+from pydogfight.utils.models import *
+from pydogfight.utils.common import will_collide
 
 if TYPE_CHECKING:
     from pydogfight.core.options import Options
@@ -25,13 +25,12 @@ class WorldObj:
     Base class for grid world objects
     """
 
-    def __init__(self, name: str,
+    def __init__(self,
+                 name: str,
                  options: Options,
                  type: str,
+                 waypoint: Waypoint,
                  color: str = '',
-                 x: float = 0,
-                 y: float = 0,
-                 psi: float = 0,
                  speed: float = 0,
                  turn_radius: float = 0,
                  collision_radius: float = 0):
@@ -45,9 +44,7 @@ class WorldObj:
         self.collision_radius = collision_radius
 
         self.speed = speed
-        self.x = x
-        self.y = y
-        self.psi = psi
+        self.waypoint = waypoint
 
         self.indestructible = False  # 是否不可摧毁
         self.destroyed = False  # 是否已经被摧毁
@@ -61,7 +58,8 @@ class WorldObj:
         self.consumed_actions = Queue(maxsize=10)  # 最近消费的10个动作
 
         self._area = None  # 战场
-        self._last_is_game_range = True  # 用来保存之前是否在游戏区域，避免超出游戏区域后每次都触发摧毁自己
+        self.last_is_in_game_range = True  # 用来保存之前是否在游戏区域，避免超出游戏区域后每次都触发摧毁自己
+        self.last_waypoint: Waypoint | None = None  # 上一刻的航迹点
 
         # (0, -, -) 0代表什么也不做
         # （1, x, y）飞到指定位置
@@ -73,9 +71,7 @@ class WorldObj:
                 options=self.options,
                 type=self.type,
                 color=self.color,
-                x=self.x,
-                y=self.y,
-                psi=self.psi,
+                waypoint=self.waypoint.__copy__(),
                 speed=self.speed,
                 turn_radius=self.turn_radius)
         obj.copy_from(self)
@@ -90,10 +86,7 @@ class WorldObj:
         self.collision_radius = obj.collision_radius
 
         self.speed = obj.speed
-        self.x = obj.x
-        self.y = obj.y
-        self.psi = obj.psi
-
+        self.waypoint = obj.waypoint.__copy__()
         self.indestructible = obj.indestructible
         self.destroyed = obj.destroyed
         self.destroyed_count = obj.destroyed_count
@@ -114,9 +107,7 @@ class WorldObj:
             'speed'           : self.speed,
             'turn_radius'     : self.turn_radius,
             'collision_radius': self.collision_radius,
-            'x'               : float(self.x),
-            'y'               : float(self.y),
-            'psi'             : float(self.psi),
+            'waypoint'        : self.waypoint,
             'destroyed'       : self.destroyed,
             'destroyed_reason': self.destroyed_reason,
             'route'           : route,
@@ -157,14 +148,6 @@ class WorldObj:
         return self._area()
 
     @property
-    def waypoint(self) -> Waypoint:
-        return Waypoint(self.x, self.y, self.psi)
-
-    @property
-    def location(self) -> tuple[float, float]:
-        return self.x, self.y
-
-    @property
     def enemy_color(self):
         """敌方战队的颜色"""
         if self.color == 'red':
@@ -175,7 +158,7 @@ class WorldObj:
     @property
     def screen_position(self) -> tuple[float, float]:
         return game_point_to_screen_point(
-                (self.x, self.y),
+                game_point=self.waypoint.location,
                 game_size=self.options.game_size,
                 screen_size=self.options.screen_size)
 
@@ -185,17 +168,30 @@ class WorldObj:
 
     def distance(self, to: WorldObj | tuple[float, float]) -> float:
         if isinstance(to, WorldObj):
-            to = to.location
-        return ((self.x - to[0]) ** 2 + (self.y - to[1]) ** 2) ** 0.5
+            to = to.waypoint
+        return self.waypoint.distance(to)
 
-    def check_collision(self, to: WorldObj):
+    def will_collide(self, obj: WorldObj):
         # 假设物体是圆形的，可以通过计算它们中心点的距离来检测碰撞
         # 如果两个物体之间的距离小于它们的半径之和，则认为它们发生了碰撞
-        if self.collision_radius <= 0 or to.collision_radius <= 0:
+        if self.collision_radius <= 0 or obj.collision_radius <= 0:
             # 其中一方没有碰撞半径的话，就不认为会造成碰撞
             return False
-        distance = self.distance(to)
-        return distance < (self.collision_radius + to.collision_radius)
+        obj_last_wpt = obj.last_waypoint or obj.waypoint
+        self_last_wpt = self.last_waypoint or self.waypoint
+
+        collided = will_collide(
+                a1=self_last_wpt.location,
+                a2=self.waypoint.location,
+                b1=obj_last_wpt.location,
+                b2=obj.waypoint.location,
+                ra=self.collision_radius,
+                rb=obj.collision_radius
+        )
+        # distance = self.distance(obj) / (self.collision_radius + obj.collision_radius)
+        # if collided and distance > 1:
+        #     print('碰撞异常', distance)
+        return collided
 
     def update(self, delta_time: float):
         """更新状态"""
@@ -222,9 +218,13 @@ class WorldObj:
         game_x_range = (-self.options.game_size[0] / 2, self.options.game_size[0] / 2)
         game_y_range = (-self.options.game_size[1] / 2, self.options.game_size[1] / 2)
         boundary = BoundingBox.from_range(x_range=game_x_range, y_range=game_y_range)
-        return boundary.contains(self.location)
+        return boundary.contains(self.waypoint.location)
 
-    def follow_route(self, route) -> bool:
+    def do_move(self, waypoint: Waypoint):
+        self.last_waypoint = self.waypoint
+        self.waypoint = waypoint
+
+    def update_follow_route(self, route) -> bool:
         """
         沿着轨迹运动
         :param route: 轨迹
@@ -248,43 +248,25 @@ class WorldObj:
             self.route_index = -1
             return False
         self.route_index += 1
-        self.x = next_wpt[0]
-        self.y = next_wpt[1]
-        self.psi = next_wpt[2]
+        self.do_move(Waypoint(data=next_wpt))
         return True
 
-    def move_forward(self, delta_time: float):
+    def update_move_forward(self, delta_time: float):
         # 朝着psi的方向移动, psi是航向角，0度指向正北，90度指向正东
         # 将航向角从度转换为弧度
         new_wpt = self.waypoint.move(d=delta_time * self.speed)
-        # 更新 obj 的位置
-        self.x = new_wpt.x
-        self.y = new_wpt.y
-
-    def move_toward_once(self, target: tuple[float, float], delta_time: float):
-        next_wpt = calc_optimal_path(
-                start=self.waypoint,
-                target=target,
-                turn_radius=self.turn_radius
-        ).next_wpt(step=delta_time * self.speed)
-        if next_wpt is None:
-            return False
-        self.x = next_wpt.x
-        self.y = next_wpt.y
-        self.psi = next_wpt.psi
-        return True
+        self.do_move(new_wpt)
 
     def go_to_location(self, target: tuple[float, float], delta_time: float, force: bool = False):
-
-        if self.route is not None and len(self.route) > 0 and not force:
-            # 当前还有未完成的路由
-            route_target = self.route[-1][:2]
-            target_distance = np.linalg.norm(route_target - np.array(target))
-            # print(f'{self.name} target_distance', target_distance)
-            if target_distance <= 1:
-                # print('目标点和自己当前的路由终点很接近，就不再重复导航')
-                # 如果目标点和自己当前的路由终点很接近，就不再重复导航了
-                return
+        # if self.route is not None and len(self.route) > 0 and not force:
+        #     # 当前还有未完成的路由
+        #     route_target = self.route[-1][:2]
+        #     target_distance = np.linalg.norm(route_target - np.array(target))
+        #     # print(f'{self.name} target_distance', target_distance)
+        #     if target_distance <= 1:
+        #         # print('目标点和自己当前的路由终点很接近，就不再重复导航')
+        #         # 如果目标点和自己当前的路由终点很接近，就不再重复导航了
+        #         return
 
         # TODO: 当前的状态可能是在拐弯，计算最佳路径的时候需要考虑进去
         # 需要移动
@@ -293,40 +275,53 @@ class WorldObj:
         self.route = param.generate_traj(delta_time * self.speed)
         self.route_index = 0
 
-    def generate_test_moves(self, in_safe_area: bool) -> list[WorldObj]:
+    def generate_test_moves(self, in_safe_area: bool = True) -> list[Waypoint]:
         """
-        生成测试的实体（在不同方向上假设实体飞到对应点上）
-        :param in_safe_area: 是否在安全位置（不能离战场中心远）
+        生成测试的实体的预期位置（在不同方向上假设实体飞到对应点上）
+        :param in_safe_area: 是否强制要求在安全位置（不能离战场中心远）
         :return:
         """
         # 测试的距离
-        dis = max(self.turn_radius * 10,
-                  self.speed * self.options.policy_interval * self.options.reach_location_threshold * 10)
-
-        objs: list[WorldObj] = []
-        for angle in range(0, 360, 15):
-            obj_tmp = self.__copy__()
-            target_point = (
-                self.x + math.cos(math.radians(angle)) * dis,
-                self.y + math.sin(math.radians(angle)) * dis,
-            )
-            if in_safe_area and cal_distance(target_point, (0, 0)) >= self.options.bullseye_safe_radius():
-                # 距离战场太远了
+        dis = max(self.turn_radius * 10, self.speed * 20)
+        wpt_list: list[Waypoint] = []
+        for angle in range(0, 360, 45):
+            target = self.waypoint.move(d=dis, angle=angle)
+            if in_safe_area and target.distance([0, 0]) >= self.options.bullseye_safe_radius():
+                # 距离战场中心太远了
                 continue
-            obj_tmp.move_toward_once(target=target_point, delta_time=dis / self.speed)
-            objs.append(obj_tmp)
-        return objs
+            new_wpt = self.waypoint.optimal_move_towards(
+                    target=target.location, d=dis,
+                    turn_radius=self.turn_radius)
+            wpt_list.append(new_wpt)
+        return wpt_list
 
     def is_reach_location(self, p: tuple[float, float]) -> bool:
-        return self.distance(
-                (p[0], p[1])) <= self.speed * self.options.policy_interval * self.options.reach_location_threshold
+        return self.distance(p) <= self.speed * self.options.reach_location_interval()
 
     def is_current_route_target(self, target: tuple[float, float]) -> bool:
         # 是否是当前路由的目标
         if self.route is None or len(self.route) == 0:
             return self.is_reach_location(target)
-        return cal_distance(self.route[-1, :2],
-                            target) <= self.speed * self.options.policy_interval * self.options.reach_location_threshold
+        return cal_distance(self.route[-1, :2], target) <= self.speed * self.options.reach_location_interval()
+
+    def predict_intercept_point(
+            self,
+            target_wpt: Waypoint,
+            target_speed: float) -> InterceptPointResult | None:
+        """
+        预测自己拦截敌方的目标点
+        :param target_wpt: 需要攻击的目标飞机的航迹点
+        :param target_speed: 需要攻击的目标飞机的速度
+        :return:
+        """
+        return predict_intercept_point(
+                target=target_wpt, target_speed=target_speed,
+                self_speed=self.speed,
+                calc_optimal_dis=lambda p: calc_optimal_path(
+                        start=self.waypoint,
+                        target=target_wpt,
+                        turn_radius=self.turn_radius
+                ).length)
 
 
 class Aircraft(WorldObj):
@@ -335,9 +330,7 @@ class Aircraft(WorldObj):
                  name: str,
                  options: Options,
                  color: str,
-                 x: float = 0,
-                 y: float = 0,
-                 psi: float | None = None,
+                 waypoint: Waypoint
                  ):
         super().__init__(
                 name=name,
@@ -346,10 +339,8 @@ class Aircraft(WorldObj):
                 color=color,
                 speed=options.aircraft_speed,
                 turn_radius=options.aircraft_min_turn_radius,
-                x=x,
-                y=y,
-                psi=psi,
-                collision_radius=options.aircraft_missile_count
+                waypoint=waypoint,
+                collision_radius=options.aircraft_collision_radius
         )
 
         self.missile_count = options.aircraft_missile_count  # 剩余的导弹数
@@ -380,15 +371,16 @@ class Aircraft(WorldObj):
                 sep=self.options.aircraft_position_memory_sep)
 
         self.fired_missiles = []  # 已经发射过的导弹
+        self.fired_missile_count = 0  # 发射过的导弹数量
+
+        # self.detected_enemy_count = 0  # 检查到的敌人的数量
 
     def __copy__(self):
         obj = Aircraft(
                 name=self.name,
                 options=self.options,
                 color=self.color,
-                x=self.x,
-                y=self.y,
-                psi=self.psi)
+                waypoint=self.waypoint.__copy__())
         obj.copy_from(self)
         return obj
 
@@ -419,6 +411,7 @@ class Aircraft(WorldObj):
         self.position_memory = obj.position_memory
 
         self.fired_missiles = obj.fired_missiles.copy()
+        self.fired_missile_count = obj.fired_missile_count
 
     def to_dict(self):
         return {
@@ -439,6 +432,7 @@ class Aircraft(WorldObj):
             'missile_evade_success_count': self.missile_evade_success_count,
             'return_home_count'          : self.return_home_count,
             'fired_missiles'             : self.fired_missiles,
+            'fired_missile_count'        : self.fired_missile_count,
             'collided_aircraft_count'    : self.collided_aircraft_count,
         }
 
@@ -453,15 +447,15 @@ class Aircraft(WorldObj):
 
         render_img(options=self.options,
                    screen=screen,
-                   position=self.location,
+                   position=self.waypoint.location,
                    img_path=f'aircraft_{self.color}.svg',
                    label=self.name,
-                   rotate=self.psi + 180)
+                   rotate=self.waypoint.psi + 180)
         if self.destroyed:
             render_img(options=self.options,
                        screen=screen,
                        img_path='explosion.svg',
-                       position=self.location)
+                       position=self.waypoint.location)
 
         # 画出导航轨迹
         render_route(options=self.options, screen=screen, route=self.route, color=self.color)
@@ -470,7 +464,7 @@ class Aircraft(WorldObj):
         render_circle(
                 options=self.options,
                 screen=screen,
-                position=self.location,
+                position=self.waypoint.location,
                 radius=self.radar_radius,
                 color='green'
         )
@@ -482,8 +476,8 @@ class Aircraft(WorldObj):
         assert area is not None, f'Cannot update'
 
         # 执行移动
-        if not self.follow_route(route=self.route):
-            self.move_forward(delta_time=delta_time)
+        if not self.update_follow_route(route=self.route):
+            self.update_move_forward(delta_time=delta_time)
 
         while not self.waiting_actions.empty():
             # 执行动作
@@ -503,11 +497,13 @@ class Aircraft(WorldObj):
             elif action_type == Actions.go_home:
                 self.go_home(delta_time=delta_time)
 
-        if self.options.destroy_on_boundary_exit and not self.is_in_game_range and self._last_is_game_range:
+        if self.options.destroy_on_boundary_exit and not self.is_in_game_range and self.last_is_in_game_range:
             self.destroy(reason=DestroyReason.OUT_OF_GAME_RANGE)
-        self._last_is_game_range = self.is_in_game_range
+
+        self.last_is_in_game_range = self.is_in_game_range
+
         # 记忆路径点
-        self.position_memory.add_position(self.location)
+        self.position_memory.add_position(self.waypoint.location)
 
         if self.fuel <= 0:
             return
@@ -521,11 +517,8 @@ class Aircraft(WorldObj):
             self.destroy(reason=DestroyReason.FUEL_DEPLETION)
             self.fuel_depletion_count += 1
 
-        if self.destroyed:
-            return
-
     def go_home(self, delta_time: float):
-        home_position = self.area.get_obj(self.options.red_home).location
+        home_position = self.area.get_home(self.color).waypoint.location
         self.go_to_location(target=home_position, delta_time=delta_time, force=True)
 
     def fire_missile(self, target: tuple[float, float]):
@@ -539,8 +532,10 @@ class Aircraft(WorldObj):
         """
         if self.missile_count <= 0:
             return
+
         if self.area.time - self.last_fire_missile_time < self.options.aircraft_fire_missile_interval:
             # 两次发射导弹时间间隔太短
+            print('两次发射导弹时间间隔太短: {}'.format(self.area.time - self.last_fire_missile_time))
             return
 
         self.last_fire_missile_time = self.area.time
@@ -551,7 +546,7 @@ class Aircraft(WorldObj):
         for enemy in self.area.objs.values():
             if isinstance(enemy, Aircraft) and enemy.color != self.color:
                 dis = enemy.distance(target)
-                if dis < min_dis and self.distance(enemy) < self.radar_radius:
+                if dis < min_dis and self.distance(enemy) <= self.radar_radius:
                     # 只能朝雷达范围内的飞机发射导弹
                     min_dis = dis
                     fire_enemy = enemy
@@ -559,42 +554,30 @@ class Aircraft(WorldObj):
         if fire_enemy is not None:
             self.missile_count -= 1
             missile = Missile(
-                    name=f'{self.name}_missile_{len(self.fired_missiles)}',
+                    name=f'{self.name}_missile_{self.fired_missile_count}',
                     source=self,
                     target=fire_enemy,
                     time=self.area.time)
             self.fired_missiles.append(missile.name)
-            self.area.add_obj(missile)
+            self.fired_missile_count = len(self.fired_missiles)
 
-    def predict_missile_intercept_point(self, target: Aircraft) -> InterceptPointResult | None:
+            self.area.add_obj(missile)
+            # print(f'发射了导弹: {missile.name}')
+
+    def predict_missile_intercept_point(self, target_wpt: Waypoint, target_speed: float) -> InterceptPointResult | None:
         """
         预测自己发射的导弹拦截对方的目标点
-        :param target:
+        :param target_wpt: 目标航迹点
+        :param target_speed: 目标的移动速度
         :return:
         """
-        return predict_intercept_point(
-                target=target.waypoint, target_speed=target.speed,
+        return optimal_predict_intercept_point(
+                self_wpt=self.waypoint,
                 self_speed=self.options.missile_speed,
-                calc_optimal_dis=lambda p: calc_optimal_path(
-                        start=self.waypoint,
-                        target=(target.x, target.y),
-                        turn_radius=self.options.missile_min_turn_radius
-                ).length)
-
-    def predict_aircraft_intercept_point(self, target: Aircraft) -> InterceptPointResult | None:
-        """
-        预测自己拦截敌方的目标点
-        :param target: 自己是飞机
-        :return:
-        """
-        return predict_intercept_point(
-                target=target.waypoint, target_speed=target.speed,
-                self_speed=self.speed,
-                calc_optimal_dis=lambda p: calc_optimal_path(
-                        start=self.waypoint,
-                        target=(target.x, target.y),
-                        turn_radius=self.turn_radius
-                ).length)
+                self_turn_radius=self.options.missile_min_turn_radius,
+                target_wpt=target_wpt,
+                target_speed=target_speed,
+        )
 
     def on_collision(self, obj: WorldObj):
         if self.destroyed:
@@ -662,11 +645,9 @@ class Missile(WorldObj):
                 color=source.color,
                 speed=source.options.missile_speed,
                 turn_radius=source.options.missile_min_turn_radius,
-                x=source.x,
-                y=source.y,
-                psi=source.psi
+                waypoint=source.waypoint,
+                collision_radius=source.options.missile_collision_radius
         )
-        self.collision_radius = self.options.missile_collision_radius
         self.turn_radius = self.options.missile_min_turn_radius
         self.fire_time = time  # 发射的时间
         self.source: Aircraft = source
@@ -695,10 +676,10 @@ class Missile(WorldObj):
         render_img(
                 options=self.options,
                 screen=screen,
-                position=self.location,
+                position=self.waypoint.location,
                 img_path=f'missile_{self.color}.svg',
                 # label=self.name,
-                rotate=self.psi + 90,
+                rotate=self.waypoint.psi + 90,
         )
 
         render_route(
@@ -736,15 +717,15 @@ class Missile(WorldObj):
             # 每隔1秒重新生成一次轨迹
             hit_param = calc_optimal_path(
                     start=self.waypoint,
-                    target=self.target.location,
+                    target=self.target.waypoint.location,
                     turn_radius=self.turn_radius
             )
             if hit_param.length != float('inf'):
                 self.route = hit_param.generate_traj(step=delta_time * self.speed)  # 生成轨迹
                 self.route_index = 0
 
-        if not self.follow_route(route=self.route):
-            self.move_forward(delta_time=delta_time)
+        if not self.update_follow_route(route=self.route):
+            self.update_move_forward(delta_time=delta_time)
 
     def on_collision(self, obj: WorldObj):
         if self.destroyed:
@@ -756,25 +737,10 @@ class Missile(WorldObj):
             self.destroy(reason=DestroyReason.COLLIDED_WITH_AIRCRAFT, source=obj.name)
             self.source.on_missile_hit_enemy(missile=self, enemy=obj)
 
-    def predict_aircraft_intercept_point(self, target: Aircraft) -> InterceptPointResult | None:
-        """
-        预测自己拦截敌方的目标点（自己是导弹）
-        :param target: 需要攻击的目标飞机
-        :return:
-        """
-        return predict_intercept_point(
-                target=target.waypoint, target_speed=target.speed,
-                self_speed=self.speed,
-                calc_optimal_dis=lambda p: calc_optimal_path(
-                        start=self.waypoint,
-                        target=target.location,
-                        turn_radius=self.turn_radius
-                ).length)
-
 
 class Bullseye(WorldObj):
     def __init__(self, options: Options):
-        super().__init__(type='bullseye', options=options, name='bullseye', color='white', x=0, y=0)
+        super().__init__(type='bullseye', options=options, name='bullseye', color='white', waypoint=Waypoint())
         self.radius = options.bullseye_safe_radius()  # 安全半径
 
     def render(self, screen):
@@ -782,32 +748,33 @@ class Bullseye(WorldObj):
         render_circle(options=self.options,
                       screen=screen,
                       radius=1,
-                      position=(self.x, self.y),
+                      position=self.waypoint.location,
                       color='black',
                       width=3)
 
         render_circle(options=self.options,
                       screen=screen,
                       radius=self.radius,
-                      position=(self.x, self.y),
+                      position=self.waypoint.location,
                       color='grey',
                       width=3)
 
 
 class Home(WorldObj):
-    def __init__(self, name: str, color: str, options: Options, x: float, y: float):
-        super().__init__(type='home', options=options, name=name, color=color, x=x, y=y)
+    def __init__(self, name: str, color: str, options: Options, waypoint: Waypoint):
+        super().__init__(type='home', options=options, name=name, color=color, waypoint=waypoint)
         self.radius = options.home_area_radius
         self.in_range_objs = { }
 
     def render(self, screen):
         render_img(options=self.options,
                    screen=screen,
-                   position=self.location,
+                   position=self.waypoint.location,
                    img_path=f'home_{self.color}.svg',
                    label=self.name)
         # 画出安全圆圈
-        render_circle(options=self.options, screen=screen, position=self.location, radius=self.radius, color='green')
+        render_circle(options=self.options, screen=screen, position=self.waypoint.location, radius=self.radius,
+                      color='green')
 
     def to_dict(self):
         return {

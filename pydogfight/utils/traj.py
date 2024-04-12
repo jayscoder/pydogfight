@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import time
 
-from pydogfight.core.models import Waypoint
+from pydogfight.utils.models import Waypoint
 import math
 import numpy as np
-from pydogfight.algos.geometry import *
+from pydogfight.utils.geometry import *
 from enum import Enum
 
 
@@ -59,7 +59,7 @@ class OptimalPathParam:
             x = self.turn_center[0] + (self.turn_radius * np.cos(init_theta + curr_turn_rad))
             y = self.turn_center[1] + (self.turn_radius * np.sin(init_theta + curr_turn_rad))
             psi = self.start.psi - np.rad2deg(curr_turn_rad)
-            return Waypoint(x=x, y=y, psi=psi)
+            return Waypoint.build(x=x, y=y, psi=psi)
 
         # 生成直线点
         if direct_points_count > 0:
@@ -68,7 +68,7 @@ class OptimalPathParam:
             x = self.turn_point[0] + curr_direct_length * np.cos(target_rad)
             y = self.turn_point[1] + curr_direct_length * np.sin(target_rad)
             psi = self.target.psi
-            return Waypoint(x=x, y=y, psi=psi)
+            return Waypoint.build(x=x, y=y, psi=psi)
 
         return None
 
@@ -124,9 +124,9 @@ def calc_optimal_path(
     :return:
     """
     if not isinstance(start, Waypoint):
-        start = Waypoint(x=start[0], y=start[1], psi=start[2])
+        start = Waypoint.build(x=start[0], y=start[1], psi=start[2])
     if not isinstance(target, Waypoint):
-        target = Waypoint(x=target[0], y=target[1], psi=0)
+        target = Waypoint.build(x=target[0], y=target[1], psi=0)
 
     # 将角度从度转换为弧度，且是与x轴正方向的夹角
     param = OptimalPathParam(start=start, target=target, turn_radius=turn_radius)
@@ -201,7 +201,7 @@ def test_bench():
     N = 10
     start_time = time.time()
     for i in range(N):
-        start = Waypoint(16045.390142119586, 14000.726933966973, 117)
+        start = Waypoint.build(16045.390142119586, 14000.726933966973, 117)
         target = (-12187, 7000)
         param = calc_optimal_path(start, target, 5000)
         param.generate_traj(step=1)
@@ -215,7 +215,7 @@ def test_main():
     import matplotlib.pyplot as plt
     # User's waypoints: [x, y, heading (degrees)]
 
-    start = Waypoint(0, 0, 90)
+    start = Waypoint.build(0, 0, 90)
     target = (100, 10)
     param = calc_optimal_path(start, target, 10)
     if param.length != float('inf'):

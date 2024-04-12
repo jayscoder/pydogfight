@@ -1,0 +1,7 @@
+<Root name="PursueEnemy">
+    <LagPursueNearestEnemy/>
+
+    <ConditionBranch>
+        <IsEnemyDetected/>
+    </ConditionBranch>
+</Root>

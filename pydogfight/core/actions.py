@@ -49,8 +49,8 @@ ACTIONS_MAP = {
     Actions.fire_missile.value  : Actions.fire_missile
 }
 
-if __name__ == '__main__':
-    print(Actions.extract_action_in_value_range(actions=None, value=-1, value_range=(-1, 1)))
-    allow_actions = 'keep, go_to_location, fire_missile'.split(',')
-    allow_actions = list(map(lambda x: ACTIONS_MAP[x.strip().lower()], allow_actions))
-    print(allow_actions)
+# if __name__ == '__main__':
+#     print(Actions.extract_action_in_value_range(actions=None, value=-1, value_range=(-1, 1)))
+#     allow_actions = 'keep, go_to_location, fire_missile'.split(',')
+#     allow_actions = list(map(lambda x: ACTIONS_MAP[x.strip().lower()], allow_actions))
+#     print(allow_actions)

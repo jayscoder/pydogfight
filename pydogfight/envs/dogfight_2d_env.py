@@ -14,6 +14,7 @@ from pydogfight.core.actions import Actions
 import time
 import threading
 import asyncio
+from pydogfight.utils.obs_utils import ObsUtils
 
 
 class Dogfight2dEnv(gym.Env):
@@ -29,6 +30,8 @@ class Dogfight2dEnv(gym.Env):
         options.validate()
         self.render_mode = render_mode
         self.options = options
+        self.battle_area = BattleArea(options=options, render_mode=self.render_mode)
+        self.obs_utils = ObsUtils(battle_area=self.battle_area)
 
         # (action_type, x, y)
         self.action_space_low = np.array([0, -options.game_size[1] / 2, -options.game_size[1] / 2])
@@ -49,25 +52,19 @@ class Dogfight2dEnv(gym.Env):
         )
 
         # type, color, destroyed, x, y, psi, speed, missile_count, fuel, radar_radius
-        self.observation_space = gym.spaces.Box(
-                low=-options.game_size[0] / 2,
-                high=options.game_size[0] / 2,
-                shape=(len(options.agents()) + 3 + 5, 11),  # 最多同时记录所有飞机、基地、牛眼和5个导弹的信息
-                dtype=np.float32)
-
+        # self.observation_space = gym.spaces.Box(
+        #         low=-options.game_size[0] / 2,
+        #         high=options.game_size[0] / 2,
+        #         shape=(len(options.agents()) + 3 + 7, 11),  # 最多同时记录所有飞机、基地、牛眼和7个导弹的信息
+        #         dtype=np.float32)
+        self.observation_space = self.obs_utils.observation_space
         # type, is_enemy, destroyed, r, theta, psi, speed, missile_count, fuel, radar_radius
-        self.agent_observation_space = gym.spaces.Box(
-                low=-10,
-                high=10,
-                shape=(len(options.agents()) + 3 + 5, 11),  # 最多同时记录所有飞机、基地、牛眼和5个导弹的信息
-                dtype=np.float32)
+        self.agent_observation_space = self.obs_utils.observation_space
 
         self.screen = None
         # self.clock # pygame.time.Clock
         self.isopen = True
         self.paused = False  # 是否暂停
-
-        self.battle_area = BattleArea(options=options, render_mode=self.render_mode)
 
         self.last_render_time = 0
         self.last_update_time = 0
@@ -84,12 +81,6 @@ class Dogfight2dEnv(gym.Env):
             'terminated_count': 0,
         }  # 游戏对战累积数据，在reset的时候更新
         # TODO 敌人的heatmap
-
-        self.update_event = { }
-        for agent_name in self.options.agents():
-            self.update_event[agent_name] = threading.Event()
-
-        self.agent_memory = { }
 
         # 回调函数
         self.before_update_handlers: list[typing.Callable[['Dogfight2dEnv'], None]] = []
@@ -148,9 +139,6 @@ class Dogfight2dEnv(gym.Env):
 
         self.battle_area.reset()
 
-        for agent_name in self.update_event:
-            self.update_event[agent_name].clear()  # 重置更新事件
-
         if self.render_mode == "human":
             import pygame
             if self.screen is None:
@@ -171,64 +159,10 @@ class Dogfight2dEnv(gym.Env):
         return self.gen_obs(), self.gen_info()
 
     def gen_obs(self):
-        obs = np.zeros(self.observation_space.shape)
-        i = 0
-        # 飞机
-        for obj in self.battle_area.agents:
-            obs[i, :] = [
-                OBJECT_TO_IDX[obj.type],  # 0
-                COLOR_TO_IDX[obj.color],  # 1
-                int(obj.destroyed),  # 2
-                obj.x,  # 3
-                obj.y,  # 4
-                obj.psi,  # 5
-                obj.speed,  # 6
-                obj.turn_radius,  # 7
-                obj.fuel,  # 8
-                obj.radar_radius,  # 9
-                obj.missile_count,  # 10
-            ]
-            i += 1
-
-        # 基地
-        for obj in self.battle_area.homes:
-            obs[i, :] = [
-                OBJECT_TO_IDX[obj.type],  # 0
-                COLOR_TO_IDX[obj.color],  # 1
-                int(obj.destroyed),  # 2
-                obj.x,  # 3
-                obj.y,  # 4
-                0,  # 5
-                0,  # 6
-                0,  # 7
-                0,  # 8
-                0,  # 9
-                0,  # 10
-            ]
-            i += 1
-
-        # 导弹
-        for obj in self.battle_area.missiles:
-            if obj.destroyed:
-                continue
-            if i >= len(obs):
-                break
-            obs[i, :] = [
-                OBJECT_TO_IDX[obj.type],  # 0
-                COLOR_TO_IDX[obj.color],  # 1
-                int(obj.destroyed),  # 2
-                obj.x,  # 3
-                obj.y,  # 4
-                obj.psi,  # 5
-                obj.speed,  # 6
-                obj.turn_radius,  # 7
-                obj.fuel,  # 8
-                0,  # 9
-                0,  # 10
-            ]
-            i += 1
-
-        return obs
+        if self.options.self_side == 'red':
+            return self.obs_utils.gen_obs(agent_name=self.options.red_agents[0])
+        else:
+            return self.obs_utils.gen_obs(agent_name=self.options.blue_agents[0])
 
     def gen_agent_obs(self, agent_name: str):
         """
@@ -237,137 +171,7 @@ class Dogfight2dEnv(gym.Env):
         :param agent_name:
         :return:
         """
-        if agent_name not in self.agent_memory:
-            self.agent_memory[agent_name] = { }
-
-        agent = self.get_agent(name=agent_name)
-        obs = np.zeros(self.observation_space.shape)
-
-        obs[0] = [
-            OBJECT_TO_IDX[agent.type],  # 0
-            0,  # is_enemy 1
-            int(agent.destroyed),  # 2
-            0,  # r 3
-            0,  # theta 4
-            0,  # psi 5
-            agent.speed / agent.radar_radius,  # 6
-            agent.turn_radius / agent.radar_radius,  # 7
-            agent.fuel / self.options.aircraft_fuel_capacity,  # 8
-            agent.radar_radius / agent.radar_radius,  # 9
-            agent.missile_count,  # 10
-        ]
-        i = 1
-        # 隐藏掉雷达探测范围以外的obs，并且移除一些无法获取的信息
-        # 飞机
-        for obj in self.battle_area.agents:
-            if obj.name == agent_name:
-                continue
-            if self.options.obs_ignore_destroyed and obj.destroyed:
-                continue
-
-            def _obj_obs(obj: Aircraft, is_memory: bool):
-                rel_polar_wpt = agent.waypoint.relative_polar_waypoint(other=obj.waypoint)
-                obj_obs = [
-                    OBJECT_TO_IDX[obj.type],  # 0
-                    int(obj.color != agent.color),  # 1
-                    -1 if is_memory else 0,  # is_destroyed 2
-                    rel_polar_wpt.r,  # r 3
-                    rel_polar_wpt.theta,  # theta 4
-                    rel_polar_wpt.phi,  # psi 5
-                    obj.speed / agent.radar_radius,  # 6
-                    obj.turn_radius / agent.radar_radius,  # 7
-                    obj.fuel / self.options.aircraft_fuel_capacity,  # 8
-                    obj.radar_radius / agent.radar_radius,  # 9
-                    obj.missile_count,  # 10
-                ]
-                if obj.color != agent.color:
-                    if self.options.obs_ignore_enemy_fuel:
-                        # 不知道敌机的油量和导弹数
-                        obj_obs[8] = -1
-                    if self.options.obs_ignore_enemy_missile_count:
-                        # 不知道敌机的剩余导弹数
-                        obj_obs[10] = -1
-                return obj_obs
-
-            if not self.options.obs_ignore_radar and agent.distance(obj) > agent.radar_radius:
-                # 在自己的雷达范围之外
-
-                if self.options.obs_allow_memory:
-                    # 允许使用记忆
-                    if obj.name in self.agent_memory[agent_name]:
-                        obj = self.agent_memory[agent_name][obj.name]
-                        obs[i, :] = _obj_obs(obj, is_memory=True)
-
-                continue
-            obs[i, :] = _obj_obs(obj, is_memory=False)
-            self.agent_memory[agent_name][obj.name] = agent.__copy__()
-            i += 1
-
-        # 基地默认是知道的（不考虑雷达）
-        for obj in self.battle_area.homes:
-            rel_polar_wpt = agent.waypoint.relative_polar_waypoint(other=obj.waypoint)
-            obs[i, :] = [
-                OBJECT_TO_IDX[obj.type],  # 0
-                int(obj.color != agent.color),  # 1
-                int(obj.destroyed),  # 2
-                rel_polar_wpt.r,  # 3
-                rel_polar_wpt.theta,  # 4
-                0,  # 5
-                0,  # 6
-                0,  # 7
-                0,  # 8
-                0,  # 9
-                0,  # 10
-            ]
-            i += 1
-
-        # 牛眼
-        bullseye = self.battle_area.bullseye
-        rel_polar_wpt = agent.waypoint.relative_polar_waypoint(other=bullseye.waypoint)
-        obs[i, :] = [
-            OBJECT_TO_IDX[bullseye.type],  # 0
-            0,  # 1
-            int(bullseye.destroyed),  # 2
-            rel_polar_wpt.r,  # 3
-            rel_polar_wpt.theta,  # 4
-            0,  # 5
-            0,  # 6
-            0,  # 7
-            0,  # 8
-            0,  # 9
-            0,  # 10
-        ]
-        i += 1
-
-        # 导弹
-        for obj in self.battle_area.missiles:
-            if obj.destroyed:
-                continue
-            if i >= len(obs):
-                break
-            rel_polar_wpt = agent.waypoint.relative_polar_waypoint(other=obj.waypoint)
-            obs[i, :] = [
-                OBJECT_TO_IDX[obj.type],  # 0
-                int(obj.color != agent.color),  # 1
-                int(obj.destroyed),  # 2
-                rel_polar_wpt.r,  # 3
-                rel_polar_wpt.theta,  # 4
-                rel_polar_wpt.phi,  # 5
-                obj.speed / agent.radar_radius,  # 6
-                obj.turn_radius / agent.radar_radius,  # 7
-                obj.fuel / self.options.missile_fuel_capacity,  # 8
-                0,  # 9
-                0,  # 10
-            ]
-
-            if obj.color != agent.color:
-                if self.options.obs_ignore_enemy_missile_fuel:
-                    # 不知道敌方导弹的剩余油量
-                    obs[i, 8] = -1
-
-            i += 1
-
-        return obs
+        return self.obs_utils.gen_obs(agent_name=agent_name)
 
     def gen_info(self) -> dict:
         info = {
@@ -395,32 +199,21 @@ class Dogfight2dEnv(gym.Env):
     def update(self):
         for handler in self.before_update_handlers:
             handler(self)
-
-        assert self.options.delta_time > 0
-        assert self.options.update_interval >= self.options.delta_time
-        for _ in range(int(self.options.update_interval / self.options.delta_time)):
+        next_time = self.battle_area.time + self.options.update_interval
+        while self.battle_area.time < next_time:
             self.battle_area.update()
-
         if self.render_mode == 'human':
             self.last_update_time = time.time()
-
-        for agent_name in self.update_event:
-            self.update_event[agent_name].set()  # 设置事件，表示更新完成
-
         for handler in self.after_update_handlers:
             handler(self)
 
-    async def agent_step(self, agent_name: str, action: list | np.ndarray | tuple[float, float, float]):
-        old_info = self.gen_info()
-        agent = self.get_agent(agent_name)
-        agent.put_action(action)
-        self.update_event[agent_name].clear()  # 重置事件
-        # 等待环境更新完成
-        while not self.update_event[agent_name].is_set():
-            pass
-        info = self.gen_info()
-        reward = self.gen_reward(color=agent.color, previous=old_info)
-        return self.gen_obs(), reward, info['terminated'], info['truncated'], info
+    # async def agent_step(self, agent_name: str, action: list | np.ndarray | tuple[float, float, float]):
+    #     old_info = self.gen_info()
+    #     agent = self.get_agent(agent_name)
+    #     agent.put_action(action)
+    #     info = self.gen_info()
+    #     reward = self.gen_reward(color=agent.color, previous=old_info)
+    #     return self.gen_obs(), reward, info['terminated'], info['truncated'], info
 
     def step(
             self, action: ActType

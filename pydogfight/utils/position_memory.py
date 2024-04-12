@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from pydogfight.core.models import BoundingBox
+from pydogfight.utils.models import BoundingBox
 import numpy as np
 
 

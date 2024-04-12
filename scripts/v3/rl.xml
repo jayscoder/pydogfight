@@ -1,0 +1,43 @@
+<Root name="PPO">
+    <include path="v3/subtree/global_reward.xml"/>
+
+    <Selector>
+        <ReactiveSequence>
+            <Inverter>
+                <IsInSafeArea/>
+            </Inverter>
+            <GoToSafeArea/>
+        </ReactiveSequence>
+
+        <ReactiveSequence>
+            <IsInSafeArea/>
+            <Inverter>
+                <IsEnemyDetected/>
+            </Inverter>
+            <Inverter>
+                <IsMissileThreatDetected/>
+            </Inverter>
+            <CheatGoToNearestEnemy/>
+            <!--            <include path="subtree/random_grid_explore.xml"/>-->
+        </ReactiveSequence>
+
+        <!--这个时候一定已经发现了敌人-->
+        <ReactiveRLSwitcher
+                algo="{{rl_algo}}"
+                reward_scope="control"
+                path="{{models_dir}}/{{agent_name}}/ReactivePPOSwitcher"
+                tensorboard_log="{{output_dir}}/{{runtime}}/ReactivePPOSwitcher"
+                log_interval="30"
+                save_interval="30"
+        >
+
+            <include path="v3/subtree/fire_missile.xml"/>
+            <include path="v3/subtree/evade_missile.xml"/>
+            <!--追逐敌机-->
+            <include path="v3/subtree/pure_pursue_enemy.xml"/>
+            <include path="v3/subtree/lag_pursue_enemy.xml"/>
+            <include path="v3/subtree/lead_pursue_enemy.xml"/>
+            <include path="v3/subtree/f_pole_pursue_enemy.xml"/>
+        </ReactiveRLSwitcher>
+    </Selector>
+</Root>

@@ -76,7 +76,7 @@ def main():
             config['options']['train'] = args.train
 
         if args.indestructible:
-            config['options']['indestructible'] = args
+            config['options']['indestructible'] = args.indestructible
 
         if args.simulation_rate:
             config['options']['simulation_rate'] = args.simulation_rate
@@ -94,11 +94,11 @@ def main():
             config['policy']['blue'] = args.blue
 
         if 'options' in config:
-            options.load_dict(config['options'])
+            options.load_dict(config['options'] or { })
         if 'policy' in config:
-            policy.update(config['policy'])
+            policy.update(config['policy'] or { })
         if 'context' in config:
-            context.update(config['context'])
+            context.update(config['context'] or { })
 
         start_time = time.time()
         print(f'====== 开始执行第{i}轮配置 ======')

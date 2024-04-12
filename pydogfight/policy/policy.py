@@ -5,6 +5,7 @@ from typing import List
 from pydogfight.envs import Dogfight2dEnv
 from queue import Queue
 from pydogfight.core.world_obj import Aircraft
+import threading
 
 
 class Policy(ABC):
@@ -23,12 +24,11 @@ class Policy(ABC):
 
 class AgentPolicy(Policy, ABC):
 
-    def __init__(self, env: Dogfight2dEnv, agent_name: str, update_interval: float = 0):
+    def __init__(self, env: Dogfight2dEnv, agent_name: str):
         super().__init__()
         self.env = env
         self.options = env.options
-        self.update_interval = update_interval
-        self.last_time = 0
+        self.last_time = -float('inf')
         self.actions = Queue()
         self._has_setup = False
         self.agent_name = agent_name
@@ -41,7 +41,7 @@ class AgentPolicy(Policy, ABC):
         if not self._has_setup:
             self._has_setup = True
             self._setup()
-        self.last_time = 0
+        self.last_time = -float('inf')
         while not self.actions.empty():
             # 清空actions
             self.actions.get_nowait()
@@ -63,11 +63,7 @@ class AgentPolicy(Policy, ABC):
 
     def take_action(self):
         # 根据当前状态选择动作，obs的第一个是自己，确保策略更新满足时间间隔
-        delta_time = self.env.time - self.last_time
-        if self.update_interval == 0 and delta_time == 0:
-            return
-        if self.update_interval > 0 and delta_time < self.update_interval:
-            return
+        delta_time = round(self.env.time - self.last_time, 3)
         self.last_time = self.env.time
         self.execute(observation=self.env.gen_agent_obs(agent_name=self.agent_name), delta_time=delta_time)
 
@@ -83,7 +79,7 @@ class AgentPolicy(Policy, ABC):
 
         """
         pass
-    
+
 
 class MultiAgentPolicy(Policy):
     def __init__(self, policies: list[Policy]):
@@ -98,5 +94,18 @@ class MultiAgentPolicy(Policy):
             policy.put_action()
 
     def take_action(self):
+        # 创建线程列表
+        # threads = []
+        #
+        # # 为每个策略创建一个线程
+        # for policy in self.policies:
+        #     thread = threading.Thread(target=lambda : policy.take_action())
+        #     threads.append(thread)
+        #     thread.start()
+        #
+        # # 等待所有线程完成
+        # for thread in threads:
+        #     thread.join()
+
         for policy in self.policies:
             policy.take_action()

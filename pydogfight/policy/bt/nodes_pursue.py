@@ -1,22 +1,8 @@
 from __future__ import annotations
 
-import json
-import typing
-
-from pydogfight.core.models import BoundingBox
-
-from pydogfight.policy.bt.nodes import *
-from pydogfight.core.world_obj import Aircraft, Missile
-from pydogfight.algos.traj import calc_optimal_path
-from pydogfight.algos.intercept import predict_intercept_point
-from pydogfight.core.actions import Actions
-import pybts
-from pybts import Status
-import os
-
+from pydogfight.utils.intercept import *
+from pydogfight.utils.traj import calc_optimal_path
 from pydogfight.policy.bt.common import *
-from pydogfight.utils.common import *
-from abc import ABC, abstractmethod
 
 
 # class BasePursueEnemyNode(BTPolicyNode):
@@ -84,14 +70,22 @@ class PursueNearestEnemy(BTPolicyNode):
             go_to_location = (enemy.x, enemy.y)
             self.put_update_message('超出雷达探测范围了，则朝着敌机的位置飞')
         else:
-            test_agents = self.agent.generate_test_moves(
+            test_waypoints = self.agent.generate_test_moves(
                     in_safe_area=True
             )
-            self.put_update_message(f'test_agents={len(test_agents)} ')
-            for agent_tmp in test_agents:
-                assert isinstance(agent_tmp, Aircraft)
-                hit_point = agent_tmp.predict_missile_intercept_point(target=enemy)  # 我方命中敌机
-                under_hit_point = enemy.predict_missile_intercept_point(target=agent_tmp)  # 敌机命中我方
+            for waypoint in test_waypoints:
+                hit_point = optimal_predict_intercept_point(
+                        self_speed=self.env.options.missile_speed,
+                        self_wpt=waypoint,
+                        self_turn_radius=self.env.options.missile_min_turn_radius,
+                        target_wpt=enemy.waypoint,
+                        target_speed=enemy.speed,
+                )  # 我方的导弹命中敌机
+
+                under_hit_point = enemy.predict_missile_intercept_point(
+                        target_wpt=waypoint,
+                        target_speed=enemy.speed)  # 敌机的导弹命中我方
+
                 if hit_point.time == float('inf'):
                     hit_point.time = 10000
                 if under_hit_point.time == float('inf'):
@@ -99,7 +93,7 @@ class PursueNearestEnemy(BTPolicyNode):
                 time_tmp = hit_point.time * self.attack_ratio - under_hit_point.time * self.evade_ratio  # 让我方命中敌机的时间尽可能小，敌方命中我方的时间尽可能大
                 if time_tmp < min_time:
                     min_time = time_tmp
-                    go_to_location = agent_tmp.location
+                    go_to_location = waypoint.location
 
         if go_to_location is None:
             yield Status.FAILURE
@@ -113,6 +107,10 @@ class AwayFromNearestEnemy(BTPolicyNode):
     远离最近的敌机
     """
 
+    def __init__(self, distance: float | str = 2000, **kwargs):
+        super().__init__(**kwargs)
+        self.distance = distance
+
     def updater(self) -> typing.Iterator[Status]:
         enemy = self.env.battle_area.find_nearest_enemy(
                 agent_name=self.agent_name,
@@ -122,11 +120,9 @@ class AwayFromNearestEnemy(BTPolicyNode):
             self.put_update_message('No nearest enemy')
             yield Status.FAILURE
             return
-
-        agent = self.agent
-        vec = (agent.x - enemy.x, agent.y - enemy.y)
-        target = (agent.x + vec[0], agent.y + vec[1])
-        yield from go_to_location_updater(self, target)
+        move_d = self.converter.float(self.distance)
+        new_wpt = self.agent.waypoint.move_towards(target=enemy.waypoint.location, d=-move_d)  # 负数表示远离
+        yield from go_to_location_updater(self, location=new_wpt.location)
 
 
 class GoToNearestEnemy(BTPolicyNode):
@@ -135,9 +131,13 @@ class GoToNearestEnemy(BTPolicyNode):
     别名：PurePursueNearestEnemy
     """
 
+    def __init__(self, distance: float | str = 2000, **kwargs):
+        super().__init__(**kwargs)
+        self.distance = distance
+
     @classmethod
     def calculate_location(cls, enemy: Aircraft):
-        return enemy.location
+        return enemy.waypoint.location
 
     def updater(self) -> typing.Iterator[Status]:
         enemy = self.env.battle_area.find_nearest_enemy(
@@ -148,8 +148,9 @@ class GoToNearestEnemy(BTPolicyNode):
             self.put_update_message('No nearest enemy')
             yield Status.FAILURE
             return
-
-        yield from go_to_location_updater(self, self.calculate_location(enemy))
+        move_d = self.converter.float(self.distance)
+        new_wpt = self.agent.waypoint.move_towards(target=enemy.waypoint.location, d=move_d, allow_over=False)
+        yield from go_to_location_updater(self, location=new_wpt.location)
 
 
 class PurePursueNearestEnemy(GoToNearestEnemy):
@@ -190,7 +191,7 @@ class FPolePursueNearestEnemy(BTPolicyNode):
 
         target_wpt = agent.waypoint.move(agent.speed * 10, angle=intercept_heading)
 
-        return target_wpt.to_location()
+        return target_wpt.location
 
     def updater(self) -> typing.Iterator[Status]:
         enemy = self.env.battle_area.find_nearest_enemy(
@@ -232,13 +233,9 @@ class LeadPursueNearestEnemy(BTPolicyNode):
     @classmethod
     def calculate_location(cls, agent: Aircraft, enemy: Aircraft, predict_time: float = 15) -> tuple[float, float]:
         # 计算拦截目标点
-        intercept_point = predict_intercept_point(
-                target=enemy.waypoint,
-                target_speed=enemy.speed,
-                self_speed=agent.speed,
-                calc_optimal_dis=agent.calc_optimal_path(
-                        target=enemy.location,
-                        turn_radius=agent.turn_radius).length,
+        intercept_point = agent.predict_intercept_point(
+                target_wpt=enemy.waypoint,
+                target_speed=enemy.speed
         )
 
         if intercept_point is not None:
@@ -246,7 +243,7 @@ class LeadPursueNearestEnemy(BTPolicyNode):
         else:
             # 朝着敌机15s后预测的位置飞
             target_wpt = enemy.waypoint.move(d=enemy.speed * predict_time)
-            return target_wpt.to_location()
+            return target_wpt.location
 
     def updater(self) -> typing.Iterator[Status]:
         enemy = self.env.battle_area.find_nearest_enemy(
@@ -292,7 +289,7 @@ class LagPursueNearestEnemy(BTPolicyNode):
         distance = agent.distance(enemy)
         use_lag_time = max(distance / agent.speed, lag_time)
         target_point = enemy.waypoint.move(-agent.speed * use_lag_time)  # 飞到敌机之前的位置
-        return target_point.to_location()
+        return target_point.location
 
     def updater(self) -> typing.Iterator[Status]:
         enemy = self.env.battle_area.find_nearest_enemy(
@@ -372,3 +369,17 @@ class AutoPursueNearestEnemy(BTPolicyNode):
                 enemy=enemy,
                 agent=self.agent
         ))
+
+
+class CheatGoToNearestEnemy(BTPolicyNode):
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def updater(self) -> typing.Iterator[Status]:
+        enemy = self.env.battle_area.detect_aircraft(agent_name=self.agent_name, ignore_radar=True, only_enemy=True)
+        if len(enemy) == 0:
+            yield Status.FAILURE
+            return
+
+        yield from go_to_location_updater(self, location=enemy[0].waypoint.location, keep_time=5)

@@ -1,8 +1,9 @@
-from . import rl
 from .nodes_conditions import *
 from .nodes_actions import *
-from .nodes import *
-from .rl import *
+from .nodes_explore import *
+from .nodes_fire import *
+from .nodes_evade import *
+from .base_class import BTPolicy, BTPolicyNode
+from .nodes_rl import *
 from .builder import *
-from .bt_policy import BTPolicy
 from .tree import DogfightTree

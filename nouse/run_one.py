@@ -37,9 +37,7 @@ parser.add_argument('--track', type=int, default=-1, help='每隔几秒用pybts 
 
 parser.add_argument('--delta-time', type=float, default=options.delta_time, help='options.delta_time')
 parser.add_argument('--update-interval', type=float, default=options.update_interval,
-                    help='options.update_interval 每轮env更新的时间间隔（在一轮更新中会进行多次更新，更新次数=update_interval/delta_time）')
-parser.add_argument('--policy-interval', type=float, default=options.policy_interval,
-                    help='options.policy_interval 每次策略的处理间隔时长，0代表每次更新后都提供策略')
+                    help='options.update_interval 每轮策略更新的时间间隔（在一轮更新中会进行多次更新，更新次数=update_interval/delta_time）')
 parser.add_argument('--num-episodes', type=int, default=1000, help='对战场次')
 parser.add_argument('--indestructible', action='store_true',
                     help='战机是否开启无敌模式，在做强化学习训练的时候就不能靠战机是否被摧毁来获得奖励，需要靠导弹命中敌机来获得奖励')
@@ -54,11 +52,11 @@ parser.add_argument('--models-dir', type=str, default='models',
 
 args = parser.parse_args()
 
+
 def main():
     options.train = args.train
     options.delta_time = args.delta_time
     options.update_interval = args.update_interval
-    options.policy_interval = args.policy_interval
     options.indestructible = args.indestructible
     options.max_duration = args.max_duration
     options.simulation_rate = args.simulation_rate

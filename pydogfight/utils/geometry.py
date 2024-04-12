@@ -160,7 +160,7 @@ def clockwise_rotation_rad(clockwise_type, v1, v2):
     :return:
     """
     rad = rad_between_vectors(v1, v2)
-    assert math.pi > rad >= 0
+    assert math.pi >= rad >= 0, f"error {rad}"
     # 计算旋转的方向
     if sign(cross(v1, v2)) != clockwise_type:
         rad = math.pi * 2 - rad

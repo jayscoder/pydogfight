@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pydogfight import Dogfight2dEnv, Options
-from pydogfight.policy import Policy, ManualPolicy, MultiAgentPolicy, BTPolicy
+from pydogfight.policy import Policy, ManualPolicy, MultiAgentPolicy, BTPolicy, DogfightTree
 from tqdm import tqdm
 import pybts
 import pybts.rl
@@ -64,7 +64,7 @@ class BTManager:
             context: dict = None
     ):
         env = self.env
-        tree = pydogfight.policy.DogfightTree(
+        tree = DogfightTree(
                 env=env,
                 agent_name=agent_name,
                 root=self.builder.build_from_file(filepath),
@@ -76,16 +76,13 @@ class BTManager:
                     'runtime'   : self.runtime,  # 执行时间
                     **(context or { })
                 }
-        )
+        ).setup()
 
         policy = BTPolicy(
                 env=env,
                 tree=tree,
                 agent_name=agent_name,
-                update_interval=env.options.policy_interval
         )
-
-        tree.setup(builder=self.builder)
 
         self.write(f'{agent_name}.xml', '\n'.join([f'<!--{filepath}-->', self.bt_to_xml(tree.root)]))
         render_node(tree.root, os.path.join(self.folder_runtime, f'{agent_name}.svg'))
@@ -129,13 +126,16 @@ class BTManager:
 
     def update_game_info(self):
         for agent in self.env.battle_area.agents:
-            self.env.game_info[f'{agent.name}_destroyed'] = agent.destroyed_count
-            self.env.game_info[f'{agent.name}_missile_hit_self'] = agent.missile_hit_self_count
-            self.env.game_info[f'{agent.name}_missile_hit_enemy'] = agent.missile_hit_enemy_count
-            self.env.game_info[f'{agent.name}_missile_missile_miss'] = agent.missile_miss_count
-            self.env.game_info[f'{agent.name}_return_home'] = agent.return_home_count
+            self.env.game_info[f'{agent.name}_destroyed_count'] = agent.destroyed_count
+            self.env.game_info[f'{agent.name}_missile_hit_self_count'] = agent.missile_hit_self_count
+            self.env.game_info[f'{agent.name}_missile_hit_enemy_count'] = agent.missile_hit_enemy_count
+            self.env.game_info[f'{agent.name}_missile_missile_miss_count'] = agent.missile_miss_count
+            self.env.game_info[f'{agent.name}_return_home_count'] = agent.return_home_count
             self.env.game_info[f'{agent.name}_fuel'] = agent.fuel
             self.env.game_info[f'{agent.name}_missile_count'] = agent.missile_count
+            self.env.game_info[f'{agent.name}_missile_depletion_count'] = agent.missile_depletion_count
+            self.env.game_info[f'{agent.name}_fired_missile_count'] = agent.fired_missile_count
+            self.env.game_info[f'{agent.name}_collided_aircraft_count'] = agent.collided_aircraft_count
 
             for policy in self.policies:
                 if isinstance(policy, BTPolicy) and policy.agent_name == agent.name:
@@ -164,18 +164,16 @@ class BTManager:
             env.reset()
 
             while env.isopen:
-                policy.take_action()
-                policy.put_action()
-                info = env.gen_info()
-
-                if info['terminated'] or info['truncated']:
-                    # 在terminated之后还要再触发一次行为树，不然没办法将最终奖励给到行为树里的节点
-                    # 所以这个判断在环境update之前，不能放在环境update之后
-                    self.update_render_info()
-                    break
-
                 if env.should_update():
+                    policy.take_action()
+                    policy.put_action()
                     env.update()
+                    info = env.gen_info()
+                    if info['terminated'] or info['truncated']:
+                        # 在terminated之后还要再触发一次行为树，不然没办法将最终奖励给到行为树里的节点
+                        self.update_render_info()
+                        policy.take_action()
+                        break
 
                 if env.should_render():
                     self.update_render_info()
