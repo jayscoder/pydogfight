@@ -66,7 +66,10 @@ class RLNode(BTPolicyNode, RLBaseNode, ABC):
         }
 
     def rl_policy(self) -> Union[str, typing.Type[ActorCriticPolicy]]:
-        return ActorCriticPolicy
+        if 'PPO' in self.algo:
+            return ActorCriticPolicy
+        else:
+            return 'MlpPolicy'
 
     def rl_model_args(self) -> dict:
         return { }
