@@ -6,6 +6,7 @@ from queue import Queue
 import numpy as np
 import math
 import numpy as np
+import torch
 
 
 def cal_distance(a: Tuple[float, float] | np.ndarray | list[float],
@@ -143,3 +144,21 @@ def will_collide(a1: np.ndarray, a2: np.ndarray, ra: float, b1: np.ndarray, b2: 
         min_distance_squared = np.dot(closest_point, closest_point)
 
     return min_distance_squared <= collision_distance ** 2
+
+
+def get_torch_device(device: str = 'auto') -> str:
+    if device == 'cpu':
+        return device
+    if device == 'auto':
+        if torch.cuda.is_available():
+            return 'cuda:0'
+        return 'cpu'
+
+    if device.startswith('cuda'):
+        if torch.cuda.is_available():
+            return device
+        return 'cpu'
+
+    if torch.backends.mps.is_available():
+        return 'mps'
+    return 'cpu'
