@@ -17,6 +17,7 @@ import yaml
 from collections import defaultdict
 from pydogfight.utils import get_torch_device
 
+
 def now_str():
     return datetime.now().strftime("%m%d-%H-%M-%S")
 
@@ -122,6 +123,8 @@ class BTManager:
                     filepath=config['policy'].get(agent_name, config['policy'].get(agent_color)),
                     context=config.get('context', { })
             )
+
+        self.result_recorder = ResultRecorder(env=self.env, policies=self.policies)
 
     def add_bt_policy(
             self,
@@ -248,6 +251,8 @@ class BTManager:
                 'game_info': env.game_info,
             })
 
+            self.result_recorder.record()
+
             pbar.update(1)
             pbar.set_postfix(
                     {
@@ -309,6 +314,97 @@ def create_manager(config: dict):
             builder=builder)
 
     return manager
+
+
+class ResultRecorder:
+    """
+    对战结果记录
+    """
+
+    def __init__(self, env: Dogfight2dEnv, policies: list[Policy], recent: int = 30):
+        self.env = env
+        self.policies = policies
+        self.results = []
+
+        self.recent_stats = { }
+        self.recent = recent
+
+    def record(self, env: Dogfight2dEnv):
+        # 记录对战结果
+        info = env.gen_info()
+        game_info = env.game_info
+
+        self.results.append(
+                {
+                    **info,
+                    **game_info
+                }
+        )
+        self.recent_stats = self.compute_recent_stats(recent=self.recent)
+
+    def compute_recent_stats(self, recent: int = 30) -> dict:
+        """计算最近N场对局的信息"""
+        recent_results = self.results[-recent:]
+        stats = {
+            'recent_episodes'            : len(recent_results),
+            'recent_red_wins'            : 0,
+            'recent_blue_wins'           : 0,
+            'recent_draws'               : 0,
+            'recent_red_win_rate'        : 0,
+            'recent_blue_win_rate'       : 0,
+            'recent_draw_rate'           : 0,
+            'recent_reward_red_wins'     : 0,  # 红方获得奖励更高的次数
+            'recent_reward_blue_wins'    : 0,  # 蓝方获得奖励更高的次数
+            'recent_reward_draws'        : 0,  # 奖励平局的次数
+            'recent_reward_red_win_rate' : 0,  # 红方获得奖励更高的概率
+            'recent_reward_blue_win_rate': 0,  # 蓝方获得奖励更高的概率
+            'recent_reward_draw_rate'    : 0,  # 奖励平局的概率
+            'recent_reward_red'          : 0,
+            'recent_reward_blue'         : 0,
+            'recent_abnormal'            : []
+        }
+        if len(recent_results) == 0:
+            return stats
+
+        for item in recent_results:
+            if item['winner'] == 'red':
+                stats['recent_red_wins'] += 1
+            elif item['winner'] == 'blue':
+                stats['recent_blue_wins'] += 1
+            elif item['winner'] == 'draw':
+                stats['recent_draws'] += 1
+
+            stats['recent_reward_red'] += item['reward_red']
+            stats['recent_reward_blue'] += item['reward_blue']
+
+            if item['reward_red'] > item['reward_blue']:
+                stats['recent_reward_red_wins'] += 1
+            elif item['reward_blue'] > item['reward_red']:
+                stats['recent_reward_blue_wins'] += 1
+            else:
+                stats['recent_reward_draws'] += 1
+
+        stats['recent_red_win_rate'] = stats['recent_red_wins'] / len(recent_results)
+        stats['recent_blue_win_rate'] = stats['recent_blue_wins'] / len(recent_results)
+        stats['recent_draw_rate'] = stats['recent_draws'] / len(recent_results)
+
+        stats['recent_reward_red_win_rate'] = stats['recent_reward_red_wins'] / len(recent_results)
+        stats['recent_reward_blue_win_rate'] = stats['recent_reward_blue_wins'] / len(recent_results)
+        stats['recent_reward_draw_rate'] = stats['recent_reward_draws'] / len(recent_results)
+
+        if stats['recent_reward_red_win_rate'] > stats['recent_reward_blue_win_rate']:
+            if stats['recent_red_win_rate'] < stats['recent_blue_win_rate']:
+                # 奖励高但是胜率低
+                stats['recent_abnormal'].append('red')
+
+        if stats['recent_reward_blue_win_rate'] > stats['recent_reward_red_win_rate']:
+            if stats['recent_blue_win_rate'] < stats['recent_red_win_rate']:
+                # 奖励高但是胜率低
+                stats['recent_abnormal'].append('blue')
+
+        stats['recent_abnormal'] = ' '.join(stats['recent_abnormal'])
+
+        return stats
 
 
 if __name__ == '__main__':

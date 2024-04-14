@@ -201,7 +201,7 @@ class RLNode(BTPolicyNode, RLBaseNode, ABC):
             if save_path == '':
                 save_path = self.path
             self.rl_model.save(path=save_path)
-        
+
         super().reset()
         RLBaseNode.reset(self)
 
@@ -211,6 +211,12 @@ class RLNode(BTPolicyNode, RLBaseNode, ABC):
                 log_interval=self.log_interval,
                 deterministic=self.converter.bool(self.deterministic)
         )
+
+    def save(self, save_path: str = ''):
+        save_path = self.converter.render(self.save_path)
+        if save_path == '':
+            save_path = self.path
+        self.rl_model.save(path=save_path)
 
 
 class RLSwitcher(RLNode, Composite):
