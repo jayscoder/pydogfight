@@ -22,7 +22,7 @@ import matplotlib.pyplot as plt
 import math
 import numpy as np
 from enum import Enum
-from pydogfight.core.models import Waypoint
+from pydogfight.utils.models import Waypoint
 
 
 class DubinsTurnType(Enum):

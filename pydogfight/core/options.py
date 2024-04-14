@@ -1,5 +1,8 @@
+import math
 import random
 import typing
+
+import numpy as np
 
 from pydogfight.utils.models import *
 
@@ -10,6 +13,12 @@ class Options:
     ### 实体设置 ###
     red_agents = ['red']
     blue_agents = ['blue']
+
+    # def agents(self) -> list[str]:
+    #     return self.blue_agents + self.red_agents
+    def agents(self) -> list[str]:
+        return self.red_agents + self.blue_agents
+
     red_home = 'red_home'
     blue_home = 'blue_home'
     bullseye = 'bullseye'
@@ -120,7 +129,7 @@ class Options:
     # missile_hit_self_reward = -100  # 被导弹命中的奖励
     # missile_miss_reward = -10  # 导弹没有命中的奖励
     # fuel_depletion_reward = -100 # 燃油耗尽奖励
-    train = True  # 是否是训练模式
+    train = False  # 是否是训练模式
 
     status_reward = {  # 状态奖励
         'SUCCESS': 0,
@@ -177,9 +186,6 @@ class Options:
     def __repr__(self):
         return self.__str__()
 
-    def agents(self) -> list[str]:
-        return self.red_agents + self.blue_agents
-
     def generate_random_point(self) -> tuple[float, float]:
         x = (random.random() * self.game_size[0] - self.game_size[0] / 2) * 0.9
         y = (random.random() * self.game_size[1] - self.game_size[1] / 2) * 0.9
@@ -191,18 +197,19 @@ class Options:
         :param color: red/blue
         :return: x, y
         """
-        from pydogfight.utils.common import generate_random_point
-
         if color == 'red':
-            return generate_random_point(
-                    (-self.game_size[0] * 3 / 8, -self.game_size[1] / 8),
-                    (self.game_size[0] / 4, self.game_size[1] / 4),
+            boundbox = BoundingBox(
+                    left_top=(-self.game_size[0] * 3 / 8, -self.game_size[1] / 8),
+                    size=(self.game_size[0] / 4, self.game_size[1] / 4),
             )
+
+            return boundbox.center
         else:
-            return generate_random_point(
+            boundbox = BoundingBox(
                     (self.game_size[0] / 8, -self.game_size[1] / 8),
                     (self.game_size[0] / 4, self.game_size[1] / 4),
             )
+            return boundbox.center
 
     def generate_aircraft_init_waypoint(
             self, color: str,
@@ -214,14 +221,16 @@ class Options:
         :param home_position: 基地位置
         :return: (x, y, psi)
         """
-        theta = random.random() * 2 * math.pi
-        r = random.random() * self.home_area_radius
-
-        x = home_position[0] + r * math.cos(theta)
-        y = home_position[1] + r * math.sin(theta)
-        psi = 90 - math.degrees(theta)
-
-        return x, y, psi
+        # theta = random.random() * 2 * math.pi
+        # r = random.random() * self.home_area_radius
+        #
+        # x = home_position[0] + r * math.cos(theta)
+        # y = home_position[1] + r * math.sin(theta)
+        # psi = 90 - math.degrees(theta)
+        x = home_position[0]
+        y = home_position[1]
+        psi = standard_to_heading(math.degrees(math.atan2(-y, -x)))
+        return np.array([x, y, psi])
 
     def calc_screen_length(self, game_length: float) -> float:
         max_screen_size = max(self.screen_size)

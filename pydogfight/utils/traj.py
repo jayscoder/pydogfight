@@ -137,7 +137,7 @@ def calc_optimal_path(
     if start_target_distance == 0:
         param.length = 0
         param.direct_length = 0
-        param.target.psi = param.start.psi
+        param.target = Waypoint.build(x=param.target.x, y=param.target.y, psi=param.start.psi)
         param.turn_point = (param.start.x, param.start.y)
         return param
 
@@ -147,7 +147,7 @@ def calc_optimal_path(
         # 直接沿着直线飞行
         param.length = start_target_distance
         param.direct_length = start_target_distance
-        param.target.psi = param.start.psi
+        param.target = Waypoint.build(x=param.target.x, y=param.target.y, psi=param.start.psi)
         param.turn_point = (param.start.x, param.start.y)
         return param
 
@@ -192,7 +192,9 @@ def calc_optimal_path(
                 param.turn_length = turn_length
                 param.turn_point = point
                 param.turn_center = circle_center
-                param.target.psi = 90 - math.degrees(point_to_target_theta)
+                param.target = Waypoint.build(
+                        x=param.target.x, y=param.target.y,
+                        psi=90 - math.degrees(point_to_target_theta))
 
     return param
 
@@ -216,8 +218,8 @@ def test_main():
     # User's waypoints: [x, y, heading (degrees)]
 
     start = Waypoint.build(0, 0, 90)
-    target = (100, 10)
-    param = calc_optimal_path(start, target, 10)
+    target = (-10, 10)
+    param = calc_optimal_path(start, target, 1)
     if param.length != float('inf'):
         path = param.generate_traj(step=1)
         print(param)

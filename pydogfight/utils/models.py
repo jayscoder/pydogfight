@@ -32,25 +32,13 @@ class Waypoint:
     def x(self):
         return self.data[0]
 
-    @x.setter
-    def x(self, value):
-        self.data[0] = value
-
     @property
     def y(self):
         return self.data[1]
 
-    @y.setter
-    def y(self, value):
-        self.data[1] = value
-
     @property
     def psi(self):
         return self.data[2]
-
-    @psi.setter
-    def psi(self, value):
-        self.data[2] = value
 
     @property
     def location(self):
@@ -89,6 +77,7 @@ class Waypoint:
             decimal_places: 小数点后保留的位数
         """
         self.data = np.round(self.data, decimal_places)
+        self.data[2] = wrap_angle_to_180(self.data[2])
 
     def distance(self, other: 'Waypoint' | tuple[float, float] | list[float] | np.ndarray):
         if isinstance(other, np.ndarray):
@@ -147,13 +136,12 @@ class Waypoint:
         """
         # 朝着psi的方向移动, psi是航向角，0度指向正北，90度指向正东
         # 将航向角从度转换为弧度
-        x_theta = self.standard_rad
-        # 计算 x 和 y 方向上的速度分量
-        dx = d * math.cos(x_theta)  # 正东方向为正值
-        dy = d * math.sin(x_theta)  # 正北方向为正值
+        new_psi = self.psi + angle
+        new_theta = np.radians(heading_to_standard(new_psi))
+        new_x = self.x + d * np.cos(new_theta)
+        new_y = self.y + d * np.sin(new_theta)
 
-        # 更新 obj 的位置
-        new_wpt = Waypoint.build(x=self.x + dx, y=self.y + dy, psi=self.psi + angle)
+        new_wpt = Waypoint.build(x=new_x, y=new_y, psi=new_psi)
         return new_wpt
 
     def relative_waypoint(self, other: 'Waypoint') -> Waypoint:
@@ -334,6 +322,15 @@ class BoundingBox(object):
 
     def __repr__(self):
         return json.dumps(self.to_json(), ensure_ascii=False, indent=4)
+
+    def random_point(self):
+        x_range = self.x_range
+        y_range = self.y_range
+        x = random.uniform(x_range[0], x_range[1])
+        y = random.uniform(y_range[0], y_range[1])
+        return np.array([x, y])
+
+
 
 
 class ObjPositioning:

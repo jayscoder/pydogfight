@@ -4,6 +4,8 @@ import typing
 
 from pydogfight.policy.bt import BTPolicyNode
 from pydogfight import Dogfight2dEnv, Aircraft, Options
+from pydogfight.policy.bt.builder import *
+
 
 class TestNode(BTPolicyNode):
     """定义的新的节点，需要在builder中注册才能在xml中使用"""

@@ -1,0 +1,21 @@
+output_dir: output/v4/ppo # 输出目录
+render: false # 是否渲染
+num_episodes: 3000 # 运行轮数
+track: 60 # 是否捕获行为树运行数据
+policy:
+    red: scripts/v4/rl.xml # 红方行为树
+    blue: scripts/v4/greedy.xml # 蓝方行为树
+options:
+#     train: true # 是否开启训练
+    red_agents: ['red'] # 红方agents
+    blue_agents: ['blue'] # 蓝方agents
+    indestructible: true # 是否开启无敌模式
+    collision_scale: 1 # 碰撞倍数，越大越容易发生碰撞
+    simulation_rate: 100 # 仿真快进倍数
+    aircraft_missile_count: 1000 # 导弹数量认为是无限多
+    aircraft_fuel_capacity: 180000 # 飞机油量认为无限多
+    aircraft_fire_missile_interval: 15 # 发射导弹时间间隔15s
+    aircraft_radar_radius: 10000
+context: # 行为树环境变量，可以在行为树中通过{{}}来传递
+    models_dir: 'models/v4/ppo' # 模型目录
+    rl_algo: PPO # 强化学习算法

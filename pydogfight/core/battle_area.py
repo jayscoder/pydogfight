@@ -26,6 +26,7 @@ class BattleArea:
 
         red_home_pos = self.options.generate_home_init_position(color='red')
         blue_home_pos = self.options.generate_home_init_position(color='blue')
+
         self.add_obj(
                 Home(
                         name=self.options.red_home,
@@ -48,15 +49,6 @@ class BattleArea:
                 Bullseye(options=self.options)
         )
 
-        for name in self.options.red_agents:
-            # 随机生成飞机位置
-            wpt = self.options.generate_aircraft_init_waypoint(color='red', home_position=red_home_pos)
-            self.add_obj(Aircraft(
-                    name=name,
-                    options=self.options,
-                    color='red',
-                    waypoint=Waypoint(data=wpt)))
-
         for name in self.options.blue_agents:
             # 随机生成飞机位置
             wpt = self.options.generate_aircraft_init_waypoint(color='blue', home_position=blue_home_pos)
@@ -64,6 +56,15 @@ class BattleArea:
                     name=name,
                     options=self.options,
                     color='blue',
+                    waypoint=Waypoint(data=wpt)))
+
+        for name in self.options.red_agents:
+            # 随机生成飞机位置
+            wpt = self.options.generate_aircraft_init_waypoint(color='red', home_position=red_home_pos)
+            self.add_obj(Aircraft(
+                    name=name,
+                    options=self.options,
+                    color='red',
                     waypoint=Waypoint(data=wpt)))
 
     def add_obj(self, obj: WorldObj):
@@ -116,21 +117,19 @@ class BattleArea:
         """
         :return:
         """
-        for obj in list(self.objs.values()):
-            if obj.destroyed:
-                continue
+        not_destroyed_objs = [obj for obj in self.objs.values() if not obj.destroyed]
+        for obj in not_destroyed_objs:
             obj.update(delta_time=self.options.delta_time)
 
         # 检查碰撞，通过缓存来确保只触发一次（需要先进入非碰撞状态才能触发碰撞）
-        obj_list = list(self.objs.values())
-        for i in range(len(obj_list)):
-            obj_1 = obj_list[i]
-            if obj_1.collision_radius <= 0 or obj_1.destroyed:
+        for i in range(len(not_destroyed_objs)):
+            obj_1 = not_destroyed_objs[i]
+            if obj_1.collision_radius <= 0:
                 continue
-            for j in range(i + 1, len(obj_list)):
-                obj_2 = obj_list[j]
+            for j in range(i + 1, len(not_destroyed_objs)):
+                obj_2 = not_destroyed_objs[j]
 
-                if obj_2.collision_radius <= 0 or obj_2.destroyed:
+                if obj_2.collision_radius <= 0:
                     continue
 
                 new_collided = obj_1.will_collide(obj_2)
@@ -140,6 +139,13 @@ class BattleArea:
                     obj_1.on_collision(obj_2)
                     obj_2.on_collision(obj_1)
                 self.cache[collided_key] = new_collided
+
+        # 移除掉被摧毁的导弹
+        destroyed_objs = [obj for obj in self.objs.values() if obj.destroyed]
+
+        for obj in destroyed_objs:
+            if isinstance(obj, Missile):
+                self.remove_obj(obj)
 
         self.time += self.options.delta_time
 
@@ -213,16 +219,21 @@ class BattleArea:
                 # 超时就认为是平局
                 return 'draw'
 
+            if remain_count['aircraft']['red'] == 0 and remain_count['aircraft']['blue'] == 0:
+                return 'draw'
+
             if remain_count['missile']['red'] + remain_count['missile']['blue'] > 0:
                 return ''
 
-            if remain_count['aircraft']['red'] == 0 or remain_count['aircraft']['blue'] == 0:
-                if remain_count['aircraft']['red'] > 0:
-                    return 'red'
-                elif remain_count['aircraft']['blue'] > 0:
-                    return 'blue'
-                else:
-                    return 'draw'
+            if remain_count['aircraft']['red'] == 0:
+                if remain_count['missile']['red'] > 0:
+                    return ''
+                return 'blue'
+
+            if remain_count['aircraft']['blue'] == 0:
+                if remain_count['missile']['blue'] > 0:
+                    return ''
+                return 'red'
         return ''
 
     def detect_missiles(self, agent_name: str, ignore_radar: bool = False, only_enemy: bool = True) -> list[Missile]:

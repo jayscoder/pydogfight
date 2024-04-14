@@ -29,8 +29,6 @@ class RLNode(BTPolicyNode, RLBaseNode, ABC):
                  save_interval: int | str = 30,
                  tensorboard_log: typing.Optional[str] = None,
                  log_interval: int | str = 10,
-                 batch_size: int | str = 64,
-                 n_steps: int | str = 32,
                  **kwargs
                  ):
         super().__init__(**kwargs)
@@ -41,8 +39,6 @@ class RLNode(BTPolicyNode, RLBaseNode, ABC):
         self.tensorboard_log = tensorboard_log
         self.save_interval = save_interval
         self.log_interval = log_interval
-        self.batch_size = batch_size
-        self.n_steps = n_steps
 
     def to_data(self):
         return {
@@ -78,19 +74,20 @@ class RLNode(BTPolicyNode, RLBaseNode, ABC):
 
         self.save_interval = self.converter.int(self.save_interval)
         self.log_interval = self.converter.int(self.log_interval)
-        self.batch_size = self.converter.int(self.batch_size)
-        self.n_steps = self.converter.int(self.n_steps)
 
+        args = { }
+        for key in ['batch_size', 'n_steps', 'learning_starts', 'verbose']:
+            if key in self.attrs:
+                args[key] = self.converter.int(self.attrs[key])
+        
         if isinstance(self.algo, PPO.__class__):
             self.rl_setup_model(
                     model_class=PPO,
                     train=self.env.options.train,
                     path=self.path,
                     tensorboard_log=self.tensorboard_log,
-                    verbose=1,
                     tb_log_name=self.agent_name,
-                    n_steps=self.n_steps,
-                    batch_size=self.batch_size,
+                    **args
             )
         elif isinstance(self.algo, SAC.__class__):
             self.rl_setup_model(
@@ -98,10 +95,8 @@ class RLNode(BTPolicyNode, RLBaseNode, ABC):
                     train=self.env.options.train,
                     path=self.path,
                     tensorboard_log=self.tensorboard_log,
-                    verbose=1,
                     tb_log_name=self.agent_name,
-                    learning_starts=self.n_steps,
-                    batch_size=self.batch_size
+                    **args
             )
         else:
             raise Exception('Unsupported algo type {}'.format(type(self.algo)))
@@ -143,7 +138,7 @@ class RLNode(BTPolicyNode, RLBaseNode, ABC):
             self.rl_model.logger.record("missile_hit_enemy_count/round", self.agent.missile_hit_enemy_count)
             self.rl_model.logger.record("missile_miss_count/round", self.agent.missile_miss_count)
             self.rl_model.logger.record("missile_evade_success_count/round", self.agent.missile_evade_success_count)
-            self.rl_model.logger.record("collided_aircraft_count/round", self.agent.collided_aircraft_count)
+            self.rl_model.logger.record("collided_aircraft_count/round", self.agent.aircraft_collided_count)
 
         super().reset()
         RLBaseNode.reset(self)
@@ -358,23 +353,39 @@ class RLAction(RLNode):
                 d=action[1] * self.agent.radar_radius,
                 angle=action[2] * 180)
 
-        action_type = Actions.extract_action_in_value_range(actions=self.allow_actions, value=action[0],
-                                                            value_range=(-1, 1))
+        action_type = Actions.extract_action_in_value_range(
+                actions=self.allow_actions, value=action[0],
+                value_range=(-1, 1))
         self.actions.put_nowait((action_type, new_wpt.x, new_wpt.y))
         return Status.SUCCESS
 
 
-class RLOneAction(RLNode):
-    def __init__(self, action_type: str, **kwargs):
-        super().__init__(**kwargs)
-        self.action_type = action_type
+class RLFireAndGoToLocation(RLNode):
+    def rl_action_space(self) -> gym.spaces.Space:
+        # （action_type, distance, angle）
+        return gym.spaces.Box(
+                low=-1,
+                high=1,
+                shape=(3,)
+        )
 
-    def to_data(self):
-        return {
-            **super().to_data(),
-            'action_type': self.action_type
-        }
+    def update(self) -> Status:
+        action = self.take_action()
 
+        new_wpt = self.agent.waypoint.move(
+                d=action[1] * self.agent.radar_radius,
+                angle=action[2] * 180)
+
+        self.actions.put_nowait((Actions.go_to_location, new_wpt.x, new_wpt.y))
+
+        if action[0] > 0:
+            # 发射导弹，默认朝着最近的敌机发射
+            self.actions.put_nowait((Actions.fire_missile, new_wpt.x, new_wpt.y))
+
+        return Status.SUCCESS
+
+
+class RLGoToLocation(RLNode):
     def rl_action_space(self) -> gym.spaces.Space:
         # （action_type, distance, angle）
         return gym.spaces.Box(
@@ -384,29 +395,14 @@ class RLOneAction(RLNode):
         )
 
     def update(self) -> Status:
-        action = self.rl_take_action(
-                train=self.env.options.train,
-                log_interval=self.log_interval,
-                save_interval=self.save_interval,
-                save_path=self.path
-        )
+        action = self.take_action()
 
         new_wpt = self.agent.waypoint.move(
-                d=action[1] * self.agent.radar_radius,
-                angle=action[2] * 180)
+                d=action[0] * self.agent.radar_radius,
+                angle=action[1] * 180)
 
-        self.actions.put_nowait((Actions.build(self.action_type), new_wpt.x, new_wpt.y))
+        self.actions.put_nowait((Actions.go_to_location, new_wpt.x, new_wpt.y))
         return Status.SUCCESS
-
-
-class RLFireMissile(RLOneAction):
-    def __init__(self, **kwargs):
-        super().__init__(action_type='fire_missile', **kwargs)
-
-
-class RLGoToLocation(RLOneAction):
-    def __init__(self, **kwargs):
-        super().__init__(action_type='go_to_location', **kwargs)
 
 
 class RLActionPPA(RLAction):

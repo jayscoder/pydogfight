@@ -224,24 +224,23 @@ class WorldObj:
         self.last_waypoint = self.waypoint
         self.waypoint = waypoint
 
-    def update_follow_route(self, route) -> bool:
+    def update_follow_route(self) -> bool:
         """
         沿着轨迹运动
-        :param route: 轨迹
         :return: 是否运动成功
         """
-        if route is None:
+        if self.route is None:
             return False
         next_wpt = None
-        if isinstance(route, types.GeneratorType):
+        if isinstance(self.route, types.GeneratorType):
             try:
-                next_wpt = next(route)
+                next_wpt = next(self.route)
             except StopIteration:
                 self.route = None
                 self.route_index = -1
                 return False
-        elif len(route) > self.route_index >= 0:
-            next_wpt = route[self.route_index]
+        elif len(self.route) > self.route_index >= 0:
+            next_wpt = self.route[self.route_index]
 
         if next_wpt is None:
             self.route = None
@@ -254,7 +253,7 @@ class WorldObj:
     def update_move_forward(self, delta_time: float):
         # 朝着psi的方向移动, psi是航向角，0度指向正北，90度指向正东
         # 将航向角从度转换为弧度
-        new_wpt = self.waypoint.move(d=delta_time * self.speed)
+        new_wpt = self.waypoint.move(d=delta_time * self.speed, angle=0)
         self.do_move(new_wpt)
 
     def go_to_location(self, target: tuple[float, float], delta_time: float, force: bool = False):
@@ -271,7 +270,7 @@ class WorldObj:
         # TODO: 当前的状态可能是在拐弯，计算最佳路径的时候需要考虑进去
         # 需要移动
         # 判断一下当前路由的终点是哪里
-        param = calc_optimal_path(self.waypoint, (target[0], target[1]), self.turn_radius)
+        param = calc_optimal_path(start=self.waypoint, target=target, turn_radius=self.turn_radius)
         self.route = param.generate_traj(delta_time * self.speed)
         self.route_index = 0
 
@@ -356,7 +355,9 @@ class Aircraft(WorldObj):
         self.missile_miss = []  # 自己发射的哪些导弹没有命中敌机
         self.missile_miss_count = 0  # 自己发射的导弹没有命中敌机的次数
 
-        self.collided_aircraft_count = 0  # 与飞机相撞次数
+        self.missile_fire_fail_count = 0  # 发射导弹失败的次数
+
+        self.aircraft_collided_count = 0  # 与飞机相撞次数
 
         self.last_fire_missile_time = 0  # 上次发射导弹时间
 
@@ -364,14 +365,14 @@ class Aircraft(WorldObj):
         self.missile_depletion_count = 0  # 导弹耗尽次数
         self.indestructible = options.indestructible
 
-        self.return_home_count = 0  # 到基地次数
+        self.home_returned_count = 0  # 到基地次数
 
         self.position_memory = PositionMemory(
                 boundary=self.options.safe_boundary(),
                 sep=self.options.aircraft_position_memory_sep)
 
-        self.fired_missiles = []  # 已经发射过的导弹
-        self.fired_missile_count = 0  # 发射过的导弹数量
+        self.missile_fired = []  # 已经发射过的导弹
+        self.missile_fired_count = 0  # 发射过的导弹数量
 
         # self.detected_enemy_count = 0  # 检查到的敌人的数量
 
@@ -399,7 +400,7 @@ class Aircraft(WorldObj):
 
         self.missile_miss = obj.missile_miss.copy()  # 自己发射的哪些导弹没有命中敌机
         self.missile_miss_count = obj.missile_miss_count  # 自己发射的导弹没有命中敌机的次数
-        self.collided_aircraft_count = obj.collided_aircraft_count
+        self.aircraft_collided_count = obj.aircraft_collided_count
 
         self.last_fire_missile_time = obj.last_fire_missile_time  # 上次发射导弹时间
 
@@ -407,11 +408,13 @@ class Aircraft(WorldObj):
         self.missile_depletion_count = obj.fuel_depletion_count
         self.indestructible = obj.indestructible
 
-        self.return_home_count = obj.return_home_count  # 到基地次数
         self.position_memory = obj.position_memory
 
-        self.fired_missiles = obj.fired_missiles.copy()
-        self.fired_missile_count = obj.fired_missile_count
+        self.missile_fired = obj.missile_fired.copy()
+        self.missile_fired_count = obj.missile_fired_count
+        self.missile_fire_fail_count = obj.missile_fire_fail_count
+
+        self.home_returned_count = obj.home_returned_count  # 到基地次数
 
     def to_dict(self):
         return {
@@ -430,10 +433,11 @@ class Aircraft(WorldObj):
             'missile_missile_count'      : self.missile_miss_count,
             'missile_evade_success'      : self.missile_evade_success,
             'missile_evade_success_count': self.missile_evade_success_count,
-            'return_home_count'          : self.return_home_count,
-            'fired_missiles'             : self.fired_missiles,
-            'fired_missile_count'        : self.fired_missile_count,
-            'collided_aircraft_count'    : self.collided_aircraft_count,
+            'missile_fired'              : self.missile_fired,
+            'missile_fired_count'        : self.missile_fired_count,
+            'missile_fire_fail_count'    : self.missile_fire_fail_count,
+            'aircraft_collided_count'    : self.aircraft_collided_count,
+            'home_returned_count'        : self.home_returned_count,
         }
 
     def render(self, screen):
@@ -470,13 +474,11 @@ class Aircraft(WorldObj):
         )
 
     def update(self, delta_time: float):
-        if self.destroyed:
-            return
         area = self.area
         assert area is not None, f'Cannot update'
 
         # 执行移动
-        if not self.update_follow_route(route=self.route):
+        if not self.update_follow_route():
             self.update_move_forward(delta_time=delta_time)
 
         while not self.waiting_actions.empty():
@@ -530,12 +532,8 @@ class Aircraft(WorldObj):
         Returns:
 
         """
-        if self.missile_count <= 0:
-            return
-
-        if self.area.time - self.last_fire_missile_time < self.options.aircraft_fire_missile_interval:
-            # 两次发射导弹时间间隔太短
-            print('两次发射导弹时间间隔太短: {}'.format(self.area.time - self.last_fire_missile_time))
+        if not self.can_fire_missile():
+            self.missile_fire_fail_count += 1
             return
 
         self.last_fire_missile_time = self.area.time
@@ -554,12 +552,12 @@ class Aircraft(WorldObj):
         if fire_enemy is not None:
             self.missile_count -= 1
             missile = Missile(
-                    name=f'{self.name}_missile_{self.fired_missile_count}',
+                    name=f'{self.name}_missile_{self.missile_fired_count}',
                     source=self,
                     target=fire_enemy,
                     time=self.area.time)
-            self.fired_missiles.append(missile.name)
-            self.fired_missile_count = len(self.fired_missiles)
+            self.missile_fired.append(missile.name)
+            self.missile_fired_count = len(self.missile_fired)
 
             self.area.add_obj(missile)
             # print(f'发射了导弹: {missile.name}')
@@ -580,11 +578,9 @@ class Aircraft(WorldObj):
         )
 
     def on_collision(self, obj: WorldObj):
-        if self.destroyed:
-            return
         if isinstance(obj, Aircraft):
             self.destroy(reason=DestroyReason.COLLIDED_WITH_AIRCRAFT, source=obj.name)
-            self.collided_aircraft_count += 1
+            self.aircraft_collided_count += 1
         elif isinstance(obj, Missile) and obj.source.name != self.name:
             if self.options.missile_can_only_hit_enemy and obj.color == self.color:
                 # 导弹只能攻击敌人
@@ -623,13 +619,31 @@ class Aircraft(WorldObj):
         回到基地，在一定时间间隔内只会触发一次
         options.home_return_time_interval 返回基地的时间间隔
         """
-        self.return_home_count += 1
+        self.home_returned_count += 1
         # 加油
         if self.options.home_refuel and self.fuel < self.options.home_refuel_threshold_capacity:
             self.fuel = self.options.aircraft_fuel_capacity
         # 补充导弹
         if self.options.home_replenish_missile and self.missile_count < self.options.home_replenish_missile_threshold_count:
             self.missile_count = self.options.aircraft_missile_count
+
+    def can_fire_missile(self) -> bool:
+        """是否可以发射导弹"""
+        if self.missile_count <= 0:
+            return False
+        if (
+                self.area.time - self.last_fire_missile_time) < self.options.aircraft_fire_missile_interval:
+            return False
+
+        enemy = self.area.find_nearest_enemy(
+                agent_name=self.name,
+                ignore_radar=False)
+
+        if enemy is None:
+            # self.put_update_message('No nearest enemy')
+            return False
+
+        return True
 
 
 class Missile(WorldObj):
@@ -699,18 +713,11 @@ class Missile(WorldObj):
             self.source.on_missile_miss(self)
 
     def update(self, delta_time: float):
-        if self.destroyed:
-            self.area.remove_obj(self)
-            return
-
         self.fuel -= self.fuel_consumption_rate * delta_time
 
         if self.fuel <= 0:
             # 燃油耗尽，说明没有命中过敌机
             self.destroy(reason=DestroyReason.FUEL_DEPLETION)
-
-        if self.destroyed:
-            return
 
         if self.area.time - self._last_generate_route_time > self.options.missile_reroute_interval:
             self._last_generate_route_time = self.area.time
@@ -724,12 +731,10 @@ class Missile(WorldObj):
                 self.route = hit_param.generate_traj(step=delta_time * self.speed)  # 生成轨迹
                 self.route_index = 0
 
-        if not self.update_follow_route(route=self.route):
+        if not self.update_follow_route():
             self.update_move_forward(delta_time=delta_time)
 
     def on_collision(self, obj: WorldObj):
-        if self.destroyed:
-            return
         if isinstance(obj, Aircraft):
             if obj.color == self.color:
                 # 导弹暂时不攻击友方 TODO: 未来可能会修改

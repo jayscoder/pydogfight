@@ -15,11 +15,12 @@ import time
 import threading
 import asyncio
 from pydogfight.utils.obs_utils import ObsUtils
+from collections import defaultdict
 
 
 class Dogfight2dEnv(gym.Env):
     metadata = {
-        'render.modes': ['human', 'rgb_array'],
+        'render.modes': ['human'],
         # "render_fps"  : 50,
     }
 
@@ -70,16 +71,16 @@ class Dogfight2dEnv(gym.Env):
         self.last_update_time = 0
         self.step_count = 0
 
-        self.render_info = { }  # 渲染在屏幕上的信息
-
         self.game_info = {
+            'round'           : 0,  # 第几轮
             'red_wins'        : 0,
             'blue_wins'       : 0,
             'draws'           : 0,  # 平局几次
-            'round'           : 0,  # 第几轮
             'truncated_count' : 0,
             'terminated_count': 0,
-        }  # 游戏对战累积数据，在reset的时候更新
+            'accum_time'      : 0,  # 累积时间
+        }  # 游戏对战累积数据，在reset的时候更新，同时也会渲染在屏幕上
+
         # TODO 敌人的heatmap
 
         # 回调函数
@@ -87,6 +88,8 @@ class Dogfight2dEnv(gym.Env):
         self.after_update_handlers: list[typing.Callable[['Dogfight2dEnv'], None]] = []
         self.before_reset_handlers: list[typing.Callable[['Dogfight2dEnv'], None]] = []
         self.after_reset_handlers: list[typing.Callable[['Dogfight2dEnv'], None]] = []
+
+        self.cache = { }
 
     def add_before_update_handler(self, handler: typing.Callable[['Dogfight2dEnv'], None]):
         self.before_update_handlers.append(handler)
@@ -109,6 +112,34 @@ class Dogfight2dEnv(gym.Env):
         assert isinstance(obj, Aircraft)
         return obj
 
+    def update_game_info(self, total: bool = False):
+        self.game_info['time'] = int(self.battle_area.time)
+
+        if total:
+            KEYS = [
+                'destroyed_count',
+                'missile_fired_count',
+                'missile_fire_fail_count',
+                'missile_hit_self_count',
+                'missile_hit_enemy_count',
+                'missile_miss_count',
+                'missile_evade_success_count',
+                'home_returned_count',
+                'missile_count',
+                'missile_depletion_count',
+                'aircraft_collided_count',
+            ]
+
+            for key in KEYS:
+                color_dict = { 'red': 0, 'blue': 0 }
+                for agent in self.battle_area.agents:
+                    color_dict[agent.color] += int(getattr(agent, key))
+                # if key in self.cache:
+                #     color_dict['red'] += self.cache[key]['red']
+                #     color_dict['blue'] += self.cache[key]['blue']
+                # self.cache[key] = color_dict
+                self.game_info[key] = f'{color_dict["red"]} vs {color_dict["blue"]}'
+
     def reset(
             self,
             *,
@@ -125,13 +156,13 @@ class Dogfight2dEnv(gym.Env):
             self.game_info['blue_wins'] += 1
         elif info['winner'] == 'draw':
             self.game_info['draws'] += 1
-
+        self.game_info['round'] += 1
         if info['truncated']:
             self.game_info['truncated_count'] += 1
         if info['terminated']:
             self.game_info['terminated_count'] += 1
 
-        self.game_info['round'] += 1
+        self.game_info['accum_time'] += self.time
 
         super().reset(seed=seed)
 
@@ -204,6 +235,7 @@ class Dogfight2dEnv(gym.Env):
             self.battle_area.update()
         if self.render_mode == 'human':
             self.last_update_time = time.time()
+        self.update_game_info(total=self.render_mode == 'human')
         for handler in self.after_update_handlers:
             handler(self)
 
@@ -261,16 +293,16 @@ class Dogfight2dEnv(gym.Env):
                     if play_pause_img_rect.collidepoint(event.pos):
                         self.paused = not self.paused  # 切换暂停状态
 
-            render_info_y = 10
-            for key in self.render_info:
+            game_info_y = 10
+            for key in self.game_info:
                 # 渲染文本到 Surface 对象
                 render_text(
                         screen=self.screen,
-                        text=f'{key}: {self.render_info[key]}',
-                        topleft=(10, render_info_y),
+                        text=f'{key}: {self.game_info[key]}',
+                        topleft=(10, game_info_y),
                         text_size=18,
                 )
-                render_info_y += 20
+                game_info_y += 20
 
             # 渲染安全区域
             # render_rect(self.options, screen=self.screen, rect=self.options.safe_boundary, color='grey')

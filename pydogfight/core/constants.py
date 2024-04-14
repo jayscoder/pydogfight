@@ -11,7 +11,7 @@ def _hex_color(color: str) -> tuple[int, int, int]:
     r = int(color[0:2], 16)  # 转换红色分量
     g = int(color[2:4], 16)  # 转换绿色分量
     b = int(color[4:6], 16)  # 转换蓝色分量
-    return (r, g, b)
+    return r, g, b
 
 
 # Map of color names to RGB values

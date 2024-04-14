@@ -1,0 +1,86 @@
+<Root name="V4RL">
+
+    <Parallel name="V4Reward">
+        <Sequence>
+            <IsChanged value="{{agent.missile_miss_count}}"/>
+            <!--导弹打空了-->
+            <Reward reward="-0.05" scope="attack"/>
+        </Sequence>
+
+        <Sequence>
+            <IsChanged value="{{agent.missile_hit_enemy_count}}"/>
+            <!--导弹打中了对方-->
+            <Reward reward="0.5" scope="attack"/>
+        </Sequence>
+
+        <Sequence>
+            <IsChanged value="{{agent.missile_evade_success_count}}"/>
+            <!--成功规避导弹，给出奖励-->
+            <Reward reward="0.1" scope="control"/>
+        </Sequence>
+
+        <Sequence>
+            <IsChanged value="{{agent.missile_hit_self_count}}"/>
+            <!--被导弹打中，给出惩罚-->
+            <Reward reward="-1" scope="control"/>
+        </Sequence>
+
+        <Sequence>
+            <IsChanged value="{{agent.aircraft_collided_count}}"/>
+            <!--与飞机相撞，给出惩罚-->
+            <Reward reward="-1" scope="control"/>
+        </Sequence>
+
+    </Parallel>
+
+    <!--    <ReactiveSequence>-->
+    <!--        <Inverter>-->
+    <!--            <IsMissileDepleted/>-->
+    <!--        </Inverter>-->
+    <!--        <IsEnemyDetected/>-->
+    <!--        <FireMissileAtNearestEnemy/>-->
+    <!--    </ReactiveSequence>-->
+
+    <ReactiveSelector>
+        <ReactiveSequence>
+            <Inverter>
+                <IsInSafeArea/>
+            </Inverter>
+            <GoToSafeArea/>
+        </ReactiveSequence>
+
+
+        <Parallel>
+
+            <ReactiveSequence>
+                <Inverter>
+                    <IsMissileDepleted/>
+                </Inverter>
+                <IsEnemyDetected/>
+                <Inverter>
+                    <IsFireMissileOverFreqLimit/>
+                </Inverter>
+                <RLCondition
+                        algo="{{rl_algo}}"
+                        reward_scope="attack"
+                        path="{{models_dir}}/{{agent_name}}/PPOCondition_attack"
+                        tensorboard_log="{{output}}/{{runtime}}/{{agent_name}}/PPOCondition_attack"
+                        log_interval="30"
+                        save_interval="30"
+                        verbose="1"
+                />
+                <FireMissileAtNearestEnemy/>
+            </ReactiveSequence>
+
+            <RLGoToLocation
+                    algo="{{rl_algo}}"
+                    reward_scope="attack,control"
+                    path="{{models_dir}}/{{agent_name}}/RLGoToLocation"
+                    tensorboard_log="{{output}}/{{runtime}}/{{agent_name}}/RLGoToLocation"
+                    log_interval="30"
+                    save_interval="30"
+                    verbose="1"
+            />
+        </Parallel>
+    </ReactiveSelector>
+</Root>

@@ -46,9 +46,12 @@ class BTPolicyBuilder(pybts.rl.builder.RLBuilder):
                 IsOutOfGameRange,
                 IsFuelDepleted,
                 IsMissileFull,
-                CheatGoToNearestEnemy
+                CheatGoToNearestEnemy,
+                IsFireMissileOverFreqLimit,
+                RLFireAndGoToLocation,
+                FireMissileAtNearestEnemyWithHitPointCheck
         )
-
+        
         # Explore
         self.register_node(
                 Explore,
@@ -76,5 +79,7 @@ class BTPolicyBuilder(pybts.rl.builder.RLBuilder):
                 RLAction,
                 RLActionPPA,
                 RLIntValue,
-                RLFloatValue
+                RLFloatValue,
+                RLGoToLocation,
+                RLFireAndGoToLocation
         )

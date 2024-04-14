@@ -339,8 +339,10 @@ class AutoPursueNearestEnemy(BTPolicyNode):
             return 'lead'
         elif distance <= distance_threshold and positioning.value not in ['head-to-head', 'head-to-tail']:
             return 'lag'
-        else:
+        elif distance > agent.collision_radius * 5:
             return 'pure'
+        else:
+            return 'lag'
 
     @classmethod
     def calculate_location(cls, pursue_mode: str, agent: Aircraft, enemy: Aircraft) -> tuple[float, float]:
