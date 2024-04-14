@@ -15,7 +15,7 @@ from pybts.display import render_node
 import bt
 import yaml
 from collections import defaultdict
-
+from pydogfight.utils import get_torch_device
 
 def now_str():
     return datetime.now().strftime("%m%d-%H-%M-%S")
@@ -61,6 +61,7 @@ def read_config(path: str):
 
     if config['options'].get('title') is None and config.get('title') is not None:
         config['options']['title'] = config['title']
+
     return config
 
 
@@ -86,6 +87,11 @@ class BTManager:
         options = Options()
         if 'options' in config:
             options.load_dict(config['options'])
+
+        options.validate()
+
+        if options.device == 'auto':
+            options.device = get_torch_device(options.device)
 
         env = Dogfight2dEnv(options=options)
         env.reset()
