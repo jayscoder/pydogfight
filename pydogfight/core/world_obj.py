@@ -51,15 +51,16 @@ class WorldObj:
         self.destroyed_reason = []  # 被摧毁的原因
         self.destroyed_count = 0  # 被摧毁次数
 
-        self.route: np.ndarray | None = None  # 需要遵循的轨迹
-        self.route_index: int = -1
-
         self.waiting_actions = Queue(maxsize=10)  # 等待消费的行为，每一项是个列表
         self.consumed_actions = Queue(maxsize=10)  # 最近消费的10个动作
 
         self._area = None  # 战场
         self.last_is_in_game_range = True  # 用来保存之前是否在游戏区域，避免超出游戏区域后每次都触发摧毁自己
         self.last_waypoint: Waypoint | None = None  # 上一刻的航迹点
+
+        self.route_param: None | OptimalPathParam = None
+        self.route_param_time = 0
+        self.render_route: np.ndarray | None = None  # 需要遵循的轨迹
 
         # (0, -, -) 0代表什么也不做
         # （1, x, y）飞到指定位置
@@ -92,14 +93,12 @@ class WorldObj:
         self.destroyed_count = obj.destroyed_count
         self.destroyed_reason = obj.destroyed_reason.copy()
 
-        self.route = obj.route
-        self.route_index = obj.route_index
+        self.render_route = obj.render_route
+        self.route_param = obj.route_param
+        self.route_param_time = obj.route_param_time
         self._area = obj._area
 
     def to_dict(self):
-        route = self.route
-        if route is not None:
-            route = len(route)
         return {
             'name'            : self.name,
             'type'            : self.type,
@@ -110,8 +109,6 @@ class WorldObj:
             'waypoint'        : self.waypoint,
             'destroyed'       : self.destroyed,
             'destroyed_reason': self.destroyed_reason,
-            'route'           : route,
-            'route_index'     : self.route_index,
             'waiting_actions' : [str(act) for act in read_queue_without_destroying(self.waiting_actions)],
             'consumed_actions': [str(act) for act in read_queue_without_destroying(self.consumed_actions)],
             'is_in_game_range': self.is_in_game_range
@@ -166,7 +163,7 @@ class WorldObj:
         """Draw this object with the given renderer"""
         raise NotImplementedError
 
-    def distance(self, to: WorldObj | tuple[float, float]) -> float:
+    def distance(self, to: WorldObj | tuple[float, float] | Waypoint | np.ndarray) -> float:
         if isinstance(to, WorldObj):
             to = to.waypoint
         return self.waypoint.distance(to)
@@ -177,6 +174,10 @@ class WorldObj:
         if self.collision_radius <= 0 or obj.collision_radius <= 0:
             # 其中一方没有碰撞半径的话，就不认为会造成碰撞
             return False
+        collide_ratio = self.distance(obj) / (self.collision_radius + obj.collision_radius)
+        if collide_ratio < 1:
+            return True
+
         obj_last_wpt = obj.last_waypoint or obj.waypoint
         self_last_wpt = self.last_waypoint or self.waypoint
 
@@ -188,7 +189,6 @@ class WorldObj:
                 ra=self.collision_radius,
                 rb=obj.collision_radius
         )
-        # distance = self.distance(obj) / (self.collision_radius + obj.collision_radius)
         # if collided and distance > 1:
         #     print('碰撞异常', distance)
         return collided
@@ -229,25 +229,22 @@ class WorldObj:
         沿着轨迹运动
         :return: 是否运动成功
         """
-        if self.route is None:
+        if self.route_param is None:
             return False
-        next_wpt = None
-        if isinstance(self.route, types.GeneratorType):
-            try:
-                next_wpt = next(self.route)
-            except StopIteration:
-                self.route = None
-                self.route_index = -1
-                return False
-        elif len(self.route) > self.route_index >= 0:
-            next_wpt = self.route[self.route_index]
+        move_length = self.speed * (self.area.time - self.route_param_time)
+        if move_length > self.route_param.length:
+            self.render_route = None
+            self.route_param = None
+            self.route_param_time = 0
+            return False
 
+        next_wpt = self.route_param.next_waypoint(length=self.speed * (self.area.time - self.route_param_time))
         if next_wpt is None:
-            self.route = None
-            self.route_index = -1
+            self.render_route = None
+            self.route_param = None
+            self.route_param_time = 0
             return False
-        self.route_index += 1
-        self.do_move(Waypoint(data=next_wpt))
+        self.do_move(next_wpt)
         return True
 
     def update_move_forward(self, delta_time: float):
@@ -256,7 +253,7 @@ class WorldObj:
         new_wpt = self.waypoint.move(d=delta_time * self.speed, angle=0)
         self.do_move(new_wpt)
 
-    def go_to_location(self, target: tuple[float, float], delta_time: float, force: bool = False):
+    def go_to_location(self, target: tuple[float, float]):
         # if self.route is not None and len(self.route) > 0 and not force:
         #     # 当前还有未完成的路由
         #     route_target = self.route[-1][:2]
@@ -270,9 +267,13 @@ class WorldObj:
         # TODO: 当前的状态可能是在拐弯，计算最佳路径的时候需要考虑进去
         # 需要移动
         # 判断一下当前路由的终点是哪里
-        param = calc_optimal_path(start=self.waypoint, target=target, turn_radius=self.turn_radius)
-        self.route = param.generate_traj(delta_time * self.speed)
-        self.route_index = 0
+        route_param = calc_optimal_path(start=self.waypoint, target=target, turn_radius=self.turn_radius)
+        if route_param.length == 0 or route_param.length == float('inf'):
+            return
+        self.route_param = route_param
+        self.route_param_time = self.area.time - self.options.delta_time  # 需要通过这种方式来保证当前帧就能更新位置，不然会丢掉一帧
+        if self.options.render:
+            self.render_route = self.route_param.build_route(self.route_param.length / 20)
 
     def generate_test_moves(self, in_safe_area: bool = True) -> list[Waypoint]:
         """
@@ -299,9 +300,9 @@ class WorldObj:
 
     def is_current_route_target(self, target: tuple[float, float]) -> bool:
         # 是否是当前路由的目标
-        if self.route is None or len(self.route) == 0:
+        if self.route_param is None:
             return self.is_reach_location(target)
-        return cal_distance(self.route[-1, :2], target) <= self.speed * self.options.reach_location_interval()
+        return self.is_reach_location(self.route_param.target.location)
 
     def predict_intercept_point(
             self,
@@ -462,7 +463,7 @@ class Aircraft(WorldObj):
                        position=self.waypoint.location)
 
         # 画出导航轨迹
-        render_route(options=self.options, screen=screen, route=self.route, color=self.color)
+        render_route(options=self.options, screen=screen, route=self.render_route, color=self.color)
 
         # 画出雷达圆圈
         render_circle(
@@ -477,10 +478,6 @@ class Aircraft(WorldObj):
         area = self.area
         assert area is not None, f'Cannot update'
 
-        # 执行移动
-        if not self.update_follow_route():
-            self.update_move_forward(delta_time=delta_time)
-
         while not self.waiting_actions.empty():
             # 执行动作
             action = self.waiting_actions.get_nowait()
@@ -492,12 +489,16 @@ class Aircraft(WorldObj):
             action_target = action[1:]
             # print(f'{self.name} 执行动作', Actions(action_type).name)
             if action_type == Actions.go_to_location:
-                self.go_to_location(target=action_target, delta_time=delta_time)
+                self.go_to_location(target=action_target)
             elif action_type == Actions.fire_missile:
                 # 寻找离目标点最近的飞机
                 self.fire_missile(target=action_target)
             elif action_type == Actions.go_home:
-                self.go_home(delta_time=delta_time)
+                self.go_home()
+
+        # 执行移动
+        if not self.update_follow_route():
+            self.update_move_forward(delta_time=delta_time)
 
         if self.options.destroy_on_boundary_exit and not self.is_in_game_range and self.last_is_in_game_range:
             self.destroy(reason=DestroyReason.OUT_OF_GAME_RANGE)
@@ -519,9 +520,9 @@ class Aircraft(WorldObj):
             self.destroy(reason=DestroyReason.FUEL_DEPLETION)
             self.fuel_depletion_count += 1
 
-    def go_home(self, delta_time: float):
+    def go_home(self):
         home_position = self.area.get_home(self.color).waypoint.location
-        self.go_to_location(target=home_position, delta_time=delta_time, force=True)
+        self.go_to_location(target=home_position)
 
     def fire_missile(self, target: tuple[float, float]):
         """
@@ -589,7 +590,7 @@ class Aircraft(WorldObj):
             self.destroy(reason=DestroyReason.COLLIDED_WITH_MISSILE, source=obj.name)
             self.on_missile_hit_self(missile=obj)
 
-    def in_radar_range(self, obj: WorldObj) -> bool:
+    def in_radar_range(self, obj: WorldObj | Waypoint | tuple[float, float] | np.ndarray) -> bool:
         """
         obj是否在雷达范围内
         :param obj:
@@ -631,6 +632,7 @@ class Aircraft(WorldObj):
         """是否可以发射导弹"""
         if self.missile_count <= 0:
             return False
+
         if (
                 self.area.time - self.last_fire_missile_time) < self.options.aircraft_fire_missile_interval:
             return False
@@ -699,7 +701,7 @@ class Missile(WorldObj):
         render_route(
                 options=self.options,
                 screen=screen,
-                route=self.route,
+                route=self.render_route,
                 color=self.color,
                 count=20
         )
@@ -719,17 +721,20 @@ class Missile(WorldObj):
             # 燃油耗尽，说明没有命中过敌机
             self.destroy(reason=DestroyReason.FUEL_DEPLETION)
 
+        # self.go_to_location(target=self.target.waypoint.location)
         if self.area.time - self._last_generate_route_time > self.options.missile_reroute_interval:
             self._last_generate_route_time = self.area.time
-            # 每隔1秒重新生成一次轨迹
-            hit_param = calc_optimal_path(
-                    start=self.waypoint,
-                    target=self.target.waypoint.location,
-                    turn_radius=self.turn_radius
-            )
-            if hit_param.length != float('inf'):
-                self.route = hit_param.generate_traj(step=delta_time * self.speed)  # 生成轨迹
-                self.route_index = 0
+
+            self.go_to_location(target=self.target.waypoint.location)
+        # # 每隔1秒重新生成一次轨迹
+        # hit_param = calc_optimal_path(
+        #         start=self.waypoint,
+        #         target=self.target.waypoint.location,
+        #         turn_radius=self.turn_radius
+        # )
+        # if hit_param.length != float('inf'):
+        #     self.route = hit_param.build_route(step=delta_time * self.speed)  # 生成轨迹
+        #     self.route_index = 0
 
         if not self.update_follow_route():
             self.update_move_forward(delta_time=delta_time)

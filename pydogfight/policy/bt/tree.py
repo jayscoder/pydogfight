@@ -40,5 +40,7 @@ class DogfightTree(RLTree):
     ) -> None:
         # 在tick之前更新时间、agent信息，方便后面使用
         self.context['time'] = self.env.time
+        self.context['episode'] = self.env.game_info['episode']
         self.context['agent'] = self.env.get_agent(self.agent_name).to_dict()
         super().tick(pre_tick_handler=pre_tick_handler, post_tick_handler=post_tick_handler)
+

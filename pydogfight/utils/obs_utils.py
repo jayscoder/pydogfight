@@ -13,56 +13,45 @@ class ObsUtils:
 
     W = 9  # 观测到的矩阵的宽度
 
-    def __init__(self, battle_area: BattleArea):
+    WATCH_MISSILES = 5  # 观测5个敌方导弹
+
+    def __init__(self, battle_area: BattleArea, agent_name: str):
         """
 
         Args:
             battle_area:
         """
         self.battle_area = battle_area
-        self.N = len(battle_area.options.agents()) + 3 + 7  # 最多同时记录所有飞机、基地、牛眼和7个导弹的信息
+        self.N = len(battle_area.options.agents()) + self.WATCH_MISSILES  # 最多同时记录所有飞机、5个导弹的信息
         self.observation_space = gym.spaces.Box(low=-10, high=10, shape=(self.N, self.W), dtype=np.float32)
         self.cache = { }
+        self.agent_name = agent_name
 
     def reset(self):
         self.cache.clear()
 
     def empty_obs(self):
-        return np.zeros(self.observation_space.shape, dtype=np.float64)
+        return np.zeros(self.observation_space.shape, dtype=np.float32)
 
     @classmethod
     def empty_obs_line(cls):
-        return np.zeros((cls.W,), dtype=np.float64)
+        return np.zeros((cls.W,), dtype=np.float32)
 
     @classmethod
     def gen_self_obs(cls, agent: Aircraft):
         """获取自己的观测"""
         obs = cls.empty_obs_line()
         obs[0] = OBJECT_TO_IDX[agent.type]
+        obs[1] = 0
         obs[2] = int(agent.destroyed)
         # obs[3] = rel_pt.r / agent.radar_radius
         # obs[4] = np.deg2rad(rel_pt.theta)
         # obs[5] = np.deg2rad(rel_pt.phi)
-        obs[6] = agent.speed / agent.radar_radius
-        obs[7] = agent.turn_radius / agent.radar_radius
-        obs[8] = int(agent.can_fire_missile())
+        obs[6] = int(agent.can_fire_missile())
+        obs[7] = agent.speed / agent.radar_radius
+        obs[8] = agent.turn_radius / agent.radar_radius
 
         return obs
-        #
-        # return np.array([
-        #     OBJECT_TO_IDX[agent.type],  # 0
-        #     0,  # is_enemy 1
-        #     int(agent.destroyed),  # 2
-        #     0,  # r 3
-        #     0,  # theta 4
-        #     0,  # psi 5
-        #     agent.speed / agent.radar_radius,  # 6
-        #     agent.turn_radius / agent.radar_radius,  # 7
-        #     int(agent.can_fire_missile()),  # 是否可以发射导弹 # 8
-        #     # agent.missile_count / agent.options.aircraft_missile_count,  # 10
-        #     # agent.fuel / agent.options.aircraft_fuel_capacity,  # 8
-        #     # agent.radar_radius / agent.radar_radius,  # 9 radius
-        # ])
 
     @classmethod
     def gen_aircraft_obs(cls, agent: Aircraft, obj: Aircraft, is_memory: bool):
@@ -83,21 +72,23 @@ class ObsUtils:
         obs[0] = OBJECT_TO_IDX[obj.type]
         obs[1] = int(obj.color != agent.color)
         obs[2] = int(obj.destroyed)
-        obs[3] = rel_pt.r / agent.radar_radius
-        obs[4] = np.deg2rad(rel_pt.theta)
-        obs[5] = np.deg2rad(rel_pt.phi)
-        obs[6] = obj.speed / agent.radar_radius
-        obs[7] = obj.turn_radius / agent.radar_radius
-        obs[8] = int(obj.can_fire_missile())
-
-        # obj.fuel / agent.options.aircraft_fuel_capacity,  # 8
-        # obj.radar_radius / agent.radar_radius,  # 9
-        # obj.missile_count / agent.options.aircraft_missile_count,  # 10
 
         if obj.destroyed:
             obs[2] = 1
         elif is_memory:
             obs[2] = -1
+
+        obs[3] = rel_pt.r / agent.radar_radius
+        obs[4] = np.deg2rad(rel_pt.theta)
+        obs[5] = np.deg2rad(rel_pt.phi)
+        obs[6] = int(obj.can_fire_missile())
+
+        obs[7] = obj.speed / agent.radar_radius
+        obs[8] = obj.turn_radius / agent.radar_radius
+
+        # obj.fuel / agent.options.aircraft_fuel_capacity,  # 8
+        # obj.radar_radius / agent.radar_radius,  # 9
+        # obj.missile_count / agent.options.aircraft_missile_count,  # 10
 
         # if obj.color != agent.color:
         #     if agent.options.obs_ignore_enemy_fuel:
@@ -106,26 +97,6 @@ class ObsUtils:
         #     if agent.options.obs_ignore_enemy_missile_count:
         #         # 不知道敌机的剩余导弹数
         #         obs[10] = -1
-        return obs
-
-    @classmethod
-    def gen_home_obs(cls, agent: Aircraft, obj: Home):
-        rel_pt = agent.waypoint.relative_polar_waypoint(other=obj.waypoint)
-        obs = cls.empty_obs_line()
-        obs[0] = OBJECT_TO_IDX[obj.type]
-        obs[1] = int(obj.color != agent.color)
-        obs[2] = int(obj.destroyed)
-        obs[3] = rel_pt.r / agent.radar_radius
-        obs[4] = np.deg2rad(rel_pt.theta)
-        return obs
-
-    def gen_bullseye_obs(self, agent: Aircraft, obj: Bullseye):
-        rel_pt = agent.waypoint.relative_polar_waypoint(other=obj.waypoint)
-        obs = self.empty_obs_line()
-        obs[0] = OBJECT_TO_IDX[obj.type]
-        obs[2] = int(obj.destroyed)
-        obs[3] = rel_pt.r / agent.radar_radius
-        obs[4] = np.deg2rad(rel_pt.theta)
         return obs
 
     @classmethod
@@ -148,13 +119,13 @@ class ObsUtils:
                 obs[8] = -1
         return obs
 
-    def gen_obs(self, agent_name: str):
+    def gen_obs(self):
         """
         获取agent视角的obs
         注意这里的坐标用相对极坐标来表示
         :return: np.ndarray
         """
-        agent = self.battle_area.get_agent(agent_name)
+        agent = self.battle_area.get_agent(self.agent_name)
         obs = np.zeros(self.observation_space.shape)
 
         obs[0, :] = self.gen_self_obs(agent)
@@ -181,17 +152,8 @@ class ObsUtils:
             if agent.options.obs_allow_memory:
                 self.cache[f'{agent.name}-{obj.name}'] = obj.__copy__()
 
-        # # 基地默认是知道的（不考虑雷达）
-        # for obj in self.battle_area.homes:
-        #     obs[index, :] = self.gen_home_obs(agent=agent, obj=obj)
-        #     index += 1
-
-        # # 牛眼
-        # obs[index, :] = self.gen_bullseye_obs(agent=agent, obj=self.battle_area.bullseye)
-        # index += 1
-
         # 导弹
-        missiles = self.battle_area.detect_missiles(agent_name=agent_name, ignore_radar=False, only_enemy=True)
+        missiles = self.battle_area.detect_missiles(agent_name=self.agent_name, ignore_radar=False, only_enemy=True)
         for obj in missiles:
             if obj.destroyed:
                 continue
@@ -203,6 +165,35 @@ class ObsUtils:
             obs[index, :] = self.gen_missile_obs(agent=agent, obj=obj)
             index += 1
 
+        return obs
+
+    # # 基地默认是知道的（不考虑雷达）
+    # for obj in self.battle_area.homes:
+    #     obs[index, :] = self.gen_home_obs(agent=agent, obj=obj)
+    #     index += 1
+
+    # # 牛眼
+    # obs[index, :] = self.gen_bullseye_obs(agent=agent, obj=self.battle_area.bullseye)
+    # index += 1
+
+    def gen_bullseye_obs(self, agent: Aircraft, obj: Bullseye):
+        rel_pt = agent.waypoint.relative_polar_waypoint(other=obj.waypoint)
+        obs = self.empty_obs_line()
+        obs[0] = OBJECT_TO_IDX[obj.type]
+        obs[2] = int(obj.destroyed)
+        obs[3] = rel_pt.r / agent.radar_radius
+        obs[4] = np.deg2rad(rel_pt.theta)
+        return obs
+
+    @classmethod
+    def gen_home_obs(cls, agent: Aircraft, obj: Home):
+        rel_pt = agent.waypoint.relative_polar_waypoint(other=obj.waypoint)
+        obs = cls.empty_obs_line()
+        obs[0] = OBJECT_TO_IDX[obj.type]
+        obs[1] = int(obj.color != agent.color)
+        obs[2] = int(obj.destroyed)
+        obs[3] = rel_pt.r / agent.radar_radius
+        obs[4] = np.deg2rad(rel_pt.theta)
         return obs
 
     # def gen_global_obs(self):

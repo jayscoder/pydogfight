@@ -1,7 +1,7 @@
 base: scripts/v6/base.yaml
 title: '[V6] greedy vs greedy'
 policy:
-    red: scripts/v6/greedy.xml # 红方行为树
+    red: scripts/v6/policy/greedy.xml # 红方行为树
 options:
 #     train: true # 是否开启训练
 context: # 行为树环境变量，可以在行为树中通过{{}}来传递

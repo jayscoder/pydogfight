@@ -176,12 +176,12 @@ def _main():
         plt.plot(hit_point.point[0], hit_point.point[1], 'kx')
 
         hit_param = calc_optimal_path(missile, hit_point.point, missile_turn_radius)
-        hit_path = hit_param.generate_traj(1)
+        hit_path = hit_param.build_route(1)
 
         plt.plot(hit_path[:, 0], hit_path[:, 1], 'b-')
 
         enemy_param = calc_optimal_path(enemy, hit_point.point, enemy_turn_radius)
-        enemy_path = enemy_param.generate_traj(1)
+        enemy_path = enemy_param.build_route(1)
         plt.plot(enemy_path[:, 0], enemy_path[:, 1], 'b-')
 
         print('hit_path', hit_path.shape)

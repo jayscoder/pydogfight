@@ -24,15 +24,16 @@ class Dogfight2dEnv(gym.Env):
         # "render_fps"  : 50,
     }
 
-    def __init__(self,
-                 options: Options = Options(),
-                 render_mode: str | None = None):
+    def __init__(self, options: Options = Options()):
         super().__init__()
         options.validate()
-        self.render_mode = render_mode
+        self.render_mode = 'human' if options.render else ''
         self.options = options
         self.battle_area = BattleArea(options=options, render_mode=self.render_mode)
-        self.obs_utils = ObsUtils(battle_area=self.battle_area)
+
+        self.obs_utils_dict = { }
+        for agent_name in options.agents():
+            self.obs_utils_dict[agent_name] = ObsUtils(battle_area=self.battle_area, agent_name=agent_name)
 
         # (action_type, x, y)
         self.action_space_low = np.array([0, -options.game_size[1] / 2, -options.game_size[1] / 2])
@@ -52,15 +53,8 @@ class Dogfight2dEnv(gym.Env):
                 shape=(3,),
         )
 
-        # type, color, destroyed, x, y, psi, speed, missile_count, fuel, radar_radius
-        # self.observation_space = gym.spaces.Box(
-        #         low=-options.game_size[0] / 2,
-        #         high=options.game_size[0] / 2,
-        #         shape=(len(options.agents()) + 3 + 7, 11),  # 最多同时记录所有飞机、基地、牛眼和7个导弹的信息
-        #         dtype=np.float32)
-        self.observation_space = self.obs_utils.observation_space
-        # type, is_enemy, destroyed, r, theta, psi, speed, missile_count, fuel, radar_radius
-        self.agent_observation_space = self.obs_utils.observation_space
+        self.observation_space = self.obs_utils_dict[options.red_agents[0]].observation_space
+        self.agent_observation_space = self.obs_utils_dict[options.red_agents[0]].observation_space
 
         self.screen = None
         # self.clock # pygame.time.Clock
@@ -68,17 +62,17 @@ class Dogfight2dEnv(gym.Env):
         self.paused = False  # 是否暂停
 
         self.last_render_time = 0
-        self.last_update_time = 0
-        self.step_count = 0
+        self.last_update_nanotime = 0
 
         self.game_info = {
-            'round'           : 0,  # 第几轮
+            'episode'         : 0,  # 第几轮
             'red_wins'        : 0,
             'blue_wins'       : 0,
             'draws'           : 0,  # 平局几次
             'truncated_count' : 0,
             'terminated_count': 0,
             'accum_time'      : 0,  # 累积时间
+            'time'            : 0,  # 对战时间
         }  # 游戏对战累积数据，在reset的时候更新，同时也会渲染在屏幕上
 
         # TODO 敌人的heatmap
@@ -107,6 +101,10 @@ class Dogfight2dEnv(gym.Env):
     def time(self):
         return self.battle_area.time
 
+    @property
+    def episode(self):
+        return self.battle_area.episode
+
     def get_agent(self, name) -> Aircraft:
         obj = self.battle_area.get_obj(name)
         assert isinstance(obj, Aircraft)
@@ -114,6 +112,8 @@ class Dogfight2dEnv(gym.Env):
 
     def update_game_info(self, total: bool = False):
         self.game_info['time'] = int(self.battle_area.time)
+        self.game_info['accum_time'] = int(self.battle_area.accum_time)
+        self.game_info['episode'] = self.battle_area.episode
 
         if total:
             KEYS = [
@@ -150,24 +150,19 @@ class Dogfight2dEnv(gym.Env):
             handler(self)
 
         info = self.gen_info()
+
         if info['winner'] == 'red':
             self.game_info['red_wins'] += 1
         elif info['winner'] == 'blue':
             self.game_info['blue_wins'] += 1
         elif info['winner'] == 'draw':
             self.game_info['draws'] += 1
-        self.game_info['round'] += 1
         if info['truncated']:
             self.game_info['truncated_count'] += 1
         if info['terminated']:
             self.game_info['terminated_count'] += 1
 
-        self.game_info['accum_time'] += self.time
-
         super().reset(seed=seed)
-
-        self.step_count = 0
-
         self.battle_area.reset()
 
         if self.render_mode == "human":
@@ -179,7 +174,7 @@ class Dogfight2dEnv(gym.Env):
                         self.options.screen_size,
                         pygame.HWSURFACE | pygame.DOUBLEBUF | pygame.RESIZABLE)
                 self.screen.fill((255, 255, 255))
-                pygame.display.set_caption("dogfight")
+                pygame.display.set_caption(self.options.title)
             # if self.clock is None:
             #     self.clock = pygame.time.Clock()
             self.render()
@@ -187,13 +182,14 @@ class Dogfight2dEnv(gym.Env):
         for handler in self.after_reset_handlers:
             handler(self)
 
+        self.update_game_info()
         return self.gen_obs(), self.gen_info()
 
     def gen_obs(self):
         if self.options.self_side == 'red':
-            return self.obs_utils.gen_obs(agent_name=self.options.red_agents[0])
+            return self.gen_agent_obs(self.options.red_agents[0])
         else:
-            return self.obs_utils.gen_obs(agent_name=self.options.blue_agents[0])
+            return self.gen_agent_obs(self.options.blue_agents[0])
 
     def gen_agent_obs(self, agent_name: str):
         """
@@ -202,7 +198,7 @@ class Dogfight2dEnv(gym.Env):
         :param agent_name:
         :return:
         """
-        return self.obs_utils.gen_obs(agent_name=agent_name)
+        return self.obs_utils_dict[agent_name].gen_obs()
 
     def gen_info(self) -> dict:
         info = {
@@ -212,7 +208,7 @@ class Dogfight2dEnv(gym.Env):
             'time'        : self.time,
             'remain_count': self.battle_area.remain_count,
             'red_reward'  : self.gen_reward(color='red', previous=0),
-            'blue_reward' : self.gen_reward(color='blue', previous=0)
+            'blue_reward' : self.gen_reward(color='blue', previous=0),
         }
         return info
 
@@ -233,8 +229,7 @@ class Dogfight2dEnv(gym.Env):
         next_time = self.battle_area.time + self.options.update_interval
         while self.battle_area.time < next_time:
             self.battle_area.update()
-        if self.render_mode == 'human':
-            self.last_update_time = time.time()
+        self.last_update_nanotime = time.perf_counter_ns()
         self.update_game_info(total=self.render_mode == 'human')
         for handler in self.after_update_handlers:
             handler(self)
@@ -255,7 +250,6 @@ class Dogfight2dEnv(gym.Env):
         :param action: 所有动作
         :return:
         """
-        self.step_count += 1
         self.put_action(action)
         old_info = self.gen_info()
         self.update()  # 更新环境
@@ -324,9 +318,9 @@ class Dogfight2dEnv(gym.Env):
         if self.paused:
             return
         if self.render_mode == 'human':
-            time_passed = (time.time() - self.last_update_time) * self.options.simulation_rate
+            nanotime_passed = (time.perf_counter_ns() - self.last_update_nanotime)  # 真实世界过去1s
             # print('should_update', time_passed, 'seconds')
-            return time_passed >= self.options.update_interval
+            return nanotime_passed >= self.options.update_interval / self.options.simulation_rate * 1e9
         else:
             return True
 

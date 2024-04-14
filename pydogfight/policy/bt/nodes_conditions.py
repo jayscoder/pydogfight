@@ -140,7 +140,7 @@ class IsOnActiveRoute(BTPolicyNode, pybts.Condition):
     """
 
     def update(self) -> Status:
-        if self.agent.route is not None:
+        if self.agent.render_route is not None:
             return Status.SUCCESS
         return Status.FAILURE
 

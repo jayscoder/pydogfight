@@ -9,15 +9,34 @@ class BattleArea:
     def __init__(self, options: Options, render_mode: str = 'rgb_array'):
         self.options = options
         self.size = options.game_size
-        self.time = 0  # 对战累积时长
+        self.time = 0  # 对战时长
+        self.accum_time = 0  # 对战累积时长
+        self.episode = 0  # 对战局次
         self.objs: dict[str, WorldObj] = { }
         self.render_mode = render_mode
         self.cache = { }  # 缓存
+        self.winner_count = {
+            'red' : 0,
+            'blue': 0,
+            'draw': 0,
+        }
 
     def reset(self):
+        # 保存状态
+        if self.time > 0:
+            self.accum_time += self.time
+            winner = self.winner
+            if winner != '':
+                self.winner_count[winner] += 1
+            self.episode += 1
+
+        # 清空
+
         self.time = 0
         self.objs.clear()
         self.cache.clear()
+
+        # 加载
 
         assert self.options.red_home != ''
         assert self.options.blue_home != ''

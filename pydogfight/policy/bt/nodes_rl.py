@@ -11,7 +11,7 @@ from typing import Any, SupportsFloat, Union
 from gymnasium.core import ActType, ObsType
 from py_trees.common import Status
 from pybts.composites import Composite, Selector, Sequence
-from stable_baselines3 import PPO, SAC, HER
+from stable_baselines3 import PPO, SAC, HerReplayBuffer, DQN, DDPG, TD3
 import py_trees
 import gymnasium as gym
 from pybts.rl import RLBaseNode
@@ -21,14 +21,25 @@ from pydogfight.core.actions import Actions
 
 
 class RLNode(BTPolicyNode, RLBaseNode, ABC):
+    """
+
+    deterministic:
+        true: 确定性动作意味着对于给定的状态或观测，策略总是返回相同的动作。没有随机性或变化性涉及，每次给定相同的输入状态，输出（即动作）总是一样的。
+            在实际应用中，确定性选择通常用于部署阶段，当你希望模型表现出最稳定、可预测的行为时，例如在测试或实际运行环境中。
+        false: 随机性动作则意味着策略在给定的状态下可能产生多种可能的动作。这通常是通过策略输出的概率分布实现的，例如，一个使用softmax输出层的神经网络可能会对每个可能的动作分配一个概率，然后根据这个分布随机选择动作。
+            随机性在训练阶段特别有用，因为它可以增加探索，即允许代理（agent）尝试和学习那些未必立即最优但可能长期更有益的动作。这有助于策略避免陷入局部最优并更全面地学习环境。
+    """
 
     def __init__(self,
                  path: str = '',
-                 algo: str | BaseAlgorithm = 'PPO',
+                 algo: str = 'PPO',
                  reward_scope: str = '',
-                 save_interval: int | str = 30,
                  tensorboard_log: typing.Optional[str] = None,
                  log_interval: int | str = 10,
+                 save_path: str = '',  # 空代表在path那里保存
+                 save_interval: int | str = 10,
+                 deterministic: bool | str = False,
+                 train: bool | str = False,
                  **kwargs
                  ):
         super().__init__(**kwargs)
@@ -37,8 +48,11 @@ class RLNode(BTPolicyNode, RLBaseNode, ABC):
         self.reward_scope = reward_scope  # 如果scope设置成default或其他不为空的值，则认为奖励要从context.rl_reward[scope]中拿
         self.path = path
         self.tensorboard_log = tensorboard_log
-        self.save_interval = save_interval
         self.log_interval = log_interval
+        self.save_path = save_path
+        self.save_interval = save_interval
+        self.deterministic = deterministic
+        self.train = train
 
     def to_data(self):
         return {
@@ -54,16 +68,11 @@ class RLNode(BTPolicyNode, RLBaseNode, ABC):
     def rl_policy(self) -> Union[str, typing.Type[ActorCriticPolicy]]:
         return ActorCriticPolicy
 
+    def rl_model_args(self) -> dict:
+        return { }
+
     def setup(self, **kwargs: typing.Any) -> None:
         super().setup(**kwargs)
-        if isinstance(self.algo, str):
-            print(self.context)
-            self.algo = self.converter.render(self.algo)
-            self.algo = {
-                'PPO': PPO,
-                'SAC': SAC,
-                'HER': HER
-            }[self.algo.upper()]
 
         self.path = self.converter.render(
                 value=self.path,
@@ -75,31 +84,73 @@ class RLNode(BTPolicyNode, RLBaseNode, ABC):
         self.save_interval = self.converter.int(self.save_interval)
         self.log_interval = self.converter.int(self.log_interval)
 
-        args = { }
+        self.algo = self.converter.render(self.algo).upper()
+
+        args = self.rl_model_args()
         for key in ['batch_size', 'n_steps', 'learning_starts', 'verbose']:
             if key in self.attrs:
                 args[key] = self.converter.int(self.attrs[key])
-        
-        if isinstance(self.algo, PPO.__class__):
+
+        self.setup_model(algo=self.algo, **args)
+
+    def setup_model(self, algo: str, **kwargs):
+        if algo == 'PPO':
             self.rl_setup_model(
                     model_class=PPO,
-                    train=self.env.options.train,
+                    train=True,
                     path=self.path,
                     tensorboard_log=self.tensorboard_log,
                     tb_log_name=self.agent_name,
-                    **args
+                    **kwargs
             )
-        elif isinstance(self.algo, SAC.__class__):
+        elif algo == 'SAC':
             self.rl_setup_model(
                     model_class=SAC,
-                    train=self.env.options.train,
+                    train=True,  # 在训练过程中可能会开/闭某个节点的训练，所以一开始初始化都默认开启训练
                     path=self.path,
                     tensorboard_log=self.tensorboard_log,
                     tb_log_name=self.agent_name,
-                    **args
+                    **kwargs
+            )
+        elif algo == 'SAC-HER':
+            self.rl_setup_model(
+                    model_class=SAC,
+                    train=True,
+                    path=self.path,
+                    replay_buffer_class=HerReplayBuffer,
+                    replay_buffer_kwargs=dict(
+                            n_sampled_goal=4,
+                            goal_selection_strategy='future',
+                    ),
+                    tensorboard_log=self.tensorboard_log,
+                    tb_log_name=self.agent_name,
+                    **kwargs
+            )
+        elif algo == 'TD3':
+            self.rl_setup_model(
+                    model_class=TD3,
+                    train=True,
+                    path=self.path,
+                    tensorboard_log=self.tensorboard_log,
+                    tb_log_name=self.agent_name,
+                    **kwargs
+            )
+        elif algo == 'TD3-HER':
+            self.rl_setup_model(
+                    model_class=TD3,
+                    train=True,
+                    path=self.path,
+                    replay_buffer_class=HerReplayBuffer,
+                    replay_buffer_kwargs=dict(
+                            n_sampled_goal=4,
+                            goal_selection_strategy='future',
+                    ),
+                    tensorboard_log=self.tensorboard_log,
+                    tb_log_name=self.agent_name,
+                    **kwargs
             )
         else:
-            raise Exception('Unsupported algo type {}'.format(type(self.algo)))
+            raise Exception(f'Unsupported algo type {algo}')
 
     def rl_env(self) -> gym.Env:
         return self.env
@@ -128,27 +179,37 @@ class RLNode(BTPolicyNode, RLBaseNode, ABC):
         info = self.env.gen_info()
         return info['terminated'] or info['truncated'] or not self.env.isopen
 
-    def reset(self):
-        if self.env.options.train:
-            self.rl_model.logger.record("reward/round", self.rl_reward)
-            self.rl_model.logger.record("wins/round", self.env.game_info[f'{self.agent.color}_wins'])
-            self.rl_model.logger.record("loses/round", self.env.game_info[f'{self.agent.enemy_color}_wins'])
-            self.rl_model.logger.record("draws/round", self.env.game_info['draws'])
-            self.rl_model.logger.record("destroyed_count/round", self.agent.destroyed_count)
-            self.rl_model.logger.record("missile_hit_enemy_count/round", self.agent.missile_hit_enemy_count)
-            self.rl_model.logger.record("missile_miss_count/round", self.agent.missile_miss_count)
-            self.rl_model.logger.record("missile_evade_success_count/round", self.agent.missile_evade_success_count)
-            self.rl_model.logger.record("collided_aircraft_count/round", self.agent.aircraft_collided_count)
+    def rl_device(self) -> str:
+        return self.env.options.device
 
+    def reset(self):
+        self.rl_model.logger.record("episode", self.env.episode)
+        self.rl_model.logger.record("returns", self.rl_accum_reward)
+        self.rl_model.logger.record("wins", self.env.game_info[f'{self.agent.color}_wins'])
+        self.rl_model.logger.record("loses", self.env.game_info[f'{self.agent.enemy_color}_wins'])
+        self.rl_model.logger.record("draws", self.env.game_info['draws'])
+        self.rl_model.logger.record("destroyed_count", self.agent.destroyed_count)
+        self.rl_model.logger.record("missile_hit_enemy_count", self.agent.missile_hit_enemy_count)
+        self.rl_model.logger.record("missile_miss_count", self.agent.missile_miss_count),
+        self.rl_model.logger.record("missile_hit_self_count", self.agent.missile_hit_self_count),
+        self.rl_model.logger.record("missile_fired_count", self.agent.missile_fired_count),
+        self.rl_model.logger.record("missile_evade_success_count", self.agent.missile_evade_success_count)
+        self.rl_model.logger.record("aircraft_collided_count", self.agent.aircraft_collided_count)
+
+        if self.env.episode > 0 and self.env.episode % self.converter.int(self.save_interval) == 0:
+            save_path = self.converter.render(self.save_path)
+            if save_path == '':
+                save_path = self.path
+            self.rl_model.save(path=save_path)
+        
         super().reset()
         RLBaseNode.reset(self)
 
     def take_action(self):
         return self.rl_take_action(
-                train=self.env.options.train,
+                train=self.converter.bool(self.train),
                 log_interval=self.log_interval,
-                save_interval=self.save_interval,
-                save_path=self.path
+                deterministic=self.converter.bool(self.deterministic)
         )
 
 
@@ -342,12 +403,7 @@ class RLAction(RLNode):
         )
 
     def update(self) -> Status:
-        action = self.rl_take_action(
-                train=self.env.options.train,
-                log_interval=self.log_interval,
-                save_interval=self.save_interval,
-                save_path=self.path
-        )
+        action = self.take_action()
 
         new_wpt = self.agent.waypoint.move(
                 d=action[1] * self.agent.radar_radius,

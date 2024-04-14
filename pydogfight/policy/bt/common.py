@@ -9,6 +9,7 @@ import pybts
 from pybts import Status
 import os
 import numpy as np
+from pydogfight.utils.models import *
 
 
 def delay_updater(env: Dogfight2dEnv, time: float, status: Status) -> typing.Optional[Status]:
@@ -24,11 +25,17 @@ def delay_updater(env: Dogfight2dEnv, time: float, status: Status) -> typing.Opt
         yield status
 
 
-def go_to_location_updater(self: BTPolicyNode, location: tuple[float, float] | np.ndarray | list[float],
-                           keep_time: int = 10) -> \
+def go_to_location_updater(
+        self: BTPolicyNode, location: tuple[float, float] | np.ndarray | list[float] | Waypoint,
+        keep_time: int = 0) -> \
         typing.Optional[Status]:
     start_time = self.env.time
+    if isinstance(location, Waypoint):
+        location = location.location
     self.actions.put_nowait((Actions.go_to_location, location[0], location[1]))
+    if keep_time <= 0:
+        yield Status.SUCCESS
+        return
     yield Status.RUNNING
     while not self.agent.is_reach_location(location):
         yield Status.RUNNING

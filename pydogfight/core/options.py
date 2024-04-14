@@ -8,8 +8,10 @@ from pydogfight.utils.models import *
 
 
 class Options:
-    debug: bool = True
+    title: 'str' = 'Dogfight'
 
+    debug: bool = True
+    render: bool = False
     ### 实体设置 ###
     red_agents = ['red']
     blue_agents = ['blue']
@@ -31,7 +33,8 @@ class Options:
     render_fps = 50  # 渲染的fps
     delta_time = 0.1  # 每次env的更新步长
     update_interval = 1  # 每轮策略更新的时间间隔
-    simulation_rate = 100.0  # 仿真的速率倍数，越大代表越快，update_interval内更新几次（仅在render_mode=human模式下生效）
+    simulation_rate = 100.0  # 仿真的时间倍数，真实世界的1s对应游戏世界的多长时间
+
     reach_location_threshold = 2  # 用来判断是否接近目标点的时间片尺度（乘以delta_time*速度后就能得出距离多近就算到达目标点）
 
     def reach_location_interval(self):
@@ -76,7 +79,7 @@ class Options:
     aircraft_predict_distance = aircraft_speed * 5  # 预测未来5秒的位置
 
     # aircraft_radar_radius = 1e4  # 雷达半径 10km
-    aircraft_radar_radius = 1e4  # 雷达半径 10km
+    aircraft_radar_radius = 15000  # 雷达半径 10km
 
     aircraft_fire_missile_interval = 15  # 发射导弹时间间隔
 
@@ -103,7 +106,7 @@ class Options:
         """导弹飞行时长"""
         return self.missile_fuel_capacity / self.missile_fuel_consumption_rate
 
-    missile_reroute_interval = 1  # 导弹重新规划路径时间间隔
+    missile_reroute_interval = 0.1  # 导弹重新规划路径时间间隔
     missile_fire_interval = 5  # 每隔5 s最多发射一枚导弹
 
     missile_can_only_hit_enemy: bool = True  # 导弹是否只能攻击敌方（如果设为False，则导弹可以打中友方）
@@ -124,12 +127,12 @@ class Options:
     lose_reward = -100  # 失败奖励
     draw_reward = -100  # 平局奖励
     step_reward = -0.1  # 每步的惩罚
+    device: str = 'cpu'  # 训练使用的设备 cpu/mps/cuda
 
     # missile_hit_enemy_reward = 100  # 导弹命中敌机的奖励
     # missile_hit_self_reward = -100  # 被导弹命中的奖励
     # missile_miss_reward = -10  # 导弹没有命中的奖励
     # fuel_depletion_reward = -100 # 燃油耗尽奖励
-    train = False  # 是否是训练模式
 
     status_reward = {  # 状态奖励
         'SUCCESS': 0,

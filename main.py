@@ -7,6 +7,7 @@ from pydogfight import Options
 import time
 import json
 
+
 def main_parser():
     parser = argparse.ArgumentParser()
     # 批量执行脚本
@@ -31,9 +32,9 @@ def main_parser():
     if args.episodes > 0:
         config['episodes'] = args.episodes
     if args.render:
-        config['render'] = True
+        config = utils.merge_config(config, { 'options': { 'render': True } })
     if args.train:
-        config = utils.merge_config(config, { 'options': { 'train': True } })
+        config = utils.merge_config(config, { 'context': { 'train': True } })
     if args.models_dir:
         config = utils.merge_config(config, { 'context': { 'models_dir': args.models_dir } })
     if args.red:
@@ -45,6 +46,7 @@ def main_parser():
 
     manager = utils.create_manager(config=config)
     manager.run(config['episodes'])
+
 
 if __name__ == '__main__':
     main_parser()

@@ -119,7 +119,7 @@ class Waypoint:
                 start=self,
                 target=target,
                 turn_radius=turn_radius
-        ).next_wpt(step=d)
+        ).next_waypoint(length=d)
         if next_wpt is None:
             return self.__copy__()
         return next_wpt

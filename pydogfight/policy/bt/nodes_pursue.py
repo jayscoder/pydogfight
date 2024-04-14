@@ -372,16 +372,3 @@ class AutoPursueNearestEnemy(BTPolicyNode):
                 agent=self.agent
         ))
 
-
-class CheatGoToNearestEnemy(BTPolicyNode):
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
-    def updater(self) -> typing.Iterator[Status]:
-        enemy = self.env.battle_area.detect_aircraft(agent_name=self.agent_name, ignore_radar=True, only_enemy=True)
-        if len(enemy) == 0:
-            yield Status.FAILURE
-            return
-
-        yield from go_to_location_updater(self, location=enemy[0].waypoint.location, keep_time=5)

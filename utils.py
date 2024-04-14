@@ -41,12 +41,13 @@ TEMPLATE_CONFIG = {
     'title'   : '',
     'desc'    : '',
     'output'  : 'output/default',
-    'render'  : False,
     'episodes': 100,
     'track'   : 100,
     'policy'  : {
     },
-    'options' : { },
+    'options' : {
+        'render': False
+    },
     'context' : { }
 }
 
@@ -57,6 +58,9 @@ def read_config(path: str):
         config = list(yaml.load_all(f, Loader=yaml.FullLoader))[0]
     if 'base' in config:
         config = merge_config(read_config(config['base']), config)
+
+    if config['options'].get('title') is None and config.get('title') is not None:
+        config['options']['title'] = config['title']
     return config
 
 
@@ -76,10 +80,14 @@ class BTManager:
     """用来做训练/测试，保存运行的数据"""
 
     def __init__(self, config: dict, builder: pybts.Builder):
+        self.title = config.get('title', config['output'])
+        self.desc = config.get('desc', '')
+
         options = Options()
         if 'options' in config:
             options.load_dict(config['options'])
-        env = Dogfight2dEnv(options=options, render_mode='human' if config['render'] else '')
+
+        env = Dogfight2dEnv(options=options)
         env.reset()
         self.config = config
 
@@ -100,8 +108,6 @@ class BTManager:
         self.write('builder.json', self.builder.repo_desc)
 
         self.policies: list[Policy] = []
-        self.title = config.get('title', config['output'])
-        self.desc = config.get('desc', '')
 
         for agent_name in options.agents():
             agent_color = 'red' if agent_name in options.red_agents else 'blue'
@@ -147,8 +153,8 @@ class BTManager:
 
         def before_env_reset(env: Dogfight2dEnv):
             """保存环境的一些数据"""
-            self.write(self.env_round_file(f'{agent_name}.xml'), self.bt_to_xml(tree.root))
-            self.write(self.env_round_file(f'{agent_name}-context.json'), tree.context)
+            self.write(self.episode_file(f'{agent_name}.xml'), self.bt_to_xml(tree.root))
+            self.write(self.episode_file(f'{agent_name}-context.json'), tree.context)
             env.update_game_info(total=True)
             board.track({
                 **env.game_info,
@@ -185,7 +191,7 @@ class BTManager:
         for agent in self.env.battle_area.agents:
             for policy in self.policies:
                 if isinstance(policy, BTPolicy) and policy.agent_name == agent.name:
-                    rl_reward = policy.tree.context['rl_reward']
+                    rl_reward = policy.tree.context['reward']
                     for k, v in rl_reward.items():
                         color_dict[policy.agent.color] += v
                         color_dict[f'{policy.agent.color}_{k}'] += v
@@ -193,12 +199,13 @@ class BTManager:
             self.env.game_info[f'reward_{k}'] = v
 
     def run(self, episodes: int):
+        print('开始', self.config)
         env = self.env
 
         self.update_game_info()
 
         policy = MultiAgentPolicy(policies=self.policies)
-        pbar = tqdm(total=episodes, desc=f'{self.title} -> {self.output_runtime} {episodes}')
+        pbar = tqdm(total=episodes, desc=f'{self.title}[{self.output_runtime}]')
 
         start_time = time.time()
         for episode in range(episodes):
@@ -222,11 +229,11 @@ class BTManager:
 
             self.update_game_info()
 
-            self.write(self.env_round_file('env_info.json'), env.gen_info())
-            self.write(self.env_round_file('game_info.json'), env.game_info)
+            self.write(self.episode_file('env_info.json'), env.gen_info())
+            self.write(self.episode_file('game_info.json'), env.game_info)
 
             for agent in self.env.battle_area.agents:
-                self.write(self.env_round_file(f'{agent.name}.json'), agent.to_dict())
+                self.write(self.episode_file(f'{agent.name}.json'), agent.to_dict())
 
             cost_time = time.time() - start_time
             self.write(f'env.json', {
@@ -238,29 +245,32 @@ class BTManager:
             pbar.update(1)
             pbar.set_postfix(
                     {
-                        'returns'      : f'{self.env.game_info["reward_red"]} vs {self.env.game_info["reward_blue"]}',
-                        'wins'         : f'{self.env.game_info["red_wins"]} vs {self.env.game_info["blue_wins"]}',
-                        'draws'        : f'{self.env.game_info["draws"]}',
-                        'time'         : int(env.time),
-                        'missile_fired': self.env.game_info["missile_fired_count"],
-                        'missile_miss' : self.env.game_info['missile_miss_count'],
-                        'missile_hit'  : f'{self.env.game_info["missile_hit_enemy_count"]}'
+                        'returns' : f'{self.env.game_info["reward_red"]:.2f} vs {self.env.game_info["reward_blue"]:.2f}',
+                        'wins'    : f'{self.env.game_info["red_wins"]} vs {self.env.game_info["blue_wins"]}',
+                        'draws'   : f'{self.env.game_info["draws"]}',
+                        'winner'  : self.env.battle_area.winner,
+                        'time'    : f'{int(env.time)}/{env.battle_area.accum_time:.0f}',
+                        'mis_fire': self.env.game_info["missile_fired_count"],
+                        'mis_miss': self.env.game_info['missile_miss_count'],
+                        'mis_hit' : f'{self.env.game_info["missile_hit_enemy_count"]}'
                         # 'collided_aircraft_count'    : self.env.game_info['collided_aircraft_count'],
                         # 'missile_fire_fail_count'    : self.env.game_info['missile_fire_fail_count']
                     })
+            print()
+            self.write(f'run-{episodes}.txt', f'{episode}: {pbar.postfix}\n', 'a')
 
-            self.write(f'run-{episode}-{episodes}.txt', f'{episode}/{episodes}')
-            self.delete(f'run-{episode - 1}-{episodes}.txt')
+        cost_time = time.time() - start_time
+        self.write(f'耗时={cost_time:.0f}.txt', f'耗时: {cost_time:.2f} 秒')
 
-    def env_round_file(self, file: str):
-        return os.path.join('env', str(self.env.game_info['round']), file)
+    def episode_file(self, file: str):
+        return os.path.join('episodes', str(self.env.game_info['episode']), file)
 
-    def write(self, path: str, content: str | dict) -> None:
+    def write(self, path: str, content: str | dict, mode='w') -> None:
         path = os.path.join(self.output_runtime, path)
         dir_path = os.path.dirname(path)
         if not os.path.exists(dir_path):
             os.makedirs(dir_path, exist_ok=True)
-        with open(path, 'w', encoding='utf-8') as f:
+        with open(path, mode, encoding='utf-8') as f:
             if isinstance(content, str):
                 f.write(content)
             else:

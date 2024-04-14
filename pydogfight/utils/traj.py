@@ -17,7 +17,7 @@ class OptimalPathParam:
 
     length = float('inf')  # 航迹长度
     turn_angle = 0
-    turn_length = 0
+    turn_length = 0 # 转弯长度
     turn_point = None  # 拐点
     turn_center = None  # 拐弯的圆心
     direct_length = 0
@@ -40,30 +40,30 @@ class OptimalPathParam:
             f'direct_length: {self.direct_length}',
         ])
 
-    def next_wpt(self, step: float) -> Waypoint | None:
+    def next_waypoint(self, length: float) -> Waypoint | None:
         """
         生成下一步的航迹
-        :param step: 步长
+        :param length: 步长
         :return:
         """
-        if self.length == float('inf'):
+        if self.length == float('inf') or self.length == 0:
             return None
 
-        turn_points_count = int(np.floor(self.turn_length / step))
-        direct_points_count = int(np.floor(self.direct_length / step))
-
         # 先生成拐弯的点
-        if turn_points_count > 0:
+        if length < self.turn_length:
+            # 拐弯
             init_theta = math.atan2(self.start.y - self.turn_center[1], self.start.x - self.turn_center[0])
-            curr_turn_rad = np.deg2rad(self.turn_angle) / turn_points_count
+            curr_turn_rad = np.deg2rad(self.turn_angle) * length / self.turn_length
             x = self.turn_center[0] + (self.turn_radius * np.cos(init_theta + curr_turn_rad))
             y = self.turn_center[1] + (self.turn_radius * np.sin(init_theta + curr_turn_rad))
             psi = self.start.psi - np.rad2deg(curr_turn_rad)
             return Waypoint.build(x=x, y=y, psi=psi)
 
+        length -= self.turn_length
+
         # 生成直线点
-        if direct_points_count > 0:
-            curr_direct_length = self.direct_length / direct_points_count
+        if self.direct_length > 0:
+            curr_direct_length = self.direct_length * length / self.direct_length
             target_rad = np.deg2rad(90 - self.target.psi)
             x = self.turn_point[0] + curr_direct_length * np.cos(target_rad)
             y = self.turn_point[1] + curr_direct_length * np.sin(target_rad)
@@ -72,7 +72,7 @@ class OptimalPathParam:
 
         return None
 
-    def generate_traj(self, step: float) -> np.ndarray | None:
+    def build_route(self, step: float) -> np.ndarray | None:
         """
         生成最优航迹
         :param step: 每一步的长度
@@ -80,6 +80,13 @@ class OptimalPathParam:
         """
         if self.length == float('inf'):
             return
+
+        # counts = int(self.length / step)
+        # traj = []
+        # for i in range(counts):
+        #     traj.append(self.next_waypoint(step * (i + 1)).data)
+        # return np.array(traj)
+
 
         turn_points_count = int(np.floor(self.turn_length / step))
         direct_points_count = int(np.floor(self.direct_length / step))
@@ -206,7 +213,7 @@ def test_bench():
         start = Waypoint.build(16045.390142119586, 14000.726933966973, 117)
         target = (-12187, 7000)
         param = calc_optimal_path(start, target, 5000)
-        param.generate_traj(step=1)
+        param.build_route(step=1)
     end_time = time.time()
     cost_time = end_time - start_time
     print("One Time: " + str(cost_time / N))  # v1: 0.065 v2: 0.032 v3: 0.0008
@@ -221,7 +228,7 @@ def test_main():
     target = (-10, 10)
     param = calc_optimal_path(start, target, 1)
     if param.length != float('inf'):
-        path = param.generate_traj(step=1)
+        path = param.build_route(step=1)
         print(param)
         print('path shape', path.shape)
         # Plot the results
