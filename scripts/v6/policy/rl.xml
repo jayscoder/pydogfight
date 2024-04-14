@@ -5,7 +5,7 @@
     <ReactiveSequence>
         <CanFireMissile/>
         <CustomRLCondition
-                algo="{{rl_algo}}"
+                algo="ppo"
                 reward_scope="attack"
                 path="{{models_dir}}/models/{{models_episode}}/{{agent_name}}/CustomRLCondition"
                 tensorboard_log="{{output}}/{{runtime}}/{{agent_name}}/CustomRLCondition"
