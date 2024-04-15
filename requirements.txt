@@ -31,4 +31,4 @@ gymnasium>=0.26
 pygame>=2.5.2
 array2gif>=1.0.4
 bezier>=2023.7.28
-pybts[rl]>=1.6.0
+pybts[rl]>=1.7.1

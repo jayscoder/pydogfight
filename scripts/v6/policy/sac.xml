@@ -1,0 +1,34 @@
+<Root name="V4RL">
+    <RandomInitWaypointNearGameCenter/>
+    <include path="v6/policy/reward.xml"/>
+
+    <ReactiveSequence>
+        <CanFireMissile/>
+        <RLCondition1V1
+                name="SACRLCondition1V1"
+                algo="SAC"
+                reward_scope="attack"
+                path="{{sac_models_dir}}/SACRLCondition1V1"
+                tensorboard_log="{{output}}/{{runtime}}/SACRLCondition1V1"
+                log_interval="1"
+                verbose="0"
+                train="{{train}}"
+        />
+        <FireMissileAtNearestEnemy/>
+    </ReactiveSequence>
+
+    <ReactiveSelector>
+        <include path="v6/policy/handle_abnormal.xml"/>
+
+        <RLGoToLocation1V1
+                name="SACRLGoToLocation1V1"
+                algo="SAC"
+                reward_scope="control"
+                path="{{sac_models_dir}}/SACRLGoToLocation1V1"
+                tensorboard_log="{{output}}/{{runtime}}/SACRLGoToLocation1V1"
+                log_interval="1"
+                verbose="0"
+                train="{{train}}"
+        />
+    </ReactiveSelector>
+</Root>

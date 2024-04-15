@@ -7,7 +7,7 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = ">=3.9,<4.0"
-pybts = { version = "^1.7.0", extras = ["rl"] }
+pybts = { version = "^1.7.1", extras = ["rl"] }
 numpy = "^1.26.4"
 matplotlib = "^3.8.4"
 tensorboard = "^2.16.2"

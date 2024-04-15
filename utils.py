@@ -307,7 +307,7 @@ class BTManager:
         self.board_dict[agent_name] = board
 
         self.write(f'{agent_name}.xml', '\n'.join([f'<!--{filepath}-->', self.bt_to_xml(tree.root)]))
-        # render_node(tree.root, os.path.join(self.output_runtime, f'{agent_name}.svg'))
+        render_node(tree.root, os.path.join(self.output_runtime, f'{agent_name}.png'))
 
         if self.track >= 0:
             track_throttle = Throttle(duration=self.track)
