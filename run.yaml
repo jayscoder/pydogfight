@@ -2,7 +2,7 @@ base: scripts/v6/ppo-greedy.yaml
 policy:
 #     red: scripts/manual.xml
 options:
-#     render: True
+    render: True
 #     train: true
 
 # output_dir: output/v4/manual-ppo # 输出目录

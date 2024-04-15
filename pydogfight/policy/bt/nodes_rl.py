@@ -36,8 +36,8 @@ class RLNode(BTPolicyNode, RLBaseNode, ABC):
                  reward_scope: str = '',
                  tensorboard_log: typing.Optional[str] = None,
                  log_interval: int | str = 10,
-                 save_path: str = '',  # 空代表在path那里保存
-                 save_interval: int | str = 10,
+                 save_path: str = '',  # 空代表不保存
+                 save_interval: int | str = 0,
                  deterministic: bool | str = False,
                  train: bool | str = False,
                  **kwargs
@@ -186,23 +186,22 @@ class RLNode(BTPolicyNode, RLBaseNode, ABC):
         return self.env.options.device
 
     def reset(self):
-        self.rl_model.logger.record("episode", self.env.episode)
-        self.rl_model.logger.record("returns", self.rl_accum_reward)
-        self.rl_model.logger.record("wins", self.env.game_info[f'{self.agent.color}_wins'])
-        self.rl_model.logger.record("loses", self.env.game_info[f'{self.agent.enemy_color}_wins'])
-        self.rl_model.logger.record("draws", self.env.game_info['draws'])
-        self.rl_model.logger.record("destroyed_count", self.agent.destroyed_count)
-        self.rl_model.logger.record("missile_hit_enemy_count", self.agent.missile_hit_enemy_count)
-        self.rl_model.logger.record("missile_miss_count", self.agent.missile_miss_count),
-        self.rl_model.logger.record("missile_hit_self_count", self.agent.missile_hit_self_count),
-        self.rl_model.logger.record("missile_fired_count", self.agent.missile_fired_count),
-        self.rl_model.logger.record("missile_evade_success_count", self.agent.missile_evade_success_count)
-        self.rl_model.logger.record("aircraft_collided_count", self.agent.aircraft_collided_count)
+        self.rl_model.logger.record("final_reward", self.rl_reward)
+        self.rl_model.logger.record("return", self.rl_accum_reward)
 
-        if self.env.episode > 0 and self.env.episode % self.converter.int(self.save_interval) == 0:
+        # self.rl_model.logger.record("win", self.env.game_info[self.agent.color]['win'])
+        # self.rl_model.logger.record("lose", self.env.game_info[self.agent.color]['lose'])
+        # self.rl_model.logger.record("draws", self.env.game_info['draws'])
+        # self.rl_model.logger.record("destroyed_count", self.agent.destroyed_count)
+        # self.rl_model.logger.record("missile_hit_enemy_count", self.agent.missile_hit_enemy_count)
+        # self.rl_model.logger.record("missile_miss_count", self.agent.missile_miss_count),
+        # self.rl_model.logger.record("missile_hit_self_count", self.agent.missile_hit_self_count),
+        # self.rl_model.logger.record("missile_fired_count", self.agent.missile_fired_count),
+        # self.rl_model.logger.record("missile_evade_success_count", self.agent.missile_evade_success_count)
+        # self.rl_model.logger.record("aircraft_collided_count", self.agent.aircraft_collided_count)
+
+        if self.env.episode > 0 and self.save_interval > 0 and self.env.episode % self.save_interval == 0 and self.save_path != '':
             save_path = self.converter.render(self.save_path)
-            if save_path == '':
-                save_path = self.path
             self.rl_model.save(path=save_path)
 
         super().reset()
@@ -215,11 +214,9 @@ class RLNode(BTPolicyNode, RLBaseNode, ABC):
                 deterministic=self.converter.bool(self.deterministic)
         )
 
-    def save(self, save_path: str = ''):
-        save_path = self.converter.render(self.save_path)
-        if save_path == '':
-            save_path = self.path
-        self.rl_model.save(path=save_path)
+    def save_model(self, filepath: str = ''):
+        filepath = self.converter.render(filepath)
+        self.rl_model.save(path=filepath)
 
 
 class RLSwitcher(RLNode, Composite):
@@ -303,14 +300,16 @@ class RLCondition(RLNode, pybts.Condition):
     """
 
     def rl_action_space(self) -> gym.spaces.Space:
+        if 'SAC' in self.algo:
+            return gym.spaces.Box(low=0, high=2, shape=(1,))
         return gym.spaces.Discrete(2)
 
     def update(self) -> Status:
         action = self.take_action()
-        if action == 0:
-            return Status.FAILURE
-        else:
+        if action >= 1:
             return Status.SUCCESS
+        else:
+            return Status.FAILURE
 
 
 class RLIntValue(RLNode, pybts.Condition):

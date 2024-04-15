@@ -3,9 +3,8 @@ import utils
 
 def main():
     config = utils.read_config('run.yaml')
-    manager = utils.create_manager(config=config)
-    manager.run(config['episodes'])
-
+    manager = utils.BTManager(config, train=True)
+    manager.run(episodes=config['episodes'])
 
 if __name__ == '__main__':
     main()

@@ -21,7 +21,6 @@ class Policy(ABC):
     def put_action(self):
         raise NotImplementedError
 
-
 class AgentPolicy(Policy, ABC):
 
     def __init__(self, env: Dogfight2dEnv, agent_name: str):
@@ -32,6 +31,7 @@ class AgentPolicy(Policy, ABC):
         self.actions = Queue()
         self._has_setup = False
         self.agent_name = agent_name
+        self.agent_color = 'red' if agent_name in env.options.red_agents else 'blue'
 
     def _setup(self):
         self._has_setup = True

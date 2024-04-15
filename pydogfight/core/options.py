@@ -13,8 +13,8 @@ class Options:
     debug: bool = True
     render: bool = False
     ### 实体设置 ###
-    red_agents = ['red']
-    blue_agents = ['blue']
+    red_agents = ['red_1']
+    blue_agents = ['blue_1']
 
     # def agents(self) -> list[str]:
     #     return self.blue_agents + self.red_agents

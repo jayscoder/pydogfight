@@ -63,3 +63,39 @@ class TestCollisionDetection(unittest.TestCase):
     def test_zero_relative_velocity(self):
         """测试相对速度为零的情况"""
         self.assertTrue(will_collide(np.array([0, 0]), np.array([0, 0]), 1, np.array([0.5, 0]), np.array([0.5, 0]), 1))
+
+
+class TestMergeToDicts(unittest.TestCase):
+
+    def test_merge_to_dicts(self):
+        self.assertEqual({ 'a': 1, 'b': 2 }, merge_tow_dicts({ 'a': 1 }, { 'b': 2 }))
+        self.assertEqual({ 'a': { 'c': 1 }, 'b': 2 }, merge_tow_dicts({ 'a': { 'c': 1 } }, { 'b': 2 }))
+        self.assertEqual({ 'b': 1 }, merge_tow_dicts({ 'b': 1 }, { 'b': 2 }))
+        self.assertEqual({ 'b': 1 }, merge_tow_dicts({ 'b': 1 }, { 'b': { 'a': 1 } }))
+        self.assertEqual({ 'b': { 'a': 2 } }, merge_tow_dicts({ 'b': { 'a': 2 } }, { 'b': { 'a': 1 } }))
+
+        self.assertEqual({ 'b': { 'c': 2, 'a': 1 } }, merge_tow_dicts({ 'b': { 'c': 2 } }, { 'b': { 'a': 1 } }))
+        self.assertEqual({ 'b': { 'a': 1, 'c': { 'd': 2, 'e': 2 } } },
+                         merge_tow_dicts({ 'b': { 'c': { 'd': 2 } } }, { 'b': { 'a': 1, 'c': { 'd': 1, 'e': 2 } } }))
+
+
+class TestDictGet(unittest.TestCase):
+
+    def test_dict_get(self):
+        data = {
+            'a': 1,
+            'b': {
+                'c': 2,
+                'd': {
+                    'e': 3
+                }
+            },
+        }
+
+        self.assertEqual(1, dict_get(data, 'a'))
+        self.assertEqual(None, dict_get(data, 'a.b'))
+        self.assertEqual(2, dict_get(data, 'b.c'))
+        self.assertEqual({ 'e': 3 }, dict_get(data, 'b.d'))
+        self.assertEqual({ 'e': 3 }, dict_get(data, ['b', 'd']))
+        self.assertEqual(3, dict_get(data, 'b.d.e'))
+        self.assertEqual(3, dict_get(data, ['b', 'd', 'e']))

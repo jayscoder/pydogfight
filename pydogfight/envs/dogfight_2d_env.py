@@ -66,22 +66,52 @@ class Dogfight2dEnv(gym.Env):
 
         self.game_info = {
             'episode'         : 0,  # 第几轮
-            'red_wins'        : 0,
-            'blue_wins'       : 0,
-            'draws'           : 0,  # 平局几次
+            'red'             : {
+                'win'     : 0,
+                'lose'    : 0,
+                'draw'    : 0,
+                'reward'  : 0,
+                'win_rate': 0.0
+            },
+            'blue'            : {
+                'win'     : 0,
+                'lose'    : 0,
+                'draw'    : 0,
+                'reward'  : 0,
+                'win_rate': 0.0
+            },
+            'recent'          : {
+                'red' : {
+                    'win'     : 0,
+                    'lose'    : 0,
+                    'draw'    : 0,
+                    'reward'  : 0,
+                    'win_rate': 0.0
+                },
+                'blue': {
+                    'win'     : 0,
+                    'lose'    : 0,
+                    'draw'    : 0,
+                    'reward'  : 0,
+                    'win_rate': 0.0
+                },
+            },
+            'agent'           : { },
             'truncated_count' : 0,
             'terminated_count': 0,
             'accum_time'      : 0,  # 累积时间
             'time'            : 0,  # 对战时间
         }  # 游戏对战累积数据，在reset的时候更新，同时也会渲染在屏幕上
 
+        # 渲染在屏幕上的的信息
+        self.render_info = []
         # TODO 敌人的heatmap
 
         # 回调函数
         self.before_update_handlers: list[typing.Callable[['Dogfight2dEnv'], None]] = []
         self.after_update_handlers: list[typing.Callable[['Dogfight2dEnv'], None]] = []
-        self.before_reset_handlers: list[typing.Callable[['Dogfight2dEnv'], None]] = []
-        self.after_reset_handlers: list[typing.Callable[['Dogfight2dEnv'], None]] = []
+        self.episode_start_handlers: list[typing.Callable[['Dogfight2dEnv'], None]] = []
+        self.episode_end_handlers: list[typing.Callable[['Dogfight2dEnv'], None]] = []
 
         self.cache = { }
 
@@ -91,11 +121,11 @@ class Dogfight2dEnv(gym.Env):
     def add_after_update_handler(self, handler: typing.Callable[['Dogfight2dEnv'], None]):
         self.after_update_handlers.append(handler)
 
-    def add_before_reset_handler(self, handler: typing.Callable[['Dogfight2dEnv'], None]):
-        self.before_reset_handlers.append(handler)
+    def add_episode_start_handler(self, handler: typing.Callable[['Dogfight2dEnv'], None]):
+        self.episode_start_handlers.append(handler)
 
-    def add_after_reset_handler(self, handler: typing.Callable[['Dogfight2dEnv'], None]):
-        self.after_reset_handlers.append(handler)
+    def add_episode_end_handler(self, handler: typing.Callable[['Dogfight2dEnv'], None]):
+        self.episode_end_handlers.append(handler)
 
     @property
     def time(self):
@@ -110,35 +140,14 @@ class Dogfight2dEnv(gym.Env):
         assert isinstance(obj, Aircraft)
         return obj
 
-    def update_game_info(self, total: bool = False):
+    def update_game_info(self):
         self.game_info['time'] = int(self.battle_area.time)
         self.game_info['accum_time'] = int(self.battle_area.accum_time)
         self.game_info['episode'] = self.battle_area.episode
 
-        if total:
-            KEYS = [
-                'destroyed_count',
-                'missile_fired_count',
-                'missile_fire_fail_count',
-                'missile_hit_self_count',
-                'missile_hit_enemy_count',
-                'missile_miss_count',
-                'missile_evade_success_count',
-                'home_returned_count',
-                'missile_count',
-                'missile_depletion_count',
-                'aircraft_collided_count',
-            ]
+        merge_tow_dicts(self.battle_area.stats, self.game_info)
 
-            for key in KEYS:
-                color_dict = { 'red': 0, 'blue': 0 }
-                for agent in self.battle_area.agents:
-                    color_dict[agent.color] += int(getattr(agent, key))
-                # if key in self.cache:
-                #     color_dict['red'] += self.cache[key]['red']
-                #     color_dict['blue'] += self.cache[key]['blue']
-                # self.cache[key] = color_dict
-                self.game_info[key] = f'{color_dict["red"]} vs {color_dict["blue"]}'
+
 
     def reset(
             self,
@@ -146,24 +155,27 @@ class Dogfight2dEnv(gym.Env):
             seed: int | None = None,
             options: dict[str, Any] | None = None,
     ) -> tuple[ObsType, dict[str, Any]]:
-        for handler in self.before_reset_handlers:
-            handler(self)
-
         info = self.gen_info()
 
-        if info['winner'] == 'red':
-            self.game_info['red_wins'] += 1
-        elif info['winner'] == 'blue':
-            self.game_info['blue_wins'] += 1
-        elif info['winner'] == 'draw':
-            self.game_info['draws'] += 1
         if info['truncated']:
             self.game_info['truncated_count'] += 1
         if info['terminated']:
             self.game_info['terminated_count'] += 1
 
         super().reset(seed=seed)
-        self.battle_area.reset()
+
+        if self.battle_area.time > 0:
+            self.battle_area.episode_end()
+            self.update_game_info()
+            for handler in self.episode_end_handlers:
+                handler(self)
+
+        self.battle_area.episode_start()
+
+        self.update_game_info()
+
+        for handler in self.episode_start_handlers:
+            handler(self)
 
         if self.render_mode == "human":
             import pygame
@@ -179,10 +191,6 @@ class Dogfight2dEnv(gym.Env):
             #     self.clock = pygame.time.Clock()
             self.render()
 
-        for handler in self.after_reset_handlers:
-            handler(self)
-
-        self.update_game_info()
         return self.gen_obs(), self.gen_info()
 
     def gen_obs(self):
@@ -230,7 +238,7 @@ class Dogfight2dEnv(gym.Env):
         while self.battle_area.time < next_time:
             self.battle_area.update()
         self.last_update_nanotime = time.perf_counter_ns()
-        self.update_game_info(total=self.render_mode == 'human')
+        self.update_game_info()
         for handler in self.after_update_handlers:
             handler(self)
 
@@ -287,16 +295,16 @@ class Dogfight2dEnv(gym.Env):
                     if play_pause_img_rect.collidepoint(event.pos):
                         self.paused = not self.paused  # 切换暂停状态
 
-            game_info_y = 10
-            for key in self.game_info:
+            render_y = 10
+            for text in self.render_info:
                 # 渲染文本到 Surface 对象
                 render_text(
                         screen=self.screen,
-                        text=f'{key}: {self.game_info[key]}',
-                        topleft=(10, game_info_y),
+                        text=text,
+                        topleft=(10, render_y),
                         text_size=18,
                 )
-                game_info_y += 20
+                render_y += 20
 
             # 渲染安全区域
             # render_rect(self.options, screen=self.screen, rect=self.options.safe_boundary, color='grey')

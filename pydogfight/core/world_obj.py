@@ -106,9 +106,11 @@ class WorldObj:
             'speed'           : self.speed,
             'turn_radius'     : self.turn_radius,
             'collision_radius': self.collision_radius,
+            'indestructible'  : self.indestructible,
             'waypoint'        : self.waypoint,
             'destroyed'       : self.destroyed,
             'destroyed_reason': self.destroyed_reason,
+            'destroyed_count' : self.destroyed_count,
             'waiting_actions' : [str(act) for act in read_queue_without_destroying(self.waiting_actions)],
             'consumed_actions': [str(act) for act in read_queue_without_destroying(self.consumed_actions)],
             'is_in_game_range': self.is_in_game_range
@@ -407,7 +409,6 @@ class Aircraft(WorldObj):
 
         self.fuel_depletion_count = obj.fuel_depletion_count  # 燃油耗尽次数
         self.missile_depletion_count = obj.fuel_depletion_count
-        self.indestructible = obj.indestructible
 
         self.position_memory = obj.position_memory
 
@@ -431,7 +432,7 @@ class Aircraft(WorldObj):
             'missile_hit_self'           : self.missile_hit_self,
             'missile_hit_self_count'     : self.missile_hit_self_count,
             'missile_miss'               : self.missile_miss,
-            'missile_missile_count'      : self.missile_miss_count,
+            'missile_miss_count'         : self.missile_miss_count,
             'missile_evade_success'      : self.missile_evade_success,
             'missile_evade_success_count': self.missile_evade_success_count,
             'missile_fired'              : self.missile_fired,

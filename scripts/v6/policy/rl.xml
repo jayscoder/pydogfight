@@ -4,48 +4,30 @@
 
     <ReactiveSequence>
         <CanFireMissile/>
-        <CustomRLCondition
-                algo="ppo"
+        <RLCondition1V1
+                name="{{rl_algo}}RLCondition1V1"
+                algo="{{rl_algo}}"
                 reward_scope="attack"
-                path="{{models_dir}}/models/{{models_episode}}/{{agent_name}}/CustomRLCondition"
-                tensorboard_log="{{output}}/{{runtime}}/{{agent_name}}/CustomRLCondition"
+                path="{{models_dir}}/{{rl_algo}}RLCondition1V1"
+                tensorboard_log="{{output}}/{{runtime}}/{{rl_algo}}RLCondition1V1"
                 log_interval="1"
-                save_path="{{output}}/{{runtime}}/models/{{episode}}/{{agent_name}}/CustomRLCondition"
-                save_interval="10"
-                verbose="1"
+                verbose="0"
                 train="{{train}}"
         />
         <FireMissileAtNearestEnemy/>
     </ReactiveSequence>
 
     <ReactiveSelector>
-        <ReactiveSequence>
-            <Inverter>
-                <IsInSafeArea/>
-            </Inverter>
-            <GoToSafeArea/>
-        </ReactiveSequence>
+        <include path="v6/policy/handle_abnormal.xml"/>
 
-        <ReactiveSequence>
-            <IsInSafeArea/>
-            <Inverter>
-                <IsEnemyDetected/>
-            </Inverter>
-            <Inverter>
-                <IsMissileThreatDetected/>
-            </Inverter>
-            <CheatGoToNearestEnemyWithMemory/>
-        </ReactiveSequence>
-
-        <CustomRLGoToLocation
+        <RLGoToLocation1V1
+                name="{{rl_algo}}RLGoToLocation1V1"
                 algo="{{rl_algo}}"
                 reward_scope="control"
-                path="{{models_dir}}/models/{{models_episode}}/{{agent_name}}/CustomRLGoToLocation"
-                save_path="{{output}}/models/{{episode}}/{{agent_name}}/CustomRLGoToLocation"
-                tensorboard_log="{{output}}/{{runtime}}/{{agent_name}}/CustomRLGoToLocation"
+                path="{{models_dir}}/{{rl_algo}}RLGoToLocation1V1"
+                tensorboard_log="{{output}}/{{runtime}}/{{rl_algo}}RLGoToLocation1V1"
                 log_interval="1"
-                save_interval="10"
-                verbose="1"
+                verbose="0"
                 train="{{train}}"
         />
     </ReactiveSelector>

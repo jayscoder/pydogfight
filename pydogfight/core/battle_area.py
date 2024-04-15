@@ -3,6 +3,7 @@ from __future__ import annotations
 from pydogfight.core.world_obj import *
 from pydogfight.core.options import Options
 from collections import defaultdict
+import typing
 
 
 class BattleArea:
@@ -11,27 +12,86 @@ class BattleArea:
         self.size = options.game_size
         self.time = 0  # 对战时长
         self.accum_time = 0  # 对战累积时长
-        self.episode = 0  # 对战局次
         self.objs: dict[str, WorldObj] = { }
         self.render_mode = render_mode
         self.cache = { }  # 缓存
-        self.winner_count = {
-            'red' : 0,
-            'blue': 0,
-            'draw': 0,
+        self.stats = {
+            'episode': 0,
+            'red'    : {
+                'win'      : 0,
+                'lose'     : 0,
+                'draw'     : 0,
+                'win_rate' : 0.0,
+                'lose_rate': 0.0,
+                'draw_rate': 0.0
+            },
+            'blue'   : {
+                'win'      : 0,
+                'lose'     : 0,
+                'draw'     : 0,
+                'win_rate' : 0.0,
+                'lose_rate': 0.0,
+                'draw_rate': 0.0
+            },
+            'agent'  : { }
         }
 
-    def reset(self):
-        # 保存状态
-        if self.time > 0:
-            self.accum_time += self.time
-            winner = self.winner
-            if winner != '':
-                self.winner_count[winner] += 1
-            self.episode += 1
+    @property
+    def episode(self):
+        return self.stats['episode']
 
-        # 清空
+    def episode_end(self):
+        self.accum_time += self.time
+        self.stats['episode'] += 1
+        winner = self.winner
+        if winner == '':
+            winner = 'draw'
+        self.stats['winner'] = winner
 
+        if winner == 'red':
+            self.stats['red']['win'] += 1
+            self.stats['blue']['lose'] += 1
+        elif winner == 'blue':
+            self.stats['blue']['win'] += 1
+            self.stats['red']['lose'] += 1
+        else:
+            self.stats['red']['draw'] += 1
+            self.stats['blue']['draw'] += 1
+
+        for color in ['red', 'blue']:
+            for k in ['win', 'lose', 'draw']:
+                self.stats[color][f'{k}_rate'] = self.stats[color][k] / self.episode
+
+        new_stats = {
+            'red'  : { },
+            'blue' : { },
+            'agent': { }
+        }
+
+        KEYS = [
+            'destroyed_count',
+            'missile_fired_count',
+            'missile_fire_fail_count',
+            'missile_hit_self_count',
+            'missile_hit_enemy_count',
+            'missile_miss_count',
+            'missile_evade_success_count',
+            'home_returned_count',
+            'missile_count',
+            'missile_depletion_count',
+            'aircraft_collided_count',
+        ]
+
+        for agent in self.agents:
+            if agent.name not in new_stats['agent']:
+                new_stats['agent'][agent.name] = { }
+
+            for key in KEYS:
+                new_stats['agent'][agent.name][key] = getattr(agent, key)
+                dict_incr(new_stats[agent.color], key=key, value=getattr(agent, key))
+        merge_tow_dicts(new_stats, self.stats)
+
+    def episode_start(self):
         self.time = 0
         self.objs.clear()
         self.cache.clear()
@@ -42,7 +102,6 @@ class BattleArea:
         assert self.options.blue_home != ''
         assert len(self.options.red_agents) > 0
         assert len(self.options.blue_agents) > 0
-
         red_home_pos = self.options.generate_home_init_position(color='red')
         blue_home_pos = self.options.generate_home_init_position(color='blue')
 

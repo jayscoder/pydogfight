@@ -25,13 +25,13 @@ from pydogfight.utils.obs_utils import ObsUtils
 # 小批量的大小影响梯度估计的噪声和计算效率。一般来说，较大的批量可以提高训练的稳定性，但计算成本也更高。
 # 对于中等规模的训练环境，一般可以从64或128开始。这个值需要根据你的具体硬件配置进行调整，以避免内存溢出。
 
-class CustomRLGoToLocation(RLGoToLocation):
+class RLGoToLocation1V1(RLGoToLocation):
     def rl_model_args(self) -> dict:
 
         attrs = {
             'gamma'        : 0.995,
             'policy_kwargs': {
-                'features_extractor_class' : CustomFeatureExtractor1V1,
+                'features_extractor_class' : FeatureExtractor1V1,
                 'features_extractor_kwargs': {
                     'features_dim': 128
                 }
@@ -55,12 +55,12 @@ class CustomRLGoToLocation(RLGoToLocation):
         return attrs
 
 
-class CustomRLFireAndGoToLocation(RLFireAndGoToLocation):
+class RLFireAndGoToLocation1V1(RLFireAndGoToLocation):
     def rl_model_args(self) -> dict:
         attrs = {
             'gamma'        : 0.995,
             'policy_kwargs': {
-                'features_extractor_class' : CustomFeatureExtractor1V1,
+                'features_extractor_class' : FeatureExtractor1V1,
                 'features_extractor_kwargs': {
                     'features_dim': 128
                 }
@@ -83,14 +83,14 @@ class CustomRLFireAndGoToLocation(RLFireAndGoToLocation):
         return attrs
 
 
-class CustomRLCondition(RLCondition):
+class RLCondition1V1(RLCondition):
     # def rl_observation_space(self) -> gym.spaces.Space:
     #     return gym.spaces.Box(low=0, high=1, shape=(1,))
     def rl_model_args(self) -> dict:
         attrs = {
             'gamma'        : 0.995,
             'policy_kwargs': {
-                'features_extractor_class' : CustomFeatureExtractor1V1,
+                'features_extractor_class' : FeatureExtractor1V1,
                 'features_extractor_kwargs': {
                     'features_dim': 128
                 }
@@ -140,9 +140,10 @@ class CustomRLCondition(RLCondition):
 #                 nn.Linear(32 + 32 + 7 * 32, features_dim),
 #                 nn.ReLU()
 #         )
-class CustomFeatureExtractor1V1(BaseFeaturesExtractor):
+
+class FeatureExtractor1V1(BaseFeaturesExtractor):
     def __init__(self, observation_space, features_dim: int = 128):
-        super(CustomFeatureExtractor1V1, self).__init__(observation_space, features_dim)
+        super(FeatureExtractor1V1, self).__init__(observation_space, features_dim)
         # 添加一个线性层用来处理提取的特征
         self.fc = nn.Linear(1 + 1 + 3 + 3 * ObsUtils.WATCH_MISSILES, features_dim)
 

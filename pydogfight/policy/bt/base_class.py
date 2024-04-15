@@ -58,7 +58,6 @@ class BTPolicy(AgentPolicy):
                  ):
         super().__init__(env=env, agent_name=agent_name)
         self.tree = tree
-        env.add_after_reset_handler(lambda _: self.reset())
 
     def reset(self):
         super().reset()

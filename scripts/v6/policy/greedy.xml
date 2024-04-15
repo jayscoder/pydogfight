@@ -5,8 +5,7 @@
     <ReactiveSequence>
         <CanFireMissile/>
         <RandomSuccess/>
-        <FireMissileAtNearestEnemy/>
-        <!--        <FireMissileAtNearestEnemyWithHitPointCheck/>-->
+        <FireMissileAtNearestEnemyWithHitPointCheck/>
     </ReactiveSequence>
 
     <ReactiveSelector>

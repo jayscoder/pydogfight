@@ -162,3 +162,67 @@ def get_torch_device(device: str = 'auto') -> str:
     if torch.backends.mps.is_available():
         return 'mps'
     return 'cpu'
+
+
+def merge_tow_dicts(from_dict, to_dict):
+    """
+    递归合并两个字典，直接在to_dict上进行操作
+    Args:
+        from_dict:
+        to_dict:
+
+    Returns:
+
+    """
+    for k, v in from_dict.items():
+        if k not in to_dict:
+            to_dict[k] = v
+        elif isinstance(v, dict):
+            merge_tow_dicts(v, to_dict[k])
+        else:
+            to_dict[k] = v
+    return to_dict
+
+
+def dict_incr(d: dict, key: str, value: int | float):
+    if key not in d:
+        d[key] = value
+    else:
+        d[key] += value
+
+
+def dict_get(d: dict, key: [str] | str, default=None):
+    if isinstance(key, list):
+        if len(key) == 1:
+            return dict_get(d, key[0], default)
+        else:
+            if key[0] in d and isinstance(d[key[0]], dict):
+                return dict_get(d[key[0]], key[1:], default)
+            return default
+    else:
+        if key in d:
+            return d[key]
+        if '.' in key:
+            k, v = key.split('.', maxsplit=1)
+            if k in d and isinstance(d[k], dict):
+                return dict_get(d[k], v, default)
+        return default
+
+
+def calc_enemy_color(color: str):
+    if color == 'red':
+        return 'blue'
+    else:
+        return 'red'
+
+
+def deep_copy(d: dict):
+    """深复制"""
+    if isinstance(d, list):
+        return [deep_copy(item) for item in d]
+    elif isinstance(d, dict):
+        copy_d = { }
+        for key, value in d.items():
+            copy_d[key] = deep_copy(value)
+        return copy_d
+    return d

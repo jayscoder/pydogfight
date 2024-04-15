@@ -106,10 +106,13 @@ class ObsUtils:
         obs[0] = OBJECT_TO_IDX[obj.type]
         obs[1] = int(obj.color != agent.color)
         obs[2] = int(obj.destroyed)
+
         obs[3] = rel_pt.r / agent.radar_radius
         obs[4] = np.deg2rad(rel_pt.theta)
         obs[5] = np.deg2rad(rel_pt.phi)
         obs[6] = obj.speed / agent.radar_radius
+
+
         obs[7] = obj.turn_radius / agent.radar_radius
         obs[8] = obj.fuel / agent.options.missile_fuel_capacity
 

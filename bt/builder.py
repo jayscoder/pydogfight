@@ -13,7 +13,7 @@ class CustomBTBuilder(BTPolicyBuilder):
                 TestNode,
                 RandomInitWaypointNearGameCenter,
                 CheatGoToNearestEnemyWithMemory,
-                CustomRLGoToLocation,
-                CustomRLCondition,
-                CustomRLFireAndGoToLocation
+                RLGoToLocation1V1,
+                RLCondition1V1,
+                RLFireAndGoToLocation1V1
         )
