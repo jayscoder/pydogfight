@@ -1,0 +1,4 @@
+base: 'scripts/v7/base.yaml'
+policy:
+    red: '{{filedir}}/policy/greedy.xml' # 红方行为树
+options:

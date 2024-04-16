@@ -1,0 +1,3 @@
+base: 'scripts/v7/base.yaml'
+policy:
+    red: '{{filedir}}/policy/sac-A-shared.xml' # 红方行为树

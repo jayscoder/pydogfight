@@ -7,13 +7,12 @@ import typing
 
 
 class BattleArea:
-    def __init__(self, options: Options, render_mode: str = 'rgb_array'):
+    def __init__(self, options: Options):
         self.options = options
         self.size = options.game_size
         self.time = 0  # 对战时长
         self.accum_time = 0  # 对战累积时长
         self.objs: dict[str, WorldObj] = { }
-        self.render_mode = render_mode
         self.cache = { }  # 缓存
         self.stats = {
             'episode': 0,

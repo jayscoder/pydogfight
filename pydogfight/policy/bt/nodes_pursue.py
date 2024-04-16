@@ -46,10 +46,15 @@ class PursueNearestEnemy(BTPolicyNode):
     - evade_ratio (float): 逃避比例，用于决定在追击过程中防御的倾向性，较高值意味着更偏向于防御。
     """
 
-    def __init__(self, attack_ratio: float | str = 0.5, evade_ratio: float | str = 0.5, **kwargs):
+    def __init__(self,
+                 attack_ratio: float | str = 0.5,
+                 evade_ratio: float | str = 0.5,
+                 test_move_angle_sep: int | str = 45,
+                 **kwargs):
         super().__init__(**kwargs)
         self.attack_ratio = float(attack_ratio)
         self.evade_ratio = float(evade_ratio)
+        self.test_move_angle_sep = test_move_angle_sep
 
     def updater(self) -> typing.Iterator[Status]:
         enemy = self.env.battle_area.find_nearest_enemy(
@@ -71,7 +76,8 @@ class PursueNearestEnemy(BTPolicyNode):
             self.put_update_message('超出雷达探测范围了，则朝着敌机的位置飞')
         else:
             test_waypoints = self.agent.generate_test_moves(
-                    in_safe_area=True
+                    in_safe_area=True,
+                    angle_sep=self.converter.int(self.test_move_angle_sep)
             )
             for waypoint in test_waypoints:
                 hit_point = optimal_predict_intercept_point(
@@ -371,4 +377,3 @@ class AutoPursueNearestEnemy(BTPolicyNode):
                 enemy=enemy,
                 agent=self.agent
         ))
-

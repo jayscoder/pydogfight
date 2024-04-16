@@ -1,0 +1,22 @@
+base: scripts/v7/base.yaml
+context: null
+episodes: 3000
+options:
+    aircraft_fire_missile_interval: 15
+    aircraft_fuel_capacity: 180000
+    aircraft_missile_count: 1000
+    blue_agents:
+    - blue_1
+    collision_scale: 1
+    device: auto
+    indestructible: false
+    max_duration: 1800
+    red_agents:
+    - red_1
+    title: scripts/v7-base
+output: scripts/v7/output/base
+policy:
+    blue: scripts/v7/policy/greedy.xml
+    red: scripts/v7/policy/sac-A-shared.xml
+title: scripts/v7-base
+track: 120

@@ -27,7 +27,6 @@ from pydogfight.utils.obs_utils import ObsUtils
 
 class RLGoToLocation1V1(RLGoToLocation):
     def rl_model_args(self) -> dict:
-
         attrs = {
             'gamma'        : 0.995,
             'policy_kwargs': {
@@ -111,36 +110,6 @@ class RLCondition1V1(RLCondition):
             })
         return attrs
 
-
-# # 自己的观测数据，只看能不能发射导弹
-#
-#         self.self_extractor = nn.Sequential(
-#                 nn.Linear(1, 32),
-#                 nn.ReLU(),
-#                 nn.Linear(32, 32),
-#                 nn.ReLU()
-#         )
-#
-#         self.enemy_extractor = nn.Sequential(
-#                 nn.Linear(7, 32),
-#                 nn.ReLU(),
-#                 nn.Linear(32, 32),
-#                 nn.ReLU()
-#         )
-#         #
-#         self.missile_extractor = nn.Sequential(
-#                 nn.Linear(7, 32),
-#                 nn.ReLU(),
-#                 nn.Linear(32, 32),
-#                 nn.ReLU()
-#         )
-#
-#         # # 将自己、敌机和7个导弹的特征综合起来
-#         self.aggregated_features = nn.Sequential(
-#                 nn.Linear(32 + 32 + 7 * 32, features_dim),
-#                 nn.ReLU()
-#         )
-
 class FeatureExtractor1V1(BaseFeaturesExtractor):
     def __init__(self, observation_space, features_dim: int = 128):
         super(FeatureExtractor1V1, self).__init__(observation_space, features_dim)
@@ -148,11 +117,10 @@ class FeatureExtractor1V1(BaseFeaturesExtractor):
         self.fc = nn.Linear(1 + 1 + 3 + 3 * ObsUtils.WATCH_MISSILES, features_dim)
 
     def forward(self, observations: torch.Tensor):
-        self_can_fire_missile = observations[:, 0:1, 6]  # 自己能不能发射导弹
-        enemy_can_fire_missile = observations[:, 1:2, 6]  # 敌人能不能发射导弹
-        enemy_rel_polar_waypoint = observations[:, 1:2, 3:6]  # 敌人相对于自己的极坐标
-
-        missile_rel_polar_waypoint = observations[:, 2:, 3:6]  # 敌人发射的导弹的极坐标
+        self_can_fire_missile = observations[:, 0:1, 5]  # 自己能不能发射导弹
+        enemy_can_fire_missile = observations[:, 1:2, 5]  # 敌人能不能发射导弹
+        enemy_rel_polar_waypoint = observations[:, 1:2, 2:5]  # 敌人相对于自己的极坐标
+        missile_rel_polar_waypoint = observations[:, 2:, 2:5]  # 敌人发射的导弹的极坐标
 
         combined_features = torch.cat([
             self_can_fire_missile,  # 增加一个维度以匹配其他特征的形状

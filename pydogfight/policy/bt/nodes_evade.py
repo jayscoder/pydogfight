@@ -11,6 +11,10 @@ class EvadeMissile(BTPolicyNode):
     - FAILURE: 规避失败（可能是不存在来袭导弹、无法规避导弹）
     """
 
+    def __init__(self, test_move_angle_sep: int | str = 45, **kwargs):
+        super().__init__(**kwargs)
+        self.test_move_angle_sep = test_move_angle_sep
+
     def updater(self) -> typing.Iterator[Status]:
         # 获取导弹
         missiles = self.env.battle_area.detect_missiles(agent_name=self.agent_name, ignore_radar=False, only_enemy=True)
@@ -18,7 +22,9 @@ class EvadeMissile(BTPolicyNode):
             yield Status.FAILURE
             return
 
-        test_waypoints = self.agent.generate_test_moves(in_safe_area=True)
+        test_waypoints = self.agent.generate_test_moves(
+                in_safe_area=True,
+                angle_sep=self.converter.int(self.test_move_angle_sep))
 
         # 从周围N个点中寻找一个能够让导弹飞行时间最长且自己飞行时间最短的点来飞 （导弹飞行时间 - 自己飞行时间）最大
         max_diff_time = -float('inf')

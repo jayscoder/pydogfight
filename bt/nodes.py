@@ -1,14 +1,5 @@
 from __future__ import annotations
-
-import typing
-
-from pydogfight.policy.bt import BTPolicyNode
-from pydogfight import Dogfight2dEnv, Aircraft, Options
-from pydogfight.policy.bt.builder import *
-import random
-import math
-from stable_baselines3.common.policies import ActorCriticPolicy
-from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
+from bt.base import *
 
 class RandomInitWaypointNearGameCenter(BTPolicyNode):
     """

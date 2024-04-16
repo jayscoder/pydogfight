@@ -1,0 +1,19 @@
+<ReactiveSelector name="HandleAbnormal">
+    <ReactiveSequence>
+        <Inverter>
+            <IsInSafeArea/>
+        </Inverter>
+        <GoToSafeArea/>
+    </ReactiveSequence>
+
+    <ReactiveSequence>
+        <IsInSafeArea/>
+        <Inverter>
+            <IsEnemyDetected/>
+        </Inverter>
+        <Inverter>
+            <IsMissileThreatDetected/>
+        </Inverter>
+        <CheatGoToNearestEnemyWithMemory/>
+    </ReactiveSequence>
+</ReactiveSelector>

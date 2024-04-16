@@ -50,6 +50,7 @@ class WorldObj:
         self.destroyed = False  # 是否已经被摧毁
         self.destroyed_reason = []  # 被摧毁的原因
         self.destroyed_count = 0  # 被摧毁次数
+        self.destroyed_time = 0  # 被摧毁的时间
 
         self.waiting_actions = Queue(maxsize=10)  # 等待消费的行为，每一项是个列表
         self.consumed_actions = Queue(maxsize=10)  # 最近消费的10个动作
@@ -92,6 +93,7 @@ class WorldObj:
         self.destroyed = obj.destroyed
         self.destroyed_count = obj.destroyed_count
         self.destroyed_reason = obj.destroyed_reason.copy()
+        self.destroyed_time = obj.destroyed_time
 
         self.render_route = obj.render_route
         self.route_param = obj.route_param
@@ -111,6 +113,8 @@ class WorldObj:
             'destroyed'       : self.destroyed,
             'destroyed_reason': self.destroyed_reason,
             'destroyed_count' : self.destroyed_count,
+            'destroyed_time'  : self.destroyed_time,
+            'survival_time'   : self.survival_time,
             'waiting_actions' : [str(act) for act in read_queue_without_destroying(self.waiting_actions)],
             'consumed_actions': [str(act) for act in read_queue_without_destroying(self.consumed_actions)],
             'is_in_game_range': self.is_in_game_range
@@ -125,6 +129,8 @@ class WorldObj:
     def destroy(self, reason: str, source=None):
         if not self.indestructible:
             self.destroyed = True
+        if self.waiting_actions == 0:
+            self.destroyed_time = self.area.time
         self.destroyed_count += 1
         self.destroyed_reason.append((reason, source))
 
@@ -153,6 +159,14 @@ class WorldObj:
             return 'blue'
         else:
             return 'red'
+
+    @property
+    def survival_time(self) -> float:
+        """存活时间"""
+        if self.destroyed_time > 0:
+            return self.destroyed_time
+        else:
+            return self.area.time
 
     @property
     def screen_position(self) -> tuple[float, float]:
@@ -277,16 +291,17 @@ class WorldObj:
         if self.options.render:
             self.render_route = self.route_param.build_route(self.route_param.length / 20)
 
-    def generate_test_moves(self, in_safe_area: bool = True) -> list[Waypoint]:
+    def generate_test_moves(self, in_safe_area: bool = True, angle_sep: int = 45) -> list[Waypoint]:
         """
         生成测试的实体的预期位置（在不同方向上假设实体飞到对应点上）
         :param in_safe_area: 是否强制要求在安全位置（不能离战场中心远）
+        :param angle_sep: 角度的间隔
         :return:
         """
         # 测试的距离
         dis = max(self.turn_radius * 10, self.speed * 20)
         wpt_list: list[Waypoint] = []
-        for angle in range(0, 360, 45):
+        for angle in range(0, 360, angle_sep):
             target = self.waypoint.move(d=dis, angle=angle)
             if in_safe_area and target.distance([0, 0]) >= self.options.bullseye_safe_radius():
                 # 距离战场中心太远了

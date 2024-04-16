@@ -49,7 +49,8 @@ class BTPolicyBuilder(pybts.rl.builder.RLBuilder):
                 IsFireMissileOverFreqLimit,
                 RLFireAndGoToLocation,
                 FireMissileAtNearestEnemyWithHitPointCheck,
-                CanFireMissile
+                CanFireMissile,
+                IsNearestEnemyInHitRange
         )
         
         # Explore

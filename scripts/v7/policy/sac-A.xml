@@ -1,0 +1,32 @@
+<Root name="V4RL">
+    <V7Init/>
+    <include path="v7/policy/reward.xml"/>
+
+    <ReactiveSequence>
+        <CanFireMissile/>
+        <V7SACCondition1V1
+                name="A_V7SACCondition1V1"
+                reward_scope="default,attack"
+                path="{{output}}/models/{{name}}"
+                tensorboard_log="{{output_run_id}}/{{name}}"
+                log_interval="1"
+                verbose="0"
+                train="{{train}}"
+        />
+        <FireMissileAtNearestEnemy/>
+    </ReactiveSequence>
+
+    <ReactiveSelector>
+        <include path="v7/policy/handle_abnormal.xml"/>
+
+        <V7SACGoToLocation1V1
+                name="A_V7SACCondition1V1"
+                reward_scope="default,control"
+                path="{{output}}/models/{{name}}"
+                tensorboard_log="{{output_run_id}}/{{name}}"
+                log_interval="1"
+                verbose="0"
+                train="{{train}}"
+        />
+    </ReactiveSelector>
+</Root>

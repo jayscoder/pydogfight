@@ -10,24 +10,9 @@ class ManualPolicy(AgentPolicy):
         super().__init__(env=env, agent_name=control_agents[0])
         self.control_index = 0
         self.control_agents = control_agents
-
+    
     def execute(self, observation, delta_time: float):
         import pygame
-        agent = self.env.get_agent(self.agent_name)
-        self.env.render_info['time'] = f'{self.env.time:.0f} s'
-        self.env.render_info['agent'] = self.agent_name
-        self.env.render_info['x'] = f'{agent.x:.0f}'
-        self.env.render_info['y'] = f'{agent.y:.0f}'
-        self.env.render_info['psi'] = f'{agent.psi:.0f}'
-        self.env.render_info['fuel'] = f'{agent.fuel:.0f}'
-        self.env.render_info['missile'] = f'{agent.missile_count}'
-        self.env.render_info['missile_hit_enemy_count'] = f'{agent.missile_hit_enemy_count}'
-        self.env.render_info['missile_hit_self_count'] = f'{agent.missile_hit_self_count}'
-        self.env.render_info['missile_miss_count'] = f'{agent.missile_miss_count}'
-        self.env.render_info['fuel_depletion_count'] = f'{agent.fuel_depletion_count}'
-        self.env.render_info['fuel_depletion_count'] = f'{agent.fuel_depletion_count}'
-        self.env.render_info['actions'] = f'{agent.waiting_actions.qsize()}'
-
         event = pygame.event.poll()
         # if event.type == pygame.QUIT:
         #     self.env.close()

@@ -5,12 +5,12 @@ from py_trees.behaviour import Behaviour
 from stable_baselines3.common.policies import ActorCriticPolicy
 from stable_baselines3.common.base_class import BaseAlgorithm
 from pydogfight.policy.bt.base_class import *
-
 from typing import Any, SupportsFloat, Union
 
 from gymnasium.core import ActType, ObsType
 from py_trees.common import Status
 from pybts.composites import Composite, Selector, Sequence
+from pybts.rl.nodes import Reward
 from stable_baselines3 import PPO, SAC, HerReplayBuffer, DQN, DDPG, TD3
 import py_trees
 import gymnasium as gym
@@ -18,6 +18,7 @@ from pybts.rl import RLBaseNode
 import typing
 import jinja2
 from pydogfight.core.actions import Actions
+from pydogfight.utils.logger import TensorboardLogger
 
 
 class RLNode(BTPolicyNode, RLBaseNode, ABC):
@@ -34,12 +35,11 @@ class RLNode(BTPolicyNode, RLBaseNode, ABC):
                  path: str = '',
                  algo: str = 'PPO',
                  reward_scope: str = '',
-                 tensorboard_log: typing.Optional[str] = None,
-                 log_interval: int | str = 10,
                  save_path: str = '',  # 空代表不保存
                  save_interval: int | str = 0,
                  deterministic: bool | str = False,
                  train: bool | str = False,
+                 tensorboard_log: str = '',
                  **kwargs
                  ):
         super().__init__(**kwargs)
@@ -47,12 +47,11 @@ class RLNode(BTPolicyNode, RLBaseNode, ABC):
         self.algo = algo
         self.reward_scope = reward_scope  # 如果scope设置成default或其他不为空的值，则认为奖励要从context.rl_reward[scope]中拿
         self.path = path
-        self.tensorboard_log = tensorboard_log
-        self.log_interval = log_interval
         self.save_path = save_path
         self.save_interval = save_interval
         self.deterministic = deterministic
         self.train = train
+        self.tensorboard_log = tensorboard_log
 
     def to_data(self):
         return {
@@ -62,14 +61,7 @@ class RLNode(BTPolicyNode, RLBaseNode, ABC):
             'path'         : self.path,
             'reward_scope' : self.reward_scope,
             'save_interval': self.save_interval,
-            'log_interval' : self.log_interval
         }
-
-    def rl_policy(self) -> Union[str, typing.Type[ActorCriticPolicy]]:
-        if 'PPO' in self.algo:
-            return ActorCriticPolicy
-        else:
-            return 'MlpPolicy'
 
     def rl_model_args(self) -> dict:
         return { }
@@ -81,13 +73,10 @@ class RLNode(BTPolicyNode, RLBaseNode, ABC):
                 value=self.path,
         )
         self.reward_scope = self.converter.render(self.reward_scope)
-        if self.tensorboard_log is not None:
-            self.tensorboard_log = self.converter.render(self.tensorboard_log)
-
         self.save_interval = self.converter.int(self.save_interval)
-        self.log_interval = self.converter.int(self.log_interval)
-
         self.algo = self.converter.render(self.algo).upper()
+        if self.tensorboard_log != '':
+            self.tensorboard_log = self.converter.render(self.tensorboard_log)
 
         args = self.rl_model_args()
         for key in ['batch_size', 'n_steps', 'learning_starts', 'verbose']:
@@ -97,26 +86,31 @@ class RLNode(BTPolicyNode, RLBaseNode, ABC):
         self.setup_model(algo=self.algo, **args)
 
     def setup_model(self, algo: str, **kwargs):
+        policy = kwargs.get('policy', 'MlpPolicy')
+
+        tensorboard_logger = TensorboardLogger(folder=self.tensorboard_log, verbose=0)
+
         if algo == 'PPO':
             self.rl_setup_model(
+                    policy=policy,
                     model_class=PPO,
                     train=True,
                     path=self.path,
-                    tensorboard_log=self.tensorboard_log,
-                    tb_log_name=self.agent_name,
+                    logger=tensorboard_logger,
                     **kwargs
             )
         elif algo == 'SAC':
             self.rl_setup_model(
+                    policy=policy,
                     model_class=SAC,
                     train=True,  # 在训练过程中可能会开/闭某个节点的训练，所以一开始初始化都默认开启训练
                     path=self.path,
-                    tensorboard_log=self.tensorboard_log,
-                    tb_log_name=self.agent_name,
+                    logger=tensorboard_logger,
                     **kwargs
             )
         elif algo == 'SAC-HER':
             self.rl_setup_model(
+                    policy=policy,
                     model_class=SAC,
                     train=True,
                     path=self.path,
@@ -125,21 +119,20 @@ class RLNode(BTPolicyNode, RLBaseNode, ABC):
                             n_sampled_goal=4,
                             goal_selection_strategy='future',
                     ),
-                    tensorboard_log=self.tensorboard_log,
-                    tb_log_name=self.agent_name,
+                    logger=tensorboard_logger,
                     **kwargs
             )
         elif algo == 'TD3':
             self.rl_setup_model(
+                    policy=policy,
                     model_class=TD3,
                     train=True,
                     path=self.path,
-                    tensorboard_log=self.tensorboard_log,
-                    tb_log_name=self.agent_name,
                     **kwargs
             )
         elif algo == 'TD3-HER':
             self.rl_setup_model(
+                    policy=policy,
                     model_class=TD3,
                     train=True,
                     path=self.path,
@@ -148,7 +141,6 @@ class RLNode(BTPolicyNode, RLBaseNode, ABC):
                             n_sampled_goal=4,
                             goal_selection_strategy='future',
                     ),
-                    tensorboard_log=self.tensorboard_log,
                     tb_log_name=self.agent_name,
                     **kwargs
             )
@@ -186,8 +178,8 @@ class RLNode(BTPolicyNode, RLBaseNode, ABC):
         return self.env.options.device
 
     def reset(self):
-        self.rl_model.logger.record("final_reward", self.rl_reward)
-        self.rl_model.logger.record("return", self.rl_accum_reward)
+        # self.rl_model.logger.record("final_reward", self.rl_reward)
+        # self.rl_model.logger.record("return", self.rl_accum_reward)
 
         # self.rl_model.logger.record("win", self.env.game_info[self.agent.color]['win'])
         # self.rl_model.logger.record("lose", self.env.game_info[self.agent.color]['lose'])
@@ -210,12 +202,15 @@ class RLNode(BTPolicyNode, RLBaseNode, ABC):
     def take_action(self):
         return self.rl_take_action(
                 train=self.converter.bool(self.train),
-                log_interval=self.log_interval,
-                deterministic=self.converter.bool(self.deterministic)
+                deterministic=self.converter.bool(self.deterministic),
+                log_interval=1
         )
 
     def save_model(self, filepath: str = ''):
-        filepath = self.converter.render(filepath)
+        if filepath == '':
+            filepath = self.converter.render(self.save_path)
+        else:
+            filepath = self.converter.render(filepath)
         self.rl_model.save(path=filepath)
 
 
@@ -305,7 +300,7 @@ class RLCondition(RLNode, pybts.Condition):
         return gym.spaces.Discrete(2)
 
     def update(self) -> Status:
-        action = self.take_action()
+        action = self.take_action()[0]
         if action >= 1:
             return Status.SUCCESS
         else:
@@ -340,7 +335,7 @@ class RLIntValue(RLNode, pybts.Condition):
         }
 
     def rl_action_space(self) -> gym.spaces.Space:
-        return gym.spaces.Discrete(self.high - self.low + 1, start=self.low)
+        return gym.spaces.Discrete(self.high - self.low + 1)
 
     def update(self) -> Status:
         action = self.take_action()
@@ -365,7 +360,7 @@ class RLFloatValue(RLNode, pybts.Condition):
         self.high = self.converter.float(self.high)
         self.low = self.converter.float(self.low)
 
-        assert self.high > self.low, "RLIntValue high must > low"
+        assert self.high > self.low, "RLFloatValue high must > low"
 
     def to_data(self):
         return {
@@ -379,8 +374,8 @@ class RLFloatValue(RLNode, pybts.Condition):
         return gym.spaces.Box(low=self.low, high=self.high, shape=(1,))
 
     def update(self) -> Status:
-        action = self.take_action()
-        self.context[self.key] = float(action[0])
+        action = self.take_action()[0]
+        self.context[self.key] = float(action)
         return Status.SUCCESS
 
 
@@ -467,6 +462,35 @@ class RLGoToLocation(RLNode):
 
         self.actions.put_nowait((Actions.go_to_location, new_wpt.x, new_wpt.y))
         return Status.SUCCESS
+
+
+class RLReward(RLNode, Reward):
+    def __init__(self, high: int | str, low: int | str = 0, **kwargs):
+        Reward.__init__(self, **kwargs)
+        RLNode.__init__(self, **kwargs)
+        self.high = high
+        self.low = low
+
+    def setup(self, **kwargs: typing.Any) -> None:
+        super().setup(**kwargs)
+        self.high = self.converter.float(self.high)
+        self.low = self.converter.float(self.low)
+
+    def to_data(self):
+        return {
+            **super().to_data(),
+            **Reward.to_data(self),
+            'low' : self.low,
+            'high': self.high
+        }
+
+    def rl_action_space(self) -> gym.spaces.Space:
+        return gym.spaces.Box(low=self.low, high=self.high, shape=(1,))
+
+    def update(self) -> Status:
+        self.reward = self.take_action()
+        print('RLReward', self.reward)
+        return Reward.update(self)
 
 
 class RLActionPPA(RLAction):

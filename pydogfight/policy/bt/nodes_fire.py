@@ -47,6 +47,38 @@ class FireMissileAtNearestEnemy(BTPolicyNode):
         return Status.SUCCESS
 
 
+class IsNearestEnemyInHitRange(BTPolicyNode):
+    """
+    最近的敌机是否在自己的可命中范围内
+    """
+
+    def __init__(self, hit_time_threshold: int | str = 0.9, **kwargs):
+        super().__init__(**kwargs)
+        self.hit_time_threshold = hit_time_threshold
+
+    def update(self) -> Status:
+        enemy = self.env.battle_area.find_nearest_enemy(
+                agent_name=self.agent_name,
+                ignore_radar=False)
+
+        if enemy is None:
+            # self.put_update_message('No nearest enemy')
+            return Status.FAILURE
+
+        hit_point = self.agent.predict_missile_intercept_point(target_wpt=enemy.waypoint, target_speed=enemy.speed)
+        if hit_point is None:
+            # self.put_update_message('hit point is none')
+            return Status.FAILURE
+
+        hit_time_threshold = self.converter.float(self.hit_time_threshold)
+        if hit_point.time <= hit_time_threshold * self.env.options.missile_flight_duration():
+            # 有可能命中敌机
+            return Status.SUCCESS
+        else:
+            # self.put_update_message(f'没办法命中敌机 fire missile {enemy.waypoint} hit_point_time={hit_point.time}')
+            return Status.FAILURE
+
+
 class FireMissileAtNearestEnemyWithHitPointCheck(BTPolicyNode):
     """
     行为节点: 朝着最近的敌机发射导弹，会检查命中点

@@ -17,7 +17,6 @@ class ObsUtils:
 
     def __init__(self, battle_area: BattleArea, agent_name: str):
         """
-
         Args:
             battle_area:
         """
@@ -43,13 +42,13 @@ class ObsUtils:
         obs = cls.empty_obs_line()
         obs[0] = OBJECT_TO_IDX[agent.type]
         obs[1] = 0
-        obs[2] = int(agent.destroyed)
-        # obs[3] = rel_pt.r / agent.radar_radius
-        # obs[4] = np.deg2rad(rel_pt.theta)
-        # obs[5] = np.deg2rad(rel_pt.phi)
-        obs[6] = int(agent.can_fire_missile())
-        obs[7] = agent.speed / agent.radar_radius
-        obs[8] = agent.turn_radius / agent.radar_radius
+        # obs[2] = rel_pt.r / agent.radar_radius
+        # obs[3] = np.deg2rad(rel_pt.theta)
+        # obs[4] = np.deg2rad(rel_pt.phi)
+        obs[5] = int(agent.can_fire_missile())
+        obs[6] = agent.speed / agent.radar_radius
+        obs[7] = agent.turn_radius / agent.radar_radius
+        obs[8] = int(agent.destroyed)
 
         return obs
 
@@ -71,20 +70,16 @@ class ObsUtils:
         obs = cls.empty_obs_line()
         obs[0] = OBJECT_TO_IDX[obj.type]
         obs[1] = int(obj.color != agent.color)
-        obs[2] = int(obj.destroyed)
 
-        if obj.destroyed:
-            obs[2] = 1
-        elif is_memory:
-            obs[2] = -1
+        obs[2] = rel_pt.r / agent.radar_radius if not is_memory else 1
+        obs[3] = np.deg2rad(rel_pt.theta)
+        obs[4] = np.deg2rad(rel_pt.phi)
 
-        obs[3] = rel_pt.r / agent.radar_radius
-        obs[4] = np.deg2rad(rel_pt.theta)
-        obs[5] = np.deg2rad(rel_pt.phi)
-        obs[6] = int(obj.can_fire_missile())
+        obs[5] = int(obj.can_fire_missile())
 
-        obs[7] = obj.speed / agent.radar_radius
-        obs[8] = obj.turn_radius / agent.radar_radius
+        obs[6] = obj.speed / agent.radar_radius
+        obs[7] = obj.turn_radius / agent.radar_radius
+        obs[8] = int(obj.destroyed)
 
         # obj.fuel / agent.options.aircraft_fuel_capacity,  # 8
         # obj.radar_radius / agent.radar_radius,  # 9
@@ -105,21 +100,22 @@ class ObsUtils:
         obs = cls.empty_obs_line()
         obs[0] = OBJECT_TO_IDX[obj.type]
         obs[1] = int(obj.color != agent.color)
-        obs[2] = int(obj.destroyed)
 
-        obs[3] = rel_pt.r / agent.radar_radius
-        obs[4] = np.deg2rad(rel_pt.theta)
-        obs[5] = np.deg2rad(rel_pt.phi)
+        obs[2] = rel_pt.r / agent.radar_radius
+        obs[3] = np.deg2rad(rel_pt.theta)
+        obs[4] = np.deg2rad(rel_pt.phi)
+
+        obs[5] = obj.fuel / agent.options.missile_fuel_capacity
+
         obs[6] = obj.speed / agent.radar_radius
-
-
         obs[7] = obj.turn_radius / agent.radar_radius
-        obs[8] = obj.fuel / agent.options.missile_fuel_capacity
+        #
+        obs[8] = int(obj.destroyed)
 
-        if obj.color != agent.color:
-            if agent.options.obs_ignore_enemy_missile_fuel:
-                # 不知道敌方导弹的剩余油量
-                obs[8] = -1
+        # if obj.color != agent.color:
+        #     if agent.options.obs_ignore_enemy_missile_fuel:
+        #         # 不知道敌方导弹的剩余油量
+        #         obs[8] = -1
         return obs
 
     def gen_obs(self):

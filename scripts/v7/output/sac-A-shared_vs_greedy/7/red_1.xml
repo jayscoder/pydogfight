@@ -1,0 +1,64 @@
+<!--scripts/v7/policy/sac-A-shared.xml-->
+<Parallel>
+    <V7Init/>
+    <Parallel>
+        <Sequence>
+            <IsChanged value="{{agent.missile_hit_enemy_count}}"/>
+            <Reward reward="1" scope="attack"/>
+        </Sequence>
+        <Sequence>
+            <IsChanged value="{{agent.missile_evade_success_count}}"/>
+            <Reward reward="1" scope="control"/>
+        </Sequence>
+        <Sequence>
+            <IsChanged value="{{agent.missile_miss_count}}"/>
+            <Reward reward="-0.1" scope="attack"/>
+        </Sequence>
+        <Sequence>
+            <IsChanged value="{{agent.missile_hit_self_count}}"/>
+            <Reward reward="-1" scope="control"/>
+        </Sequence>
+        <Sequence>
+            <IsChanged value="{{agent.aircraft_collided_count}}"/>
+            <Reward reward="-1" scope="control"/>
+        </Sequence>
+        <Sequence>
+            <IsChanged value="{{agent.missile_fire_fail_count}}"/>
+            <Reward reward="-0.03" scope="attack"/>
+        </Sequence>
+        <Sequence>
+            <IsWin/>
+            <Reward reward="{{1 + 9 * math.exp(-time / 600)}}" scope="default"/>
+        </Sequence>
+        <Sequence>
+            <IsLose/>
+            <Reward reward="{{10 - 9 * math.exp(-time / 600)}}" scope="default"/>
+        </Sequence>
+    </Parallel>
+    <ReactiveSequence>
+        <CanFireMissile/>
+        <V7SACCondition1V1 reward_scope="default,attack" path="{{output}}/models/{{name}}" tensorboard_log="{{output_run_id}}/{{name}}" log_interval="1" verbose="0" train="{{train}}" shared="true"/>
+        <FireMissileAtNearestEnemy/>
+    </ReactiveSequence>
+    <ReactiveSelector>
+        <ReactiveSelector>
+            <ReactiveSequence>
+                <Inverter>
+                    <IsInSafeArea/>
+                </Inverter>
+                <GoToSafeArea/>
+            </ReactiveSequence>
+            <ReactiveSequence>
+                <IsInSafeArea/>
+                <Inverter>
+                    <IsEnemyDetected/>
+                </Inverter>
+                <Inverter>
+                    <IsMissileThreatDetected/>
+                </Inverter>
+                <CheatGoToNearestEnemyWithMemory/>
+            </ReactiveSequence>
+        </ReactiveSelector>
+        <V7SACGoToLocation1V1 reward_scope="default,control" path="{{output}}/models/{{name}}" tensorboard_log="{{output_run_id}}/{{name}}" log_interval="1" verbose="0" train="{{train}}" shared="true"/>
+    </ReactiveSelector>
+</Parallel>

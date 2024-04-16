@@ -24,12 +24,12 @@ class Dogfight2dEnv(gym.Env):
         # "render_fps"  : 50,
     }
 
-    def __init__(self, options: Options = Options()):
+    def __init__(self, options: Options = Options(), battle_area_class: BattleArea.__class__ = BattleArea, **kwargs):
         super().__init__()
         options.validate()
         self.render_mode = 'human' if options.render else ''
         self.options = options
-        self.battle_area = BattleArea(options=options, render_mode=self.render_mode)
+        self.battle_area = battle_area_class(options=options)
 
         self.obs_utils_dict = { }
         for agent_name in options.agents():
@@ -146,8 +146,6 @@ class Dogfight2dEnv(gym.Env):
         self.game_info['episode'] = self.battle_area.episode
 
         merge_tow_dicts(self.battle_area.stats, self.game_info)
-
-
 
     def reset(
             self,

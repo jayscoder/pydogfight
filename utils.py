@@ -14,15 +14,24 @@ import json
 from pybts.display import render_node
 import bt
 import yaml
-from collections import defaultdict
 from pydogfight.utils import *
 from pydogfight.policy.bt.nodes_rl import RLNode
-from stable_baselines3.common.logger import configure
-from pydogfight.utils.logger import CustomLogger
+from pydogfight.utils.logger import TensorboardLogger
+import jinja2
 
 
-def now_str():
-    return datetime.now().strftime("%m%d-%H-%M-%S")
+def folder_run_id(folder: str):
+    os.makedirs(folder, exist_ok=True)
+    id_path = os.path.join(folder, "run_id.txt")
+    if os.path.exists(id_path):
+        with open(id_path, "r") as f:
+            run_id = int(f.read())
+    else:
+        run_id = 0
+    run_id += 1
+    with open(id_path, mode="w") as f:
+        f.write('{}'.format(run_id))
+    return run_id
 
 
 class Throttle:
@@ -70,17 +79,27 @@ TEMPLATE_CONFIG = {
 }
 
 
-def read_config(path: str):
+def read_config(path: str, context: dict):
     """读取配置文件"""
     with open(path, 'r', encoding='utf-8') as f:
         config = list(yaml.load_all(f, Loader=yaml.FullLoader))[0]
+
+    render_config(config, context=context)
+
     if 'base' in config:
-        config = merge_config(read_config(config['base']), config)
+        config = merge_config(read_config(config['base'], context=context), config)
 
     if config['options'].get('title') is None and config.get('title') is not None:
         config['options']['title'] = config['title']
 
     return config
+
+def render_config(config: dict, context: dict):
+    for k in config:
+        if isinstance(config[k], str):
+            config[k] = jinja2.Template(config[k]).render(context)
+        elif isinstance(config[k], dict):
+            render_config(config[k], context)
 
 
 def merge_config(base: dict, config: dict):
@@ -98,7 +117,9 @@ def merge_config(base: dict, config: dict):
 class BTManager:
     """用来做训练/测试，保存运行的数据"""
 
-    def __init__(self, config: dict, train: bool, verbose: int = 0):
+    def __init__(self, config: dict,
+                 train: bool,
+                 verbose: int = 0, display_tree: bool = False):
         self.title = config.get('title', config['output'])
         self.desc = config.get('desc', '')
 
@@ -116,16 +137,14 @@ class BTManager:
         self.config = config
 
         self.env = env
-        self.runtime = now_str()
-
+        self.display_tree = display_tree
         self.output = config['output']
-
+        self.run_id = folder_run_id(self.output)
         self.shell = 'python ' + ' '.join(sys.argv)
         self.builder = bt.CustomBTBuilder(folders=[config['output'], 'scripts'])
         self.track = config['track']
-
-        self.output_runtime = os.path.join(self.output, self.runtime)
-        os.makedirs(self.output_runtime, exist_ok=True)
+        self.output_run_id = os.path.join(self.output, str(self.run_id))
+        os.makedirs(self.output_run_id, exist_ok=True)
 
         self.write('config.yaml', config)
         self.write('options.json', self.env.options.to_dict())
@@ -156,7 +175,7 @@ class BTManager:
         self.train = train
         self.pbar: tqdm | None = None
 
-        self.logger = CustomLogger(filepath=self.output_runtime, verbose=verbose)
+        self.logger = TensorboardLogger(folder=self.output_run_id, verbose=verbose)
 
     def update_reward_to_game_info(self, reward_dict: dict):
         new_game_info = {
@@ -198,29 +217,30 @@ class BTManager:
         for policy in self.policies:
             if not isinstance(policy, BTPolicy):
                 continue
-            board = self.board_dict[policy.agent_name]
-            # self.write(self.episode_file(f'{policy.agent_name}.xml'), self.bt_to_xml(policy.tree.root))
-            self.write(self.episode_file(f'{policy.agent_name}-context.json'), policy.tree.context)
-            board.track({
-                **self.env.game_info,
-                policy.agent_name: self.env.get_agent(policy.agent_name).to_dict(),
-            })
+            if self.track > 0:
+                board = self.board_dict[policy.agent_name]
+                board.track({
+                    **self.env.game_info,
+                    policy.agent_name: self.env.get_agent(policy.agent_name).to_dict(),
+                })
+
             reward_dict[policy.agent.name] = deep_copy(policy.tree.context.get('reward', { }))
 
         self.update_reward_to_game_info(reward_dict=reward_dict)
 
         self.env.game_info['recent'] = self.result_recorder.record()
 
-        self.write(self.episode_file('env_info.json'), self.env.gen_info())
-        self.write(self.episode_file('game_info.json'), self.env.game_info)
+        # if self.track > 0:
+        #     self.write(self.episode_file('env_info.json'), self.env.gen_info())
+        #     self.write(self.episode_file('game_info.json'), self.env.game_info)
 
-        for agent in self.env.battle_area.agents:
-            self.write(self.episode_file(f'{agent.name}.json'), agent.to_dict())
+        # for agent in self.env.battle_area.agents:
+        #     self.write(self.episode_file(f'{agent.name}.json'), agent.to_dict())
 
-        self.write(f'env.json', {
-            'info'     : self.env.gen_info(),
-            'game_info': self.env.game_info,
-        })
+        # self.write(f'env.json', {
+        #     'info'     : self.env.gen_info(),
+        #     'game_info': self.env.game_info,
+        # })
 
         if self.train and self.env.episode > 0 and self.env.episode % self.result_recorder.recent == 0:
             self.move_saver.check_save()
@@ -240,27 +260,50 @@ class BTManager:
                     # 'missile_fire_fail_count'    : self.env.game_info['missile_fire_fail_count']
                 })
 
+        self.logger.record(f'env_time', self.env.time)
+
+        for agent in self.env.battle_area.agents:
+            # 存活时间
+            self.logger.record(f'{agent.name}/survival_time', agent.survival_time)
+            # 平均存活时间
+            self.logger.record_mean_weighted(f'{agent.color}/survival_time', agent.survival_time)
+            # # 规避成功率
+            self.logger.record_mean_weighted(f'{agent.name}/missile_evade_success_rate',
+                                             agent.missile_evade_success_count,
+                                             agent.missile_evade_success_count + agent.missile_hit_self_count)
+
+            self.logger.record_mean_weighted(f'{agent.color}/missile_evade_success_rate',
+                                             agent.missile_evade_success_count,
+                                             agent.missile_evade_success_count + agent.missile_hit_self_count)
+
+            # 命中率
+            self.logger.record_mean_weighted(f'{agent.name}/missile_hit_enemy_rate', agent.missile_hit_enemy_count,
+                                             agent.missile_fired_count)
+            self.logger.record_mean_weighted(f'{agent.color}/missile_hit_enemy_rate', agent.missile_hit_enemy_count,
+                                             agent.missile_fired_count)
+
         for color in ['red', 'blue']:
+
             for k in ['win', 'lose', 'draw', 'win_rate', 'draw_rate', 'lose_rate']:
-                self.logger.record(f'{color}-{k}', f'{self.env.game_info[color][k]}')
+                self.logger.record(f'{color}/{k}', self.env.game_info[color][k])
                 recent_v = dict_get(self.env.game_info, ['recent', color, k])
                 if recent_v is not None:
-                    self.logger.record(f'{color}-recent-{k}', recent_v)
+                    self.logger.record(f'{color}/recent/{k}', recent_v)
 
             for k in self.env.game_info[color]:
                 if k.startswith('reward'):
-                    self.logger.record(f'{color}-{k}', f'{self.env.game_info[color][k]}')
+                    self.logger.record(f'{color}/{k}', self.env.game_info[color][k])
                     recent_v = dict_get(self.env.game_info, ['recent', color, k])
                     if recent_v is not None:
-                        self.logger.record(f'{color}-recent-{k}', recent_v)
+                        self.logger.record(f'{color}/recent/{k}', recent_v)
 
             for k in AGENT_INFO_KEYS:
                 if k not in self.env.game_info[color]:
                     continue
-                self.logger.record(f'{color}-{k}', self.env.game_info[color][k])
-                recent_v = dict_get(self.env.game_info, ['recent', color, k])
-                if recent_v is not None:
-                    self.logger.record(f'{color}-recent-{k}', recent_v)
+                self.logger.record_mean_weighted(f'{color}/{k}', self.env.game_info[color][k])
+                # recent_v = dict_get(self.env.game_info, ['recent', color, k])
+                # if recent_v is not None:
+                #     self.logger.record_mean(f'{color}/recent/{k}', recent_v)
 
         print()
         self.pbar.update(1)
@@ -286,12 +329,13 @@ class BTManager:
                 root=self.builder.build_from_file(filepath),
                 name=agent_name + tree_name_suffix,
                 context={
-                    'title'   : self.title,
-                    'desc'    : self.desc,
-                    'filename': self.builder.get_relative_filename(filepath=filepath),
-                    'filepath': self.builder.find_filepath(filepath=filepath),
-                    'output'  : self.output,
-                    'runtime' : self.runtime,  # 执行时间
+                    'title'        : self.title,
+                    'desc'         : self.desc,
+                    'filename'     : self.builder.get_relative_filename(filepath=filepath),
+                    'filepath'     : self.builder.find_filepath(filepath=filepath),
+                    'output'       : self.output,
+                    'output_run_id': self.output_run_id,
+                    'run_id'       : self.run_id,
                     **(context or { })
                 }
         ).setup()
@@ -302,12 +346,14 @@ class BTManager:
                 agent_name=agent_name,
         )
 
-        board = pybts.Board(tree=policy.tree, log_dir=self.output_runtime)
+        board = pybts.Board(tree=policy.tree, log_dir=self.output_run_id)
         board.clear()
         self.board_dict[agent_name] = board
 
         self.write(f'{agent_name}.xml', '\n'.join([f'<!--{filepath}-->', self.bt_to_xml(tree.root)]))
-        render_node(tree.root, os.path.join(self.output_runtime, f'{agent_name}.png'))
+
+        if self.display_tree:
+            render_node(tree.root, os.path.join(self.output_run_id, f'{agent_name}.png'))
 
         if self.track >= 0:
             track_throttle = Throttle(duration=self.track)
@@ -365,7 +411,7 @@ class BTManager:
                 policy.tree.context.update(context)
 
     def run(self, episodes: int):
-        self.pbar = tqdm(total=episodes, desc=f'{self.title}[{self.output_runtime}] train={self.train}')
+        self.pbar = tqdm(total=episodes, desc=f'[{self.output_run_id}] train={self.train}')
         self.update_context({
             'train': self.train
         })
@@ -378,6 +424,7 @@ class BTManager:
         start_time = time.time()
 
         env.reset()
+        env_time = 0
         for i in range(episodes):
             if not env.isopen:
                 break
@@ -400,6 +447,7 @@ class BTManager:
                 if env.should_render():
                     env.render()
 
+            env_time += self.env.time
             env.reset()
             policy.reset()
 
@@ -407,7 +455,8 @@ class BTManager:
         self.write(f'耗时={cost_time:.0f}.txt', '\n'.join(
                 [
                     f'耗时: {cost_time:.2f} 秒',
-                    f'平均耗时 {cost_time / episodes: .2f}秒'
+                    f'平均耗时 {cost_time / episodes: .2f}秒',
+                    f'平局局时 {env_time / episodes: .0f}秒'
                 ]
         ))
 
@@ -415,7 +464,7 @@ class BTManager:
         return os.path.join('episodes', str(self.env.episode), file)
 
     def write(self, path: str, content: str | dict, mode='w') -> None:
-        path = os.path.join(self.output_runtime, path)
+        path = os.path.join(self.output_run_id, path)
         dir_path = os.path.dirname(path)
         if not os.path.exists(dir_path):
             os.makedirs(dir_path, exist_ok=True)
@@ -430,7 +479,7 @@ class BTManager:
                     yaml.safe_dump(content, f, allow_unicode=True, indent=4)
 
     def delete(self, path: str):
-        path = os.path.join(self.output_runtime, path)
+        path = os.path.join(self.output_run_id, path)
         if os.path.exists(path):
             os.remove(path)
 
@@ -549,7 +598,7 @@ class ModelSaver:
                 if not isinstance(node, RLNode):
                     continue
                 if self.should_save_model(node):
-                    self.save_model(node)
+                    node.save_model()
 
     def should_save_model(self, node: RLNode) -> bool:
         """如果新的更好，则返回true，否则返回false"""

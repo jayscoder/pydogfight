@@ -28,7 +28,7 @@ class Options:
     self_side = 'red'  # 自己所处的战队（奖励会根据这个来给）
 
     ### 场景 ###
-    max_duration = 60 * 60  # 一局对战最多时长60分钟，超过这个就会truncated
+    max_duration = 30 * 60  # 一局对战最多时长30分钟，超过这个就会truncated
     screen_size = (800, 800)  # 屏幕宽度 屏幕高度
     render_fps = 50  # 渲染的fps
     delta_time = 0.1  # 每次env的更新步长

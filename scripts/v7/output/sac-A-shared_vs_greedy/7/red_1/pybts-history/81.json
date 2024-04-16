@@ -1,0 +1,1762 @@
+{
+    "id": 81,
+    "step": 0,
+    "round": 32,
+    "info": {
+        "episode": 32,
+        "red": {
+            "win": 13,
+            "lose": 16,
+            "draw": 3,
+            "reward": 0.30000000000000004,
+            "win_rate": 0.40625,
+            "lose_rate": 0.5,
+            "draw_rate": 0.09375,
+            "destroyed_count": 0,
+            "missile_fired_count": 8,
+            "missile_fire_fail_count": 0,
+            "missile_hit_self_count": 0,
+            "missile_hit_enemy_count": 1,
+            "missile_miss_count": 7,
+            "missile_evade_success_count": 1,
+            "home_returned_count": 0,
+            "missile_count": 992,
+            "missile_depletion_count": 0,
+            "aircraft_collided_count": 0,
+            "reward_win": 3,
+            "reward_lose": 11,
+            "reward_draw": 0,
+            "reward_control": 4.0,
+            "reward_attack": 0.30000000000000004,
+            "reward_win_rate": 0.09375,
+            "reward_lose_rate": 0.34375,
+            "reward_draw_rate": 0.0
+        },
+        "blue": {
+            "win": 16,
+            "lose": 13,
+            "draw": 3,
+            "reward": 5.0,
+            "win_rate": 0.5,
+            "lose_rate": 0.40625,
+            "draw_rate": 0.09375,
+            "destroyed_count": 1,
+            "missile_fired_count": 1,
+            "missile_fire_fail_count": 0,
+            "missile_hit_self_count": 1,
+            "missile_hit_enemy_count": 0,
+            "missile_miss_count": 1,
+            "missile_evade_success_count": 7,
+            "home_returned_count": 0,
+            "missile_count": 999,
+            "missile_depletion_count": 0,
+            "aircraft_collided_count": 0,
+            "reward_win": 11,
+            "reward_lose": 3,
+            "reward_draw": 0,
+            "reward_control": 5.0,
+            "reward_attack": 1.0,
+            "reward_win_rate": 0.34375,
+            "reward_lose_rate": 0.09375,
+            "reward_draw_rate": 0.0
+        },
+        "recent": {
+            "episodes": 32,
+            "abnormal": [],
+            "red": {
+                "win": 13,
+                "lose": 16,
+                "draw": 3,
+                "reward": 0.30000000000000004,
+                "reward_win": 3,
+                "reward_lose": 11,
+                "reward_draw": 0,
+                "reward_control": 4.0,
+                "reward_attack": 0.30000000000000004,
+                "win_rate": 0.40625,
+                "lose_rate": 0.5,
+                "draw_rate": 0.09375,
+                "reward_win_rate": 0.09375,
+                "reward_lose_rate": 0.34375,
+                "reward_draw_rate": 0.0,
+                "destroyed_count": 0.59375,
+                "missile_fired_count": 4.96875,
+                "missile_fire_fail_count": 0.0,
+                "missile_hit_self_count": 0.59375,
+                "missile_hit_enemy_count": 0.5,
+                "missile_miss_count": 4.46875,
+                "missile_evade_success_count": 1.09375,
+                "home_returned_count": 0.0,
+                "aircraft_collided_count": 0.0
+            },
+            "blue": {
+                "win": 16,
+                "lose": 13,
+                "draw": 3,
+                "reward": 5.0,
+                "reward_win": 11,
+                "reward_lose": 3,
+                "reward_draw": 0,
+                "reward_control": 5.0,
+                "reward_attack": 1.0,
+                "win_rate": 0.5,
+                "lose_rate": 0.40625,
+                "draw_rate": 0.09375,
+                "reward_win_rate": 0.34375,
+                "reward_lose_rate": 0.09375,
+                "reward_draw_rate": 0.0,
+                "destroyed_count": 0.5,
+                "missile_fired_count": 1.6875,
+                "missile_fire_fail_count": 0.0,
+                "missile_hit_self_count": 0.5,
+                "missile_hit_enemy_count": 0.59375,
+                "missile_miss_count": 1.09375,
+                "missile_evade_success_count": 4.46875,
+                "home_returned_count": 0.0625,
+                "aircraft_collided_count": 0.0
+            },
+            "agent": {
+                "blue_1": {
+                    "destroyed_count": 0.03125,
+                    "missile_fired_count": 0.03125,
+                    "missile_fire_fail_count": 0.0,
+                    "missile_hit_self_count": 0.03125,
+                    "missile_hit_enemy_count": 0.0,
+                    "missile_miss_count": 0.03125,
+                    "missile_evade_success_count": 0.21875,
+                    "home_returned_count": 0.0,
+                    "aircraft_collided_count": 0.0
+                },
+                "red_1": {
+                    "destroyed_count": 0.0,
+                    "missile_fired_count": 0.25,
+                    "missile_fire_fail_count": 0.0,
+                    "missile_hit_self_count": 0.0,
+                    "missile_hit_enemy_count": 0.03125,
+                    "missile_miss_count": 0.21875,
+                    "missile_evade_success_count": 0.03125,
+                    "home_returned_count": 0.0,
+                    "aircraft_collided_count": 0.0
+                }
+            }
+        },
+        "agent": {
+            "blue_1": {
+                "destroyed_count": 1,
+                "missile_fired_count": 1,
+                "missile_fire_fail_count": 0,
+                "missile_hit_self_count": 1,
+                "missile_hit_enemy_count": 0,
+                "missile_miss_count": 1,
+                "missile_evade_success_count": 7,
+                "home_returned_count": 0,
+                "missile_count": 999,
+                "missile_depletion_count": 0,
+                "aircraft_collided_count": 0,
+                "reward": 5.0,
+                "reward_control": 5.0,
+                "reward_attack": 1.0
+            },
+            "red_1": {
+                "destroyed_count": 0,
+                "missile_fired_count": 8,
+                "missile_fire_fail_count": 0,
+                "missile_hit_self_count": 0,
+                "missile_hit_enemy_count": 1,
+                "missile_miss_count": 7,
+                "missile_evade_success_count": 1,
+                "home_returned_count": 0,
+                "missile_count": 992,
+                "missile_depletion_count": 0,
+                "aircraft_collided_count": 0,
+                "reward": 0.30000000000000004,
+                "reward_control": 4.0,
+                "reward_attack": 0.30000000000000004
+            }
+        },
+        "truncated_count": 0,
+        "terminated_count": 33,
+        "accum_time": 4384,
+        "time": 0,
+        "winner": "red",
+        "context": {
+            "round": 32,
+            "title": "scripts/v7-sac-A-shared_vs_greedy",
+            "desc": "",
+            "filename": "v7/policy/sac-A-shared",
+            "filepath": "scripts/v7/policy/sac-A-shared.xml",
+            "output": "scripts/v7/output/sac-A-shared_vs_greedy",
+            "output_run_id": "scripts/v7/output/sac-A-shared_vs_greedy/7",
+            "run_id": 7,
+            "agent_name": "red_1",
+            "agent_color": "red",
+            "time": 0,
+            "env": "<Dogfight2dEnv instance>",
+            "agent": {
+                "name": "red_1",
+                "type": "aircraft",
+                "color": "red",
+                "speed": 200,
+                "turn_radius": 453.51473922902494,
+                "collision_radius": 20.0,
+                "indestructible": false,
+                "waypoint": "x: -12500.0, y: 0.0, psi: 90.0",
+                "destroyed": false,
+                "destroyed_reason": [],
+                "destroyed_count": 0,
+                "destroyed_time": 0,
+                "survival_time": 0,
+                "waiting_actions": [],
+                "consumed_actions": [],
+                "is_in_game_range": true,
+                "missile_count": 1000,
+                "fuel": 180000,
+                "fuel_consumption_rate": 1,
+                "radar_radius": 15000,
+                "last_fire_missile_time": 0,
+                "missile_hit_enemy": [],
+                "missile_hit_enemy_count": 0,
+                "missile_hit_self": [],
+                "missile_hit_self_count": 0,
+                "missile_miss": [],
+                "missile_miss_count": 0,
+                "missile_evade_success": [],
+                "missile_evade_success_count": 0,
+                "missile_fired": [],
+                "missile_fired_count": 0,
+                "missile_fire_fail_count": 0,
+                "aircraft_collided_count": 0,
+                "home_returned_count": 0
+            },
+            "options": {
+                "title": "scripts/v7-sac-A-shared_vs_greedy",
+                "debug": true,
+                "render": false,
+                "red_agents": [
+                    "red_1"
+                ],
+                "blue_agents": [
+                    "blue_1"
+                ],
+                "red_home": "red_home",
+                "blue_home": "blue_home",
+                "bullseye": "bullseye",
+                "self_side": "red",
+                "max_duration": 1800,
+                "screen_size": [
+                    800,
+                    800
+                ],
+                "render_fps": 50,
+                "delta_time": 0.1,
+                "update_interval": 1,
+                "simulation_rate": 100.0,
+                "reach_location_threshold": 2,
+                "obs_ignore_radar": false,
+                "obs_ignore_enemy_missile_fuel": false,
+                "obs_ignore_enemy_fuel": false,
+                "obs_ignore_enemy_missile_count": false,
+                "obs_ignore_destroyed": true,
+                "obs_allow_memory": true,
+                "indestructible": false,
+                "g": 9.8,
+                "game_size": [
+                    50000.0,
+                    50000.0
+                ],
+                "destroy_on_boundary_exit": true,
+                "collision_scale": 1,
+                "aircraft_missile_count": 1000,
+                "aircraft_speed": 200,
+                "aircraft_collision_radius": "<property object at 0x12fa426d0>",
+                "aircraft_fuel_consumption_rate": 1,
+                "aircraft_fuel_capacity": 180000,
+                "aircraft_fuel_bingo_fuel": 360.0,
+                "aircraft_max_centripetal_acceleration": 88.2,
+                "aircraft_min_turn_radius": 453.51473922902494,
+                "aircraft_predict_distance": 1000,
+                "aircraft_radar_radius": 15000,
+                "aircraft_fire_missile_interval": 15,
+                "aircraft_position_memory_sep": 10000,
+                "missile_max_centripetal_acceleration": 196.0,
+                "missile_speed": 1000,
+                "missile_min_turn_radius": 5102.040816326531,
+                "missile_collision_radius": "<property object at 0x12fa3e720>",
+                "missile_fuel_consumption_rate": 1,
+                "missile_fuel_capacity": 60,
+                "missile_reroute_interval": 0.1,
+                "missile_fire_interval": 5,
+                "missile_can_only_hit_enemy": true,
+                "home_area_radius": 2000.0,
+                "home_return_time_interval": 10,
+                "home_refuel": true,
+                "home_refuel_threshold_capacity": 720.0,
+                "home_replenish_missile": true,
+                "home_replenish_missile_threshold_count": 2.0,
+                "home_attack": false,
+                "win_reward": 100,
+                "lose_reward": -100,
+                "draw_reward": -100,
+                "step_reward": -0.1,
+                "device": "cpu",
+                "status_reward": {
+                    "SUCCESS": 0,
+                    "RUNNING": 0,
+                    "FAILURE": -1,
+                    "INVALID": -0.5
+                },
+                "safe_boundary_distance": 4000
+            },
+            "reward": {},
+            "__builtins__": {
+                "__name__": "builtins",
+                "__doc__": "Built-in functions, exceptions, and other objects.\n\nNoteworthy: None is the `nil' object; Ellipsis represents `...' in slices.",
+                "__package__": "",
+                "__loader__": "<class '_frozen_importlib.BuiltinImporter'>",
+                "__spec__": "ModuleSpec(name='builtins', loader=<class '_frozen_importlib.BuiltinImporter'>, origin='built-in')",
+                "__build_class__": "<built-in function __build_class__>",
+                "__import__": "<built-in function __import__>",
+                "abs": "<built-in function abs>",
+                "all": "<built-in function all>",
+                "any": "<built-in function any>",
+                "ascii": "<built-in function ascii>",
+                "bin": "<built-in function bin>",
+                "breakpoint": "<built-in function breakpoint>",
+                "callable": "<built-in function callable>",
+                "chr": "<built-in function chr>",
+                "compile": "<built-in function compile>",
+                "delattr": "<built-in function delattr>",
+                "dir": "<built-in function dir>",
+                "divmod": "<built-in function divmod>",
+                "eval": "<built-in function eval>",
+                "exec": "<built-in function exec>",
+                "format": "<built-in function format>",
+                "getattr": "<built-in function getattr>",
+                "globals": "<built-in function globals>",
+                "hasattr": "<built-in function hasattr>",
+                "hash": "<built-in function hash>",
+                "hex": "<built-in function hex>",
+                "id": "<built-in function id>",
+                "input": "<built-in function input>",
+                "isinstance": "<built-in function isinstance>",
+                "issubclass": "<built-in function issubclass>",
+                "iter": "<built-in function iter>",
+                "len": "<built-in function len>",
+                "locals": "<built-in function locals>",
+                "max": "<built-in function max>",
+                "min": "<built-in function min>",
+                "next": "<built-in function next>",
+                "oct": "<built-in function oct>",
+                "ord": "<built-in function ord>",
+                "pow": "<built-in function pow>",
+                "print": "<built-in function print>",
+                "repr": "<built-in function repr>",
+                "round": "<built-in function round>",
+                "setattr": "<built-in function setattr>",
+                "sorted": "<built-in function sorted>",
+                "sum": "<built-in function sum>",
+                "vars": "<built-in function vars>",
+                "None": null,
+                "Ellipsis": "Ellipsis",
+                "NotImplemented": "NotImplemented",
+                "False": false,
+                "True": true,
+                "bool": "<class 'bool'>",
+                "memoryview": "<class 'memoryview'>",
+                "bytearray": "<class 'bytearray'>",
+                "bytes": "<class 'bytes'>",
+                "classmethod": "<class 'classmethod'>",
+                "complex": "<class 'complex'>",
+                "dict": "<class 'dict'>",
+                "enumerate": "<class 'enumerate'>",
+                "filter": "<class 'filter'>",
+                "float": "<class 'float'>",
+                "frozenset": "<class 'frozenset'>",
+                "property": "<class 'property'>",
+                "int": "<class 'int'>",
+                "list": "<class 'list'>",
+                "map": "<class 'map'>",
+                "object": "<class 'object'>",
+                "range": "<class 'range'>",
+                "reversed": "<class 'reversed'>",
+                "set": "<class 'set'>",
+                "slice": "<class 'slice'>",
+                "staticmethod": "<class 'staticmethod'>",
+                "str": "<class 'str'>",
+                "super": "<class 'super'>",
+                "tuple": "<class 'tuple'>",
+                "type": "<class 'type'>",
+                "zip": "<class 'zip'>",
+                "__debug__": true,
+                "BaseException": "<class 'BaseException'>",
+                "Exception": "<class 'Exception'>",
+                "TypeError": "<class 'TypeError'>",
+                "StopAsyncIteration": "<class 'StopAsyncIteration'>",
+                "StopIteration": "<class 'StopIteration'>",
+                "GeneratorExit": "<class 'GeneratorExit'>",
+                "SystemExit": "<class 'SystemExit'>",
+                "KeyboardInterrupt": "<class 'KeyboardInterrupt'>",
+                "ImportError": "<class 'ImportError'>",
+                "ModuleNotFoundError": "<class 'ModuleNotFoundError'>",
+                "OSError": "<class 'OSError'>",
+                "EnvironmentError": "<class 'OSError'>",
+                "IOError": "<class 'OSError'>",
+                "EOFError": "<class 'EOFError'>",
+                "RuntimeError": "<class 'RuntimeError'>",
+                "RecursionError": "<class 'RecursionError'>",
+                "NotImplementedError": "<class 'NotImplementedError'>",
+                "NameError": "<class 'NameError'>",
+                "UnboundLocalError": "<class 'UnboundLocalError'>",
+                "AttributeError": "<class 'AttributeError'>",
+                "SyntaxError": "<class 'SyntaxError'>",
+                "IndentationError": "<class 'IndentationError'>",
+                "TabError": "<class 'TabError'>",
+                "LookupError": "<class 'LookupError'>",
+                "IndexError": "<class 'IndexError'>",
+                "KeyError": "<class 'KeyError'>",
+                "ValueError": "<class 'ValueError'>",
+                "UnicodeError": "<class 'UnicodeError'>",
+                "UnicodeEncodeError": "<class 'UnicodeEncodeError'>",
+                "UnicodeDecodeError": "<class 'UnicodeDecodeError'>",
+                "UnicodeTranslateError": "<class 'UnicodeTranslateError'>",
+                "AssertionError": "<class 'AssertionError'>",
+                "ArithmeticError": "<class 'ArithmeticError'>",
+                "FloatingPointError": "<class 'FloatingPointError'>",
+                "OverflowError": "<class 'OverflowError'>",
+                "ZeroDivisionError": "<class 'ZeroDivisionError'>",
+                "SystemError": "<class 'SystemError'>",
+                "ReferenceError": "<class 'ReferenceError'>",
+                "MemoryError": "<class 'MemoryError'>",
+                "BufferError": "<class 'BufferError'>",
+                "Warning": "<class 'Warning'>",
+                "UserWarning": "<class 'UserWarning'>",
+                "DeprecationWarning": "<class 'DeprecationWarning'>",
+                "PendingDeprecationWarning": "<class 'PendingDeprecationWarning'>",
+                "SyntaxWarning": "<class 'SyntaxWarning'>",
+                "RuntimeWarning": "<class 'RuntimeWarning'>",
+                "FutureWarning": "<class 'FutureWarning'>",
+                "ImportWarning": "<class 'ImportWarning'>",
+                "UnicodeWarning": "<class 'UnicodeWarning'>",
+                "BytesWarning": "<class 'BytesWarning'>",
+                "ResourceWarning": "<class 'ResourceWarning'>",
+                "ConnectionError": "<class 'ConnectionError'>",
+                "BlockingIOError": "<class 'BlockingIOError'>",
+                "BrokenPipeError": "<class 'BrokenPipeError'>",
+                "ChildProcessError": "<class 'ChildProcessError'>",
+                "ConnectionAbortedError": "<class 'ConnectionAbortedError'>",
+                "ConnectionRefusedError": "<class 'ConnectionRefusedError'>",
+                "ConnectionResetError": "<class 'ConnectionResetError'>",
+                "FileExistsError": "<class 'FileExistsError'>",
+                "FileNotFoundError": "<class 'FileNotFoundError'>",
+                "IsADirectoryError": "<class 'IsADirectoryError'>",
+                "NotADirectoryError": "<class 'NotADirectoryError'>",
+                "InterruptedError": "<class 'InterruptedError'>",
+                "PermissionError": "<class 'PermissionError'>",
+                "ProcessLookupError": "<class 'ProcessLookupError'>",
+                "TimeoutError": "<class 'TimeoutError'>",
+                "open": "<built-in function open>",
+                "quit": "Use quit() or Ctrl-D (i.e. EOF) to exit",
+                "exit": "Use exit() or Ctrl-D (i.e. EOF) to exit",
+                "copyright": "Copyright (c) 2001-2022 Python Software Foundation.\nAll Rights Reserved.\n\nCopyright (c) 2000 BeOpen.com.\nAll Rights Reserved.\n\nCopyright (c) 1995-2001 Corporation for National Research Initiatives.\nAll Rights Reserved.\n\nCopyright (c) 1991-1995 Stichting Mathematisch Centrum, Amsterdam.\nAll Rights Reserved.",
+                "credits": "    Thanks to CWI, CNRI, BeOpen.com, Zope Corporation and a cast of thousands\n    for supporting Python development.  See www.python.org for more information.",
+                "license": "Type license() to see the full license text",
+                "help": "Type help() for interactive help, or help(object) for help about object.",
+                "__pybind11_internals_v4_clang_libcpp_cxxabi1002__": "<capsule object NULL at 0x12d96c270>"
+            },
+            "train": true,
+            "episode": 32
+        }
+    },
+    "time": 1713288706328,
+    "tree": {
+        "tag": "Parallel",
+        "children": [
+            {
+                "tag": "V7Init",
+                "children": [],
+                "data": {
+                    "id": "e8f2cdc55f4342caa4565987384bf2bf",
+                    "status": "SUCCESS",
+                    "type": "action",
+                    "tag": "V7Init",
+                    "feedback_messages": "",
+                    "name": "V7Init",
+                    "debug_info": {
+                        "tick_count": 3246,
+                        "update_count": 0,
+                        "reset_count": 32,
+                        "terminate_count": 3278,
+                        "initialise_count": 3246
+                    },
+                    "attrs": {},
+                    "actions": [],
+                    "agent_name": "red_1",
+                    "update_messages": []
+                }
+            },
+            {
+                "tag": "Parallel",
+                "children": [
+                    {
+                        "tag": "Sequence",
+                        "children": [
+                            {
+                                "tag": "IsChanged",
+                                "children": [],
+                                "data": {
+                                    "id": "0308fd8cdc4d40c8a770a0e4ebabadeb",
+                                    "status": "FAILURE",
+                                    "type": "condition",
+                                    "tag": "IsChanged",
+                                    "feedback_messages": "",
+                                    "name": "导弹打中了对方",
+                                    "value": "{{agent.missile_hit_enemy_count}}",
+                                    "debug_info": {
+                                        "tick_count": 3246,
+                                        "update_count": 0,
+                                        "reset_count": 32,
+                                        "terminate_count": 3278,
+                                        "initialise_count": 3246
+                                    },
+                                    "attrs": {
+                                        "value": "{{agent.missile_hit_enemy_count}}",
+                                        "name": "导弹打中了对方"
+                                    },
+                                    "immediate": false,
+                                    "last_value": "0",
+                                    "curr_value": "0",
+                                    "changed_count": 0
+                                }
+                            },
+                            {
+                                "tag": "Reward",
+                                "children": [],
+                                "data": {
+                                    "id": "8417024b3b554d7bb56e22a1d53e893c",
+                                    "status": "INVALID",
+                                    "type": "action",
+                                    "tag": "Reward",
+                                    "feedback_messages": "",
+                                    "name": "奖励1",
+                                    "reward": "1",
+                                    "scope": [
+                                        "attack"
+                                    ],
+                                    "curr_reward": 1.0,
+                                    "context_reward": {}
+                                }
+                            }
+                        ],
+                        "data": {
+                            "id": "a6082f06045e4466b4b9ed6ba6514333",
+                            "status": "FAILURE",
+                            "type": "composite",
+                            "tag": "Sequence",
+                            "feedback_messages": "",
+                            "name": "Sequence",
+                            "debug_info": {
+                                "tick_count": 3246,
+                                "update_count": 0,
+                                "reset_count": 32,
+                                "terminate_count": 32,
+                                "initialise_count": 0
+                            },
+                            "attrs": {}
+                        }
+                    },
+                    {
+                        "tag": "Sequence",
+                        "children": [
+                            {
+                                "tag": "IsChanged",
+                                "children": [],
+                                "data": {
+                                    "id": "a08ab3bd22a443d0a73396319e7a470b",
+                                    "status": "FAILURE",
+                                    "type": "condition",
+                                    "tag": "IsChanged",
+                                    "feedback_messages": "",
+                                    "name": "成功规避导弹",
+                                    "value": "{{agent.missile_evade_success_count}}",
+                                    "debug_info": {
+                                        "tick_count": 3246,
+                                        "update_count": 0,
+                                        "reset_count": 32,
+                                        "terminate_count": 3278,
+                                        "initialise_count": 3246
+                                    },
+                                    "attrs": {
+                                        "value": "{{agent.missile_evade_success_count}}",
+                                        "name": "成功规避导弹"
+                                    },
+                                    "immediate": false,
+                                    "last_value": "0",
+                                    "curr_value": "0",
+                                    "changed_count": 0
+                                }
+                            },
+                            {
+                                "tag": "Reward",
+                                "children": [],
+                                "data": {
+                                    "id": "9d50133f4d5548f4ad11c22ea6f92173",
+                                    "status": "INVALID",
+                                    "type": "action",
+                                    "tag": "Reward",
+                                    "feedback_messages": "",
+                                    "name": "奖励0.2",
+                                    "reward": "1",
+                                    "scope": [
+                                        "control"
+                                    ],
+                                    "curr_reward": 1.0,
+                                    "context_reward": {}
+                                }
+                            }
+                        ],
+                        "data": {
+                            "id": "59c1df079dc2461786001f0b16801022",
+                            "status": "FAILURE",
+                            "type": "composite",
+                            "tag": "Sequence",
+                            "feedback_messages": "",
+                            "name": "Sequence",
+                            "debug_info": {
+                                "tick_count": 3246,
+                                "update_count": 0,
+                                "reset_count": 32,
+                                "terminate_count": 32,
+                                "initialise_count": 0
+                            },
+                            "attrs": {}
+                        }
+                    },
+                    {
+                        "tag": "Sequence",
+                        "children": [
+                            {
+                                "tag": "IsChanged",
+                                "children": [],
+                                "data": {
+                                    "id": "df1b9a695e564b1abdd23428c3b64a6e",
+                                    "status": "FAILURE",
+                                    "type": "condition",
+                                    "tag": "IsChanged",
+                                    "feedback_messages": "",
+                                    "name": "导弹打空了",
+                                    "value": "{{agent.missile_miss_count}}",
+                                    "debug_info": {
+                                        "tick_count": 3246,
+                                        "update_count": 0,
+                                        "reset_count": 32,
+                                        "terminate_count": 3278,
+                                        "initialise_count": 3246
+                                    },
+                                    "attrs": {
+                                        "value": "{{agent.missile_miss_count}}",
+                                        "name": "导弹打空了"
+                                    },
+                                    "immediate": false,
+                                    "last_value": "0",
+                                    "curr_value": "0",
+                                    "changed_count": 0
+                                }
+                            },
+                            {
+                                "tag": "Reward",
+                                "children": [],
+                                "data": {
+                                    "id": "ef38fa43f4c740fbb13a4fb168c00002",
+                                    "status": "INVALID",
+                                    "type": "action",
+                                    "tag": "Reward",
+                                    "feedback_messages": "",
+                                    "name": "奖励-0.1",
+                                    "reward": "-0.1",
+                                    "scope": [
+                                        "attack"
+                                    ],
+                                    "curr_reward": -0.1,
+                                    "context_reward": {}
+                                }
+                            }
+                        ],
+                        "data": {
+                            "id": "4c7f58d4b91c4a78b121627edb717128",
+                            "status": "FAILURE",
+                            "type": "composite",
+                            "tag": "Sequence",
+                            "feedback_messages": "",
+                            "name": "Sequence",
+                            "debug_info": {
+                                "tick_count": 3246,
+                                "update_count": 0,
+                                "reset_count": 32,
+                                "terminate_count": 32,
+                                "initialise_count": 0
+                            },
+                            "attrs": {}
+                        }
+                    },
+                    {
+                        "tag": "Sequence",
+                        "children": [
+                            {
+                                "tag": "IsChanged",
+                                "children": [],
+                                "data": {
+                                    "id": "536a03df96054e60aa3f5fe1d89c6434",
+                                    "status": "FAILURE",
+                                    "type": "condition",
+                                    "tag": "IsChanged",
+                                    "feedback_messages": "",
+                                    "name": "被导弹打中",
+                                    "value": "{{agent.missile_hit_self_count}}",
+                                    "debug_info": {
+                                        "tick_count": 3246,
+                                        "update_count": 0,
+                                        "reset_count": 32,
+                                        "terminate_count": 3278,
+                                        "initialise_count": 3246
+                                    },
+                                    "attrs": {
+                                        "value": "{{agent.missile_hit_self_count}}",
+                                        "name": "被导弹打中"
+                                    },
+                                    "immediate": false,
+                                    "last_value": "0",
+                                    "curr_value": "0",
+                                    "changed_count": 0
+                                }
+                            },
+                            {
+                                "tag": "Reward",
+                                "children": [],
+                                "data": {
+                                    "id": "da00dea23b6a4e23b091573cb72f7efb",
+                                    "status": "INVALID",
+                                    "type": "action",
+                                    "tag": "Reward",
+                                    "feedback_messages": "",
+                                    "name": "奖励-0.5",
+                                    "reward": "-1",
+                                    "scope": [
+                                        "control"
+                                    ],
+                                    "curr_reward": 0,
+                                    "context_reward": {}
+                                }
+                            }
+                        ],
+                        "data": {
+                            "id": "e9f5b5f34daf4e64b6952e661e371f1c",
+                            "status": "FAILURE",
+                            "type": "composite",
+                            "tag": "Sequence",
+                            "feedback_messages": "",
+                            "name": "Sequence",
+                            "debug_info": {
+                                "tick_count": 3246,
+                                "update_count": 0,
+                                "reset_count": 32,
+                                "terminate_count": 32,
+                                "initialise_count": 0
+                            },
+                            "attrs": {}
+                        }
+                    },
+                    {
+                        "tag": "Sequence",
+                        "children": [
+                            {
+                                "tag": "IsChanged",
+                                "children": [],
+                                "data": {
+                                    "id": "7caf7b0ae50e41d4b9c05ffdccc5cd56",
+                                    "status": "FAILURE",
+                                    "type": "condition",
+                                    "tag": "IsChanged",
+                                    "feedback_messages": "",
+                                    "name": "与飞机相撞",
+                                    "value": "{{agent.aircraft_collided_count}}",
+                                    "debug_info": {
+                                        "tick_count": 3246,
+                                        "update_count": 0,
+                                        "reset_count": 32,
+                                        "terminate_count": 3278,
+                                        "initialise_count": 3246
+                                    },
+                                    "attrs": {
+                                        "value": "{{agent.aircraft_collided_count}}",
+                                        "name": "与飞机相撞"
+                                    },
+                                    "immediate": false,
+                                    "last_value": "0",
+                                    "curr_value": "0",
+                                    "changed_count": 0
+                                }
+                            },
+                            {
+                                "tag": "Reward",
+                                "children": [],
+                                "data": {
+                                    "id": "62663b5b27f6406ab98681c4f078160c",
+                                    "status": "INVALID",
+                                    "type": "action",
+                                    "tag": "Reward",
+                                    "feedback_messages": "",
+                                    "name": "-0.8",
+                                    "reward": "-1",
+                                    "scope": [
+                                        "control"
+                                    ],
+                                    "curr_reward": 0,
+                                    "context_reward": {}
+                                }
+                            }
+                        ],
+                        "data": {
+                            "id": "dfa9d49ecd394d47827d827ad378ff47",
+                            "status": "FAILURE",
+                            "type": "composite",
+                            "tag": "Sequence",
+                            "feedback_messages": "",
+                            "name": "Sequence",
+                            "debug_info": {
+                                "tick_count": 3246,
+                                "update_count": 0,
+                                "reset_count": 32,
+                                "terminate_count": 32,
+                                "initialise_count": 0
+                            },
+                            "attrs": {}
+                        }
+                    },
+                    {
+                        "tag": "Sequence",
+                        "children": [
+                            {
+                                "tag": "IsChanged",
+                                "children": [],
+                                "data": {
+                                    "id": "30525536da09482eb7bb851c3c4d6bf6",
+                                    "status": "FAILURE",
+                                    "type": "condition",
+                                    "tag": "IsChanged",
+                                    "feedback_messages": "",
+                                    "name": "导弹发射失败",
+                                    "value": "{{agent.missile_fire_fail_count}}",
+                                    "debug_info": {
+                                        "tick_count": 3246,
+                                        "update_count": 0,
+                                        "reset_count": 32,
+                                        "terminate_count": 3278,
+                                        "initialise_count": 3246
+                                    },
+                                    "attrs": {
+                                        "value": "{{agent.missile_fire_fail_count}}",
+                                        "name": "导弹发射失败"
+                                    },
+                                    "immediate": false,
+                                    "last_value": "0",
+                                    "curr_value": "0",
+                                    "changed_count": 0
+                                }
+                            },
+                            {
+                                "tag": "Reward",
+                                "children": [],
+                                "data": {
+                                    "id": "981b1e2357ec427895b8e611aa92fb00",
+                                    "status": "INVALID",
+                                    "type": "action",
+                                    "tag": "Reward",
+                                    "feedback_messages": "",
+                                    "name": "惩罚-0.03",
+                                    "reward": "-0.03",
+                                    "scope": [
+                                        "attack"
+                                    ],
+                                    "curr_reward": 0,
+                                    "context_reward": {}
+                                }
+                            }
+                        ],
+                        "data": {
+                            "id": "f542454819e54b9b81610251fc9925cb",
+                            "status": "FAILURE",
+                            "type": "composite",
+                            "tag": "Sequence",
+                            "feedback_messages": "",
+                            "name": "Sequence",
+                            "debug_info": {
+                                "tick_count": 3246,
+                                "update_count": 0,
+                                "reset_count": 32,
+                                "terminate_count": 32,
+                                "initialise_count": 0
+                            },
+                            "attrs": {}
+                        }
+                    },
+                    {
+                        "tag": "Sequence",
+                        "children": [
+                            {
+                                "tag": "IsWin",
+                                "children": [],
+                                "data": {
+                                    "id": "36bfd830e2b94a618abc29202f37afe6",
+                                    "status": "FAILURE",
+                                    "type": "condition",
+                                    "tag": "IsWin",
+                                    "feedback_messages": "",
+                                    "name": "是否胜利",
+                                    "debug_info": {
+                                        "tick_count": 3246,
+                                        "update_count": 0,
+                                        "reset_count": 32,
+                                        "terminate_count": 3278,
+                                        "initialise_count": 3246
+                                    },
+                                    "attrs": {
+                                        "name": "是否胜利"
+                                    },
+                                    "actions": [],
+                                    "agent_name": "red_1",
+                                    "update_messages": []
+                                }
+                            },
+                            {
+                                "tag": "Reward",
+                                "children": [],
+                                "data": {
+                                    "id": "1fae9c5a823547afbbe61591e98be44c",
+                                    "status": "INVALID",
+                                    "type": "action",
+                                    "tag": "Reward",
+                                    "feedback_messages": "",
+                                    "name": "胜利奖励，越短时间胜利奖励越高",
+                                    "reward": "{{1 + 9 * math.exp(-time / 600)}}",
+                                    "scope": [
+                                        "default"
+                                    ],
+                                    "curr_reward": 0,
+                                    "context_reward": {}
+                                }
+                            }
+                        ],
+                        "data": {
+                            "id": "361cb48f1b9d482296bfdbdd33d9562b",
+                            "status": "FAILURE",
+                            "type": "composite",
+                            "tag": "Sequence",
+                            "feedback_messages": "",
+                            "name": "Sequence",
+                            "debug_info": {
+                                "tick_count": 3246,
+                                "update_count": 0,
+                                "reset_count": 32,
+                                "terminate_count": 32,
+                                "initialise_count": 0
+                            },
+                            "attrs": {}
+                        }
+                    },
+                    {
+                        "tag": "Sequence",
+                        "children": [
+                            {
+                                "tag": "IsLose",
+                                "children": [],
+                                "data": {
+                                    "id": "347ccbea088e4a36b6e2dd8d0afe7189",
+                                    "status": "FAILURE",
+                                    "type": "condition",
+                                    "tag": "IsLose",
+                                    "feedback_messages": "",
+                                    "name": "是否失败",
+                                    "debug_info": {
+                                        "tick_count": 3246,
+                                        "update_count": 0,
+                                        "reset_count": 32,
+                                        "terminate_count": 3278,
+                                        "initialise_count": 3246
+                                    },
+                                    "attrs": {
+                                        "name": "是否失败"
+                                    },
+                                    "actions": [],
+                                    "agent_name": "red_1",
+                                    "update_messages": []
+                                }
+                            },
+                            {
+                                "tag": "Reward",
+                                "children": [],
+                                "data": {
+                                    "id": "34d78a18bdf143bbb870140e24f9542e",
+                                    "status": "INVALID",
+                                    "type": "action",
+                                    "tag": "Reward",
+                                    "feedback_messages": "",
+                                    "name": "失败惩罚",
+                                    "reward": "{{10 - 9 * math.exp(-time / 600)}}",
+                                    "scope": [
+                                        "default"
+                                    ],
+                                    "curr_reward": 0,
+                                    "context_reward": {}
+                                }
+                            }
+                        ],
+                        "data": {
+                            "id": "0f6346b014e34b0f95c74186fdea4efd",
+                            "status": "FAILURE",
+                            "type": "composite",
+                            "tag": "Sequence",
+                            "feedback_messages": "",
+                            "name": "Sequence",
+                            "debug_info": {
+                                "tick_count": 3246,
+                                "update_count": 0,
+                                "reset_count": 32,
+                                "terminate_count": 32,
+                                "initialise_count": 0
+                            },
+                            "attrs": {}
+                        }
+                    }
+                ],
+                "data": {
+                    "id": "c230d34f3ecd4b5ea6efb3ce45f37c92",
+                    "status": "FAILURE",
+                    "type": "composite",
+                    "tag": "Parallel",
+                    "feedback_messages": "",
+                    "name": "V6Reward",
+                    "debug_info": {
+                        "tick_count": 3246,
+                        "update_count": 0,
+                        "reset_count": 32,
+                        "terminate_count": 32,
+                        "initialise_count": 0
+                    },
+                    "attrs": {
+                        "name": "V6Reward"
+                    },
+                    "success_threshold": 1
+                }
+            },
+            {
+                "tag": "ReactiveSequence",
+                "children": [
+                    {
+                        "tag": "CanFireMissile",
+                        "children": [],
+                        "data": {
+                            "id": "631273fe07c648e69b917e0e5f79fd7c",
+                            "status": "FAILURE",
+                            "type": "action",
+                            "tag": "CanFireMissile",
+                            "feedback_messages": "",
+                            "name": "CanFireMissile",
+                            "debug_info": {
+                                "tick_count": 3246,
+                                "update_count": 0,
+                                "reset_count": 32,
+                                "terminate_count": 3278,
+                                "initialise_count": 3246
+                            },
+                            "attrs": {},
+                            "actions": [],
+                            "agent_name": "red_1",
+                            "update_messages": []
+                        }
+                    },
+                    {
+                        "tag": "V7SACCondition1V1",
+                        "children": [],
+                        "data": {
+                            "id": "300f153d49ff4cb5adc8883b236f32a6",
+                            "status": "INVALID",
+                            "type": "condition",
+                            "tag": "V7SACCondition1V1",
+                            "feedback_messages": "",
+                            "name": "A_V7SACCondition1V1_shared",
+                            "reward_scope": "default,attack",
+                            "path": "scripts/v7/output/sac-A-shared_vs_greedy/models/A_V7SACCondition1V1_shared",
+                            "tensorboard_log": "{{output_run_id}}/{{name}}",
+                            "log_interval": "1",
+                            "verbose": "0",
+                            "train": "{{train}}",
+                            "shared": "true",
+                            "debug_info": {
+                                "tick_count": 308,
+                                "update_count": 0,
+                                "reset_count": 32,
+                                "terminate_count": 3250,
+                                "initialise_count": 308
+                            },
+                            "attrs": {
+                                "name": "A_V7SACCondition1V1_shared",
+                                "reward_scope": "default,attack",
+                                "path": "{{output}}/models/{{name}}",
+                                "tensorboard_log": "{{output_run_id}}/{{name}}",
+                                "log_interval": "1",
+                                "verbose": "0",
+                                "train": "{{train}}",
+                                "shared": "true"
+                            },
+                            "actions": [],
+                            "agent_name": "red_1",
+                            "update_messages": [],
+                            "rl_iteration": 0,
+                            "rl_info": {
+                                "truncated": false,
+                                "terminated": true,
+                                "winner": "red",
+                                "time": 201.69999999999283,
+                                "remain_count": {
+                                    "aircraft": {
+                                        "red": 1,
+                                        "blue": 0
+                                    },
+                                    "missile": {
+                                        "red": 0,
+                                        "blue": 0
+                                    },
+                                    "home": {
+                                        "red": 1,
+                                        "blue": 1
+                                    },
+                                    "bullseye": {
+                                        "red": 0,
+                                        "blue": 0,
+                                        "white": 1
+                                    }
+                                },
+                                "red_reward": 79.83000000000072,
+                                "blue_reward": -120.16999999999928
+                            },
+                            "rl_reward": 0.7000000000000001,
+                            "rl_obs": [
+                                [
+                                    1.0,
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    0.013333333656191826,
+                                    0.030234316363930702,
+                                    0.0
+                                ],
+                                [
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    0.0
+                                ],
+                                [
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    0.0
+                                ],
+                                [
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    0.0
+                                ],
+                                [
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    0.0
+                                ],
+                                [
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    0.0
+                                ],
+                                [
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    0.0
+                                ]
+                            ],
+                            "rl_accum_reward": 0,
+                            "rl_action": [
+                                1.7485086917877197
+                            ],
+                            "rl_reward_scope": "default,attack",
+                            "algo": "SAC",
+                            "save_interval": 0
+                        }
+                    },
+                    {
+                        "tag": "FireMissileAtNearestEnemy",
+                        "children": [],
+                        "data": {
+                            "id": "e178643822904770a79a4f7fbeb42bb6",
+                            "status": "INVALID",
+                            "type": "action",
+                            "tag": "FireMissileAtNearestEnemy",
+                            "feedback_messages": "",
+                            "name": "FireMissileAtNearestEnemy",
+                            "debug_info": {
+                                "tick_count": 159,
+                                "update_count": 0,
+                                "reset_count": 32,
+                                "terminate_count": 3250,
+                                "initialise_count": 159
+                            },
+                            "attrs": {},
+                            "actions": [],
+                            "agent_name": "red_1",
+                            "update_messages": []
+                        }
+                    }
+                ],
+                "data": {
+                    "id": "dad5b9590667415a86f91d7b33024043",
+                    "status": "FAILURE",
+                    "type": "composite",
+                    "tag": "ReactiveSequence",
+                    "feedback_messages": "",
+                    "name": "ReactiveSequence",
+                    "debug_info": {
+                        "tick_count": 3246,
+                        "update_count": 0,
+                        "reset_count": 32,
+                        "terminate_count": 32,
+                        "initialise_count": 0
+                    },
+                    "attrs": {}
+                }
+            },
+            {
+                "tag": "ReactiveSelector",
+                "children": [
+                    {
+                        "tag": "ReactiveSelector",
+                        "children": [
+                            {
+                                "tag": "ReactiveSequence",
+                                "children": [
+                                    {
+                                        "tag": "Inverter",
+                                        "children": [
+                                            {
+                                                "tag": "IsInSafeArea",
+                                                "children": [],
+                                                "data": {
+                                                    "id": "e9bc9a7e2ea0499daae71875e56baede",
+                                                    "status": "SUCCESS",
+                                                    "type": "condition",
+                                                    "tag": "IsInSafeArea",
+                                                    "feedback_messages": "",
+                                                    "name": "IsInSafeArea",
+                                                    "debug_info": {
+                                                        "tick_count": 3246,
+                                                        "update_count": 0,
+                                                        "reset_count": 32,
+                                                        "terminate_count": 3310,
+                                                        "initialise_count": 3246
+                                                    },
+                                                    "attrs": {},
+                                                    "actions": [],
+                                                    "agent_name": "red_1",
+                                                    "update_messages": [],
+                                                    "distance": 7500.000442033501,
+                                                    "bullseye_safe_radius": 21000.0
+                                                }
+                                            }
+                                        ],
+                                        "data": {
+                                            "id": "b7ba2c7d4a4a452c9031924be88c5606",
+                                            "status": "FAILURE",
+                                            "type": "decorator",
+                                            "tag": "Inverter",
+                                            "feedback_messages": "success -> failure",
+                                            "name": "Inverter",
+                                            "debug_info": {
+                                                "tick_count": 3246,
+                                                "update_count": 0,
+                                                "reset_count": 32,
+                                                "terminate_count": 3278,
+                                                "initialise_count": 3246
+                                            },
+                                            "attrs": {}
+                                        }
+                                    },
+                                    {
+                                        "tag": "GoToSafeArea",
+                                        "children": [],
+                                        "data": {
+                                            "id": "1365ae719564407e969b3dd786ebeda9",
+                                            "status": "INVALID",
+                                            "type": "action",
+                                            "tag": "GoToSafeArea",
+                                            "feedback_messages": "",
+                                            "name": "GoToSafeArea",
+                                            "debug_info": {
+                                                "tick_count": 0,
+                                                "update_count": 0,
+                                                "reset_count": 32,
+                                                "terminate_count": 3246,
+                                                "initialise_count": 0
+                                            },
+                                            "attrs": {},
+                                            "actions": [],
+                                            "agent_name": "red_1",
+                                            "update_messages": []
+                                        }
+                                    }
+                                ],
+                                "data": {
+                                    "id": "2b689e4193b14fc9b476cee500f1f1bd",
+                                    "status": "FAILURE",
+                                    "type": "composite",
+                                    "tag": "ReactiveSequence",
+                                    "feedback_messages": "",
+                                    "name": "ReactiveSequence",
+                                    "debug_info": {
+                                        "tick_count": 3246,
+                                        "update_count": 0,
+                                        "reset_count": 32,
+                                        "terminate_count": 32,
+                                        "initialise_count": 0
+                                    },
+                                    "attrs": {}
+                                }
+                            },
+                            {
+                                "tag": "ReactiveSequence",
+                                "children": [
+                                    {
+                                        "tag": "IsInSafeArea",
+                                        "children": [],
+                                        "data": {
+                                            "id": "9898848903134999a2e9dca74de693f0",
+                                            "status": "SUCCESS",
+                                            "type": "condition",
+                                            "tag": "IsInSafeArea",
+                                            "feedback_messages": "",
+                                            "name": "IsInSafeArea",
+                                            "debug_info": {
+                                                "tick_count": 3246,
+                                                "update_count": 0,
+                                                "reset_count": 32,
+                                                "terminate_count": 3278,
+                                                "initialise_count": 3246
+                                            },
+                                            "attrs": {},
+                                            "actions": [],
+                                            "agent_name": "red_1",
+                                            "update_messages": [],
+                                            "distance": 7500.000442033501,
+                                            "bullseye_safe_radius": 21000.0
+                                        }
+                                    },
+                                    {
+                                        "tag": "Inverter",
+                                        "children": [
+                                            {
+                                                "tag": "IsEnemyDetected",
+                                                "children": [],
+                                                "data": {
+                                                    "id": "613b04e4dbb7453aa7244efd5d21475a",
+                                                    "status": "SUCCESS",
+                                                    "type": "condition",
+                                                    "tag": "IsEnemyDetected",
+                                                    "feedback_messages": "",
+                                                    "name": "IsEnemyDetected",
+                                                    "debug_info": {
+                                                        "tick_count": 3246,
+                                                        "update_count": 0,
+                                                        "reset_count": 32,
+                                                        "terminate_count": 3310,
+                                                        "initialise_count": 3246
+                                                    },
+                                                    "attrs": {},
+                                                    "actions": [],
+                                                    "agent_name": "red_1",
+                                                    "update_messages": [
+                                                        "3226: No nearest enemy",
+                                                        "3227: No nearest enemy",
+                                                        "3228: No nearest enemy",
+                                                        "3229: No nearest enemy",
+                                                        "3230: No nearest enemy",
+                                                        "3231: No nearest enemy",
+                                                        "3232: No nearest enemy",
+                                                        "3233: No nearest enemy",
+                                                        "3234: No nearest enemy",
+                                                        "3235: No nearest enemy",
+                                                        "3236: No nearest enemy",
+                                                        "3237: No nearest enemy",
+                                                        "3238: No nearest enemy",
+                                                        "3239: No nearest enemy",
+                                                        "3240: No nearest enemy",
+                                                        "3241: No nearest enemy",
+                                                        "3242: No nearest enemy",
+                                                        "3243: No nearest enemy",
+                                                        "3244: No nearest enemy",
+                                                        "3245: No nearest enemy"
+                                                    ]
+                                                }
+                                            }
+                                        ],
+                                        "data": {
+                                            "id": "866b17b23fb74cf4b642034b08f02db2",
+                                            "status": "FAILURE",
+                                            "type": "decorator",
+                                            "tag": "Inverter",
+                                            "feedback_messages": "success -> failure",
+                                            "name": "Inverter",
+                                            "debug_info": {
+                                                "tick_count": 3246,
+                                                "update_count": 0,
+                                                "reset_count": 32,
+                                                "terminate_count": 3278,
+                                                "initialise_count": 3246
+                                            },
+                                            "attrs": {}
+                                        }
+                                    },
+                                    {
+                                        "tag": "Inverter",
+                                        "children": [
+                                            {
+                                                "tag": "IsMissileThreatDetected",
+                                                "children": [],
+                                                "data": {
+                                                    "id": "f41b1cfb120149cfaa3e5cc369c2418c",
+                                                    "status": "INVALID",
+                                                    "type": "condition",
+                                                    "tag": "IsMissileThreatDetected",
+                                                    "feedback_messages": "",
+                                                    "name": "IsMissileThreatDetected",
+                                                    "debug_info": {
+                                                        "tick_count": 571,
+                                                        "update_count": 0,
+                                                        "reset_count": 32,
+                                                        "terminate_count": 3272,
+                                                        "initialise_count": 571
+                                                    },
+                                                    "attrs": {},
+                                                    "actions": [],
+                                                    "agent_name": "red_1",
+                                                    "update_messages": []
+                                                }
+                                            }
+                                        ],
+                                        "data": {
+                                            "id": "784d019ccfef4eefa4953da162057a7a",
+                                            "status": "INVALID",
+                                            "type": "decorator",
+                                            "tag": "Inverter",
+                                            "feedback_messages": "success -> failure",
+                                            "name": "Inverter",
+                                            "debug_info": {
+                                                "tick_count": 571,
+                                                "update_count": 0,
+                                                "reset_count": 32,
+                                                "terminate_count": 3259,
+                                                "initialise_count": 571
+                                            },
+                                            "attrs": {}
+                                        }
+                                    },
+                                    {
+                                        "tag": "CheatGoToNearestEnemyWithMemory",
+                                        "children": [],
+                                        "data": {
+                                            "id": "2d74640f3f9545debf104aae865b46fc",
+                                            "status": "INVALID",
+                                            "type": "action",
+                                            "tag": "CheatGoToNearestEnemyWithMemory",
+                                            "feedback_messages": "",
+                                            "name": "CheatGoToNearestEnemyWithMemory",
+                                            "debug_info": {
+                                                "tick_count": 297,
+                                                "update_count": 297,
+                                                "reset_count": 32,
+                                                "terminate_count": 3255,
+                                                "initialise_count": 297
+                                            },
+                                            "attrs": {},
+                                            "actions": [],
+                                            "agent_name": "red_1",
+                                            "update_messages": []
+                                        }
+                                    }
+                                ],
+                                "data": {
+                                    "id": "2979454339b5456aa241d17ff4bfbfca",
+                                    "status": "FAILURE",
+                                    "type": "composite",
+                                    "tag": "ReactiveSequence",
+                                    "feedback_messages": "",
+                                    "name": "ReactiveSequence",
+                                    "debug_info": {
+                                        "tick_count": 3246,
+                                        "update_count": 0,
+                                        "reset_count": 32,
+                                        "terminate_count": 32,
+                                        "initialise_count": 0
+                                    },
+                                    "attrs": {}
+                                }
+                            }
+                        ],
+                        "data": {
+                            "id": "86898a5eb8b244b7bf7083a02ba419c3",
+                            "status": "FAILURE",
+                            "type": "composite",
+                            "tag": "ReactiveSelector",
+                            "feedback_messages": "",
+                            "name": "HandleAbnormal",
+                            "debug_info": {
+                                "tick_count": 3246,
+                                "update_count": 0,
+                                "reset_count": 32,
+                                "terminate_count": 32,
+                                "initialise_count": 0
+                            },
+                            "attrs": {
+                                "name": "HandleAbnormal"
+                            }
+                        }
+                    },
+                    {
+                        "tag": "V7SACGoToLocation1V1",
+                        "children": [],
+                        "data": {
+                            "id": "d5f6a03309194a5a9b7237b0322d5bca",
+                            "status": "SUCCESS",
+                            "type": "action",
+                            "tag": "V7SACGoToLocation1V1",
+                            "feedback_messages": "",
+                            "name": "A_V7SACGoToLocation1V1_shared",
+                            "reward_scope": "default,control",
+                            "path": "scripts/v7/output/sac-A-shared_vs_greedy/models/A_V7SACGoToLocation1V1_shared",
+                            "tensorboard_log": "{{output_run_id}}/{{name}}",
+                            "log_interval": "1",
+                            "verbose": "0",
+                            "train": "{{train}}",
+                            "shared": "true",
+                            "debug_info": {
+                                "tick_count": 3231,
+                                "update_count": 0,
+                                "reset_count": 32,
+                                "terminate_count": 3278,
+                                "initialise_count": 3231
+                            },
+                            "attrs": {
+                                "name": "A_V7SACGoToLocation1V1_shared",
+                                "reward_scope": "default,control",
+                                "path": "{{output}}/models/{{name}}",
+                                "tensorboard_log": "{{output_run_id}}/{{name}}",
+                                "log_interval": "1",
+                                "verbose": "0",
+                                "train": "{{train}}",
+                                "shared": "true"
+                            },
+                            "actions": [
+                                "(<Actions.go_to_location: 1>, 7515.972, -5096.999)"
+                            ],
+                            "agent_name": "red_1",
+                            "update_messages": [],
+                            "rl_iteration": 0,
+                            "rl_info": {
+                                "truncated": false,
+                                "terminated": false,
+                                "winner": "",
+                                "time": 0,
+                                "remain_count": {
+                                    "aircraft": {
+                                        "red": 1,
+                                        "blue": 1
+                                    },
+                                    "missile": {
+                                        "red": 0,
+                                        "blue": 0
+                                    },
+                                    "home": {
+                                        "red": 1,
+                                        "blue": 1
+                                    },
+                                    "bullseye": {
+                                        "red": 0,
+                                        "blue": 0,
+                                        "white": 1
+                                    }
+                                },
+                                "red_reward": -0.0,
+                                "blue_reward": -0.0
+                            },
+                            "rl_reward": 0,
+                            "rl_obs": [
+                                [
+                                    1.0,
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    0.013333333656191826,
+                                    0.030234316363930702,
+                                    0.0
+                                ],
+                                [
+                                    1.0,
+                                    1.0,
+                                    0.37589868903160095,
+                                    2.96026873588562,
+                                    1.0267945528030396,
+                                    0.0,
+                                    0.013333333656191826,
+                                    0.030234316363930702,
+                                    0.0
+                                ],
+                                [
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    0.0
+                                ],
+                                [
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    0.0
+                                ],
+                                [
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    0.0
+                                ],
+                                [
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    0.0
+                                ],
+                                [
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    0.0
+                                ]
+                            ],
+                            "rl_accum_reward": 0,
+                            "rl_action": [
+                                -0.20732784271240234,
+                                0.7973527908325195
+                            ],
+                            "rl_reward_scope": "default,control",
+                            "algo": "SAC",
+                            "save_interval": 0
+                        }
+                    }
+                ],
+                "data": {
+                    "id": "927b346b37ec4d0bb7eb27a82ec08d56",
+                    "status": "SUCCESS",
+                    "type": "composite",
+                    "tag": "ReactiveSelector",
+                    "feedback_messages": "",
+                    "name": "ReactiveSelector",
+                    "debug_info": {
+                        "tick_count": 3246,
+                        "update_count": 0,
+                        "reset_count": 32,
+                        "terminate_count": 32,
+                        "initialise_count": 0
+                    },
+                    "attrs": {}
+                }
+            }
+        ],
+        "data": {
+            "id": "1eb36230bc284bbea834180156b3319b",
+            "status": "SUCCESS",
+            "type": "composite",
+            "tag": "Parallel",
+            "feedback_messages": "",
+            "name": "V4RL",
+            "debug_info": {
+                "tick_count": 3246,
+                "update_count": 0,
+                "reset_count": 32,
+                "terminate_count": 32,
+                "initialise_count": 0
+            },
+            "attrs": {
+                "name": "V4RL"
+            },
+            "success_threshold": 1
+        }
+    }
+}
