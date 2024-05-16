@@ -1,0 +1,36 @@
+<Root>
+    <include path="{{filedir}}/policy/init.xml"/>
+    <include path="{{filedir}}/policy/reward.xml"/>
+
+    <ReactiveSequence>
+        <CanFireMissile/>
+        <IsNearestEnemyInHitRange/>
+        <FireMissileAtNearestEnemy/>
+    </ReactiveSequence>
+
+    <ReactiveSelector>
+        <include path="{{filedir}}/policy/handle_abnormal.xml"/>
+
+        <Throttle duration="5 - episode // 400" time="{{time}}">
+            <Parallel>
+                <V8PPOFloatArray
+                        key="param" high="1" low="-1" length="2"
+                        name="V8PPOFloatArray"
+                        domain="control,default,attack,evade"
+                        path="{{init_models_dir}}/V8PPOFloatArray"
+                        tensorboard_log="{{output_run_id}}/{{name}}/{{agent_name}}"
+                        log_interval="1"
+                        verbose="0"
+                        train="{{train}}"
+                />
+                <Sequence>
+                    <IsMatchRule rule="{{param[0] > 0}}"/>
+                    <FireMissileAtNearestEnemy/>
+                </Sequence>
+                <TurnHeading heading="{{param[1] * 180}}"/>
+            </Parallel>
+        </Throttle>
+
+
+    </ReactiveSelector>
+</Root>

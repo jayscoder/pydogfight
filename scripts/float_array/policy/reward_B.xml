@@ -1,0 +1,28 @@
+<Root name="Reward">
+    <OneShot>
+        <Sequence>
+            <!--胜利奖励，越短时间胜利奖励越高-->
+            <IsWin name="是否胜利"/>
+            <Reward reward="{{50 + 50 * math.exp(-time / 600)}}" domain="default" name="胜利奖励，越短时间胜利奖励越高"/>
+<!--            <Print msg="{{agent_name}}胜利"/>-->
+        </Sequence>
+    </OneShot>
+
+    <OneShot>
+        <Sequence>
+            <!--失败惩罚，存活时间越长惩罚越低-->
+            <IsLose name="是否失败"/>
+            <Reward reward="{{-10 - 10 * math.exp(-time / 600)}}" domain="default" name="失败惩罚"/>
+<!--            <Print msg="{{agent_name}}失败"/>-->
+        </Sequence>
+    </OneShot>
+
+<!--    <OneShot>-->
+<!--        <Sequence>-->
+<!--            &lt;!&ndash;平局惩罚&ndash;&gt;-->
+<!--            <IsDraw name="是否平局"/>-->
+<!--            <Reward reward="{{-1}}" domain="default" name="失败惩罚"/>-->
+<!--            <Print msg="{{agent_name}}平局"/>-->
+<!--        </Sequence>-->
+<!--    </OneShot>-->
+</Root>

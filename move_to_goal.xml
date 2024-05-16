@@ -1,0 +1,31 @@
+<Selector>
+    <已到达目标/>
+    <Sequence>
+        <Sequence>
+            <Selector>
+                <门已打开/>
+                <Sequence>
+                    <Sequence>
+                        <Selector>
+                            <拿到钥匙/>
+                            <Sequence>
+                                <Selector>
+                                    <发现钥匙/>
+                                    <探索/>
+                                </Selector>
+                                <拿钥匙/>
+                            </Sequence>
+                        </Selector>
+                        <Selector>
+                            <发现门/>
+                            <探索/>
+                        </Selector>
+                    </Sequence>
+                    <开门/>
+                </Sequence>
+            </Selector>
+            <发现目标/>
+        </Sequence>
+        <移动到目标/>
+    </Sequence>
+</Selector>

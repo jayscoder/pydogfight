@@ -65,13 +65,13 @@ class IsNearEnemy(BTPolicyNode):
     distance: 距离，单位m
     """
 
-    def __init__(self, distance: float | str = 0.1, **kwargs):
+    def __init__(self, distance: float | str = 2000, **kwargs):
         super().__init__(**kwargs)
         self.distance = distance
 
     def setup(self, **kwargs: typing.Any) -> None:
         super().setup(**kwargs)
-        self.distance = self.converter.float(self.distance)  # 以自己的雷达半径为判断依据
+        self.distance = self.converter.float(self.distance)
 
     def update(self) -> Status:
         enemy = self.env.battle_area.find_nearest_enemy(

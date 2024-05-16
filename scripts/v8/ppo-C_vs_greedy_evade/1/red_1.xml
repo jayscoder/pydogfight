@@ -1,0 +1,35 @@
+<!--scripts/v8/policy/ppo-C.xml-->
+<Parallel>
+    <RandomInitWaypointNearGameCenter/>
+    <Parallel>
+        <Sequence>
+            <IsChanged value="{{agent.missile_hit_enemy_count}}"/>
+            <Reward reward="1" domain="attack"/>
+        </Sequence>
+        <Sequence>
+            <IsChanged value="{{agent.missile_evade_success_count}}"/>
+            <Reward reward="{{1}}" domain="evade"/>
+        </Sequence>
+        <Sequence>
+            <IsChanged value="{{agent.missile_miss_count}}"/>
+            <Reward reward="-0.1" domain="attack"/>
+        </Sequence>
+        <Sequence>
+            <IsWin/>
+            <Reward reward="{{50 + 50 * math.exp(-time / 600)}}" domain="default"/>
+        </Sequence>
+        <Sequence>
+            <IsLose/>
+            <Reward reward="{{-10 - 10 * math.exp(-time / 600)}}" domain="default"/>
+        </Sequence>
+    </Parallel>
+    <ReactiveSelector>
+        <ReactiveSequence>
+            <Inverter>
+                <IsInSafeArea/>
+            </Inverter>
+            <GoToSafeArea/>
+        </ReactiveSequence>
+        <V8PPOFireAndGoToLocation1V1 domain="control,default,attack,evade" path="{{init_models_dir}}/V8PPOFireAndGoToLocation1V1" tensorboard_log="{{output_run_id}}/{{name}}/{{agent_name}}" log_interval="1" verbose="0" train="{{train}}"/>
+    </ReactiveSelector>
+</Parallel>

@@ -1,0 +1,2 @@
+1: reward=3.00 vs -0.30, win=0 vs 1, recent_win=0 vs 1, draw=0, winner=blue, time=139/139
+2: reward=4.00 vs -0.40, win=0 vs 2, recent_win=0 vs 2, draw=0, winner=blue, time=141/280

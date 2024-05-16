@@ -1,0 +1,26 @@
+base: scripts/v8/base.yaml
+context:
+    batch_size: 32
+    features_dim: 128
+    init_models_dir: scripts/v8/ppo-B_ap_5_vs_greedy_evade/models
+    learning_starts: 128
+episodes: 3000
+options:
+    aircraft_fire_missile_interval: 15
+    aircraft_fuel_capacity: 180000
+    aircraft_missile_count: 1000
+    blue_agents:
+    - blue_1
+    collision_scale: 1
+    device: auto
+    indestructible: false
+    max_duration: 1800
+    red_agents:
+    - red_1
+    title: scripts/v8-ppo-B_ap_5_vs_greedy_evade
+output: scripts/v8/ppo-B_ap_5_vs_greedy_evade
+policy:
+    blue: scripts/v8/policy/greedy_evade.xml
+    red: scripts/v8/policy/ppo-B_ap_5.xml
+title: scripts/v8-ppo-B_ap_5_vs_greedy_evade
+track: -1

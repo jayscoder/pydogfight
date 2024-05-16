@@ -1,0 +1,25 @@
+base: scripts/thesis/base.yaml
+context:
+    filedir: scripts/thesis
+    filename: ppo-D_vs_greedy
+    path: scripts/thesis/ppo-D_vs_greedy.yaml
+episodes: 3000
+options:
+    aircraft_fire_missile_interval: 15
+    aircraft_fuel_capacity: 180000
+    aircraft_missile_count: 1000
+    blue_agents:
+    - blue_1
+    collision_scale: 1
+    device: auto
+    indestructible: false
+    max_duration: 1800
+    red_agents:
+    - red_1
+    title: scripts/thesis-ppo-D_vs_greedy
+output: scripts/thesis/ppo-D_vs_greedy
+policy:
+    blue: scripts/thesis/policy/greedy.xml
+    red: scripts/thesis/policy/ppo-D.xml
+title: scripts/thesis-ppo-D_vs_greedy
+track: -1

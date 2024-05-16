@@ -1,0 +1,5 @@
+1: reward=90.74 vs 1.00, reward_evade=1.00 vs 1.00, win=1 vs 0, recent_win=1 vs 0, draw=0, winner=red, time=150/150
+2: reward=87.52 vs 1.00, reward_evade=1.00 vs 1.00, win=2 vs 0, recent_win=2 vs 0, draw=0, winner=red, time=185/335
+3: reward=91.49 vs 1.00, reward_evade=1.00 vs 1.00, win=3 vs 0, recent_win=3 vs 0, draw=0, winner=red, time=140/475
+4: reward=86.00 vs 4.00, reward_evade=1.00 vs 4.00, win=4 vs 0, recent_win=4 vs 0, draw=0, winner=red, time=223/698
+5: reward=1.00 vs 4.00, reward_evade=1.00 vs 4.00, win=4 vs 0, recent_win=4 vs 0, draw=1, winner=draw, time=163/861

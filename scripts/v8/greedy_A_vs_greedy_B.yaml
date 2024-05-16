@@ -1,0 +1,5 @@
+base: '{{filedir}}/base.yaml'
+policy:
+    red: '{{filedir}}/policy/greedy_A.xml' # 红方行为树
+    blue: '{{filedir}}/policy/greedy_B.xml' # 红方行为树
+options:

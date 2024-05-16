@@ -1,19 +1,20 @@
-<ReactiveSelector name="HandleAbnormal">
-    <ReactiveSequence>
-        <Inverter>
-            <IsInSafeArea/>
-        </Inverter>
-        <GoToSafeArea/>
-    </ReactiveSequence>
-
-    <ReactiveSequence>
+<!--<ReactiveSelector name="HandleAbnormal">-->
+<!--    -->
+<!--    -->
+<!--&lt;!&ndash;    <ReactiveSequence>&ndash;&gt;-->
+<!--&lt;!&ndash;        <IsInSafeArea/>&ndash;&gt;-->
+<!--&lt;!&ndash;        <Inverter>&ndash;&gt;-->
+<!--&lt;!&ndash;            <IsEnemyDetected/>&ndash;&gt;-->
+<!--&lt;!&ndash;        </Inverter>&ndash;&gt;-->
+<!--&lt;!&ndash;        <Inverter>&ndash;&gt;-->
+<!--&lt;!&ndash;            <IsMissileThreatDetected/>&ndash;&gt;-->
+<!--&lt;!&ndash;        </Inverter>&ndash;&gt;-->
+<!--&lt;!&ndash;&lt;!&ndash;        <CheatGoToNearestEnemyWithMemory/>&ndash;&gt;&ndash;&gt;-->
+<!--&lt;!&ndash;    </ReactiveSequence>&ndash;&gt;-->
+<!--</ReactiveSelector>-->
+<ReactiveSequence>
+    <Inverter>
         <IsInSafeArea/>
-        <Inverter>
-            <IsEnemyDetected/>
-        </Inverter>
-        <Inverter>
-            <IsMissileThreatDetected/>
-        </Inverter>
-        <CheatGoToNearestEnemyWithMemory/>
-    </ReactiveSequence>
-</ReactiveSelector>
+    </Inverter>
+    <GoToSafeArea/>
+</ReactiveSequence>

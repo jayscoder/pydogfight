@@ -1,0 +1,6 @@
+base: '{{filedir}}/base.yaml'
+policy:
+    red: '{{filedir}}/policy/ppo-C.xml' # 红方行为树
+    blue: '{{filedir}}/policy/greedy_evade.xml'
+context: # 行为树环境变量，可以在行为树中通过{{}}来传递
+    init_models_dir: 'scripts/v8/ppo-C_vs_greedy_evade/models_'

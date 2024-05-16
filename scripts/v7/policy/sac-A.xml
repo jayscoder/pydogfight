@@ -5,13 +5,14 @@
     <ReactiveSequence>
         <CanFireMissile/>
         <V7SACCondition1V1
-                name="A_V7SACCondition1V1"
+                name="A_V7SACCondition1V1_f{{features_dim}}"
                 reward_scope="default,attack"
                 path="{{output}}/models/{{name}}"
-                tensorboard_log="{{output_run_id}}/{{name}}"
+                tensorboard_log="{{output_run_id}}/{{name}}/{{agent_name}}"
                 log_interval="1"
                 verbose="0"
                 train="{{train}}"
+                features_dim="{{features_dim}}"
         />
         <FireMissileAtNearestEnemy/>
     </ReactiveSequence>
@@ -20,13 +21,14 @@
         <include path="v7/policy/handle_abnormal.xml"/>
 
         <V7SACGoToLocation1V1
-                name="A_V7SACCondition1V1"
+                name="A_V7SACCondition1V1_f{{features_dim}}"
                 reward_scope="default,control"
                 path="{{output}}/models/{{name}}"
-                tensorboard_log="{{output_run_id}}/{{name}}"
+                tensorboard_log="{{output_run_id}}/{{name}}/{{agent_name}}"
                 log_interval="1"
                 verbose="0"
                 train="{{train}}"
+                features_dim="{{features_dim}}"
         />
     </ReactiveSelector>
 </Root>

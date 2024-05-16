@@ -1,0 +1,9 @@
+base: '{{filedir}}/base.yaml'
+policy:
+    red: '{{filedir}}/policy/ppo-B.xml' # 红方行为树
+    blue: 'scripts/manual.xml'
+context: # 行为树环境变量，可以在行为树中通过{{}}来传递
+    init_models_dir: 'scripts/v8/ppo-B_vs_greedy/models'
+options:
+    simulation_rate: 10
+    update_interval: 0.1

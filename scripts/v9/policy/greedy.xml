@@ -1,0 +1,15 @@
+<Root name="V9Greedy">
+    <RandomInitWaypointNearGameCenter/>
+    <include path="v9/policy/reward.xml"/>
+
+    <ReactiveSequence>
+        <CanFireMissile/>
+        <IsNearestEnemyInHitRange/>
+        <FireMissileAtNearestEnemy/>
+    </ReactiveSequence>
+
+    <ReactiveSelector>
+        <include path="v9/policy/handle_abnormal.xml"/>
+        <PurePursueNearestEnemy/>
+    </ReactiveSelector>
+</Root>

@@ -1,0 +1,56 @@
+<!--scripts/v8/policy/greedy.xml-->
+<Parallel>
+    <RandomInitWaypointNearGameCenter/>
+    <Parallel>
+        <Sequence>
+            <IsChanged value="{{agent.missile_hit_enemy_count}}"/>
+            <Reward reward="1" domain="attack"/>
+        </Sequence>
+        <Sequence>
+            <IsChanged value="{{agent.missile_evade_success_count}}"/>
+            <Reward reward="{{1}}" domain="evade"/>
+        </Sequence>
+        <Sequence>
+            <IsChanged value="{{agent.missile_miss_count}}"/>
+            <Reward reward="-0.1" domain="attack"/>
+        </Sequence>
+        <Sequence>
+            <IsWin/>
+            <Reward reward="{{50 + 50 * math.exp(-time / 600)}}" domain="default"/>
+        </Sequence>
+        <Sequence>
+            <IsLose/>
+            <Reward reward="{{-10 - 10 * math.exp(-time / 600)}}" domain="default"/>
+        </Sequence>
+    </Parallel>
+    <ReactiveSequence>
+        <CanFireMissile/>
+        <IsNearestEnemyInHitRange/>
+        <FireMissileAtNearestEnemy/>
+    </ReactiveSequence>
+    <ReactiveSelector>
+        <ReactiveSequence>
+            <Inverter>
+                <IsInSafeArea/>
+            </Inverter>
+            <GoToSafeArea/>
+        </ReactiveSequence>
+        <ReactiveSelector>
+            <ReactiveSequence>
+                <IsMissileThreatDetected/>
+                <Manoeuvre39ToEvadeEnemy/>
+            </ReactiveSequence>
+            <ReactiveSequence>
+                <Inverter>
+                    <IsNearestEnemyFitPositioning positioning="head-to-head,head-to-tail"/>
+                </Inverter>
+                <ConditionBranch>
+                    <IsNearEnemy distance="5000"/>
+                    <LagPursueNearestEnemy/>
+                    <LeadPursueNearestEnemy/>
+                </ConditionBranch>
+            </ReactiveSequence>
+            <PurePursueNearestEnemy/>
+        </ReactiveSelector>
+    </ReactiveSelector>
+</Parallel>

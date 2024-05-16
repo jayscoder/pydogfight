@@ -1,0 +1,27 @@
+<Root name="V8Greedy">
+    <include path="v8/policy/init.xml"/>
+    <include path="v8/policy/reward_B.xml"/>
+
+    <ReactiveSequence>
+        <CanFireMissile/>
+        <IsNearestEnemyInHitRange/>
+        <FireMissileAtNearestEnemy/>
+    </ReactiveSequence>
+
+    <ReactiveSelector>
+        <include path="v8/policy/handle_abnormal.xml"/>
+        <V8PPOSwitcher
+                name="V8PPOSwitcher"
+                domain="control,default,attack,evade"
+                path="{{init_models_dir}}/V8PPOSwitcher"
+                tensorboard_log="{{output_run_id}}/{{name}}/{{agent_name}}"
+                log_interval="1"
+                verbose="0"
+                train="{{train}}"
+        >
+            <PurePursueNearestEnemy/>
+            <Manoeuvre39ToEvadeMissile/>
+            <Manoeuvre39ToEvadeEnemy/>
+        </V8PPOSwitcher>
+    </ReactiveSelector>
+</Root>

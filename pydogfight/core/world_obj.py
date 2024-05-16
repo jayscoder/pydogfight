@@ -291,15 +291,16 @@ class WorldObj:
         if self.options.render:
             self.render_route = self.route_param.build_route(self.route_param.length / 20)
 
-    def generate_test_moves(self, in_safe_area: bool = True, angle_sep: int = 45) -> list[Waypoint]:
+    def generate_test_moves(self, in_safe_area: bool = True, angle_sep: int = 45, test_time: int = 15) -> list[
+        Waypoint]:
         """
         生成测试的实体的预期位置（在不同方向上假设实体飞到对应点上）
         :param in_safe_area: 是否强制要求在安全位置（不能离战场中心远）
         :param angle_sep: 角度的间隔
         :return:
         """
-        # 测试的距离
-        dis = max(self.turn_radius * 10, self.speed * 20)
+        # 预测未来N秒的位置
+        dis = self.speed * test_time
         wpt_list: list[Waypoint] = []
         for angle in range(0, 360, angle_sep):
             target = self.waypoint.move(d=dis, angle=angle)
@@ -852,6 +853,18 @@ class Home(WorldObj):
 
         """
         pass
+
+# class Obstacle(WorldObj):
+#     """障碍物，飞机飞到这里就会被摧毁"""
+#
+#     def __init__(self, name: str, color: str, options: Options, waypoint: Waypoint, radius: float = 10):
+#         super().__init__(
+#                 type='obstacle', options=options, name=name, color=color,
+#                 waypoint=waypoint,
+#                 collision_radius=radius)
+#
+#     def on_collision(self, obj: WorldObj):
+#         super().on_collision(obj)
 
 # class MousePoint(WorldObj):
 #     def __init__(self, point: tuple[float, float], time: float):

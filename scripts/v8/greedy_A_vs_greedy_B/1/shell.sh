@@ -1,0 +1,1 @@
+python main.py scripts/v8/greedy_A_vs_greedy_B.yaml --render

@@ -1,0 +1,34 @@
+<Root name="PPO-A">
+    <include path="float_array/policy/init.xml"/>
+    <include path="float_array/policy/reward_A.xml"/>
+
+    <ReactiveSequence>
+        <CanFireMissile/>
+        <IsNearestEnemyInHitRange/>
+        <FireMissileAtNearestEnemy/>
+    </ReactiveSequence>
+
+    <V8PPOFloatArray
+            key="param" high="1" low="-1" length="2"
+            name="V8PPOFloatArray"
+            domain="control,default,attack,evade"
+            path="{{init_models_dir}}/V8PPOFloatArray"
+            tensorboard_log="{{output_run_id}}/{{name}}/{{agent_name}}"
+            log_interval="1"
+            verbose="0"
+            train="{{train}}"
+    />
+
+    <ReactiveSelector>
+        <include path="float_array/policy/handle_abnormal.xml"/>
+
+        <Parallel>
+            <Sequence>
+                <IsMatchRule rule="{{param[0] > 0}}"/>
+                <FireMissileAtNearestEnemy/>
+            </Sequence>
+
+            <TurnHeading heading="{{param[1] * 180}}"/>
+        </Parallel>
+    </ReactiveSelector>
+</Root>

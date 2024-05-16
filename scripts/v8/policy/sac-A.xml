@@ -1,0 +1,32 @@
+<Root name="V8Greedy">
+    <RandomInitWaypointNearGameCenter/>
+    <include path="v8/policy/reward.xml"/>
+
+    <ReactiveSequence>
+        <CanFireMissile/>
+        <IsNearestEnemyInHitRange/>
+        <FireMissileAtNearestEnemy/>
+    </ReactiveSequence>
+
+    <ReactiveSelector>
+        <include path="v8/policy/handle_abnormal.xml"/>
+        <Sequence>
+            <V8SACFloatValue
+                    key="PursueNearestEnemy_ratio"
+                    high="1" low="0" length="2"
+                    name="A_V8SACFloatArrayValue_f{{features_dim}}"
+                    reward_scope="default,attack,control"
+                    path="{{output}}/models/{{name}}"
+                    tensorboard_log="{{output_run_id}}/{{name}}/{{agent_name}}"
+                    log_interval="1"
+                    verbose="0"
+                    train="{{train}}"
+                    features_dim="{{features_dim}}"
+            />
+            <PursueNearestEnemy
+                    attack_ratio="{{PursueNearestEnemy_ratio}}"
+                    evade_ratio="{{1-PursueNearestEnemy_ratio}}"
+                    test_move_angle_sep="10"/>
+        </Sequence>
+    </ReactiveSelector>
+</Root>

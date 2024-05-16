@@ -33,7 +33,7 @@ class Options:
     render_fps = 50  # 渲染的fps
     delta_time = 0.1  # 每次env的更新步长
     update_interval = 1  # 每轮策略更新的时间间隔
-    simulation_rate = 100.0  # 仿真的时间倍数，真实世界的1s对应游戏世界的多长时间
+    simulation_rate = 30.0  # 仿真的时间倍数，真实世界的1s对应游戏世界的多长时间
 
     reach_location_threshold = 2  # 用来判断是否接近目标点的时间片尺度（乘以delta_time*速度后就能得出距离多近就算到达目标点）
 
@@ -74,12 +74,12 @@ class Options:
 
     aircraft_max_centripetal_acceleration = 9 * g  # 飞机最大向心加速度
 
-    aircraft_min_turn_radius = aircraft_speed ** 2 / aircraft_max_centripetal_acceleration  # 飞机最小转弯半径558m
+    aircraft_min_turn_radius = (aircraft_speed ** 2) / aircraft_max_centripetal_acceleration  # 飞机最小转弯半径558m
     # aircraft_min_turn_radius = 5000
     aircraft_predict_distance = aircraft_speed * 5  # 预测未来5秒的位置
 
     # aircraft_radar_radius = 1e4  # 雷达半径 10km
-    aircraft_radar_radius = 15000  # 雷达半径 10km
+    aircraft_radar_radius = 30000  # 雷达半径 10km
 
     aircraft_fire_missile_interval = 15  # 发射导弹时间间隔
 
@@ -100,7 +100,7 @@ class Options:
     # missile_collision_radius = max(15.0, missile_speed * delta_time * 5)  # 导弹的碰撞半径
 
     missile_fuel_consumption_rate = 1
-    missile_fuel_capacity = missile_fuel_consumption_rate * 60  # 导弹只能飞60秒: 26640m
+    missile_fuel_capacity = missile_fuel_consumption_rate * 20 * update_interval  # 导弹只能飞20秒
 
     def missile_flight_duration(self):
         """导弹飞行时长"""
@@ -205,14 +205,13 @@ class Options:
                     left_top=(-self.game_size[0] * 3 / 8, -self.game_size[1] / 8),
                     size=(self.game_size[0] / 4, self.game_size[1] / 4),
             )
-
-            return boundbox.center
+            return boundbox.left_middle
         else:
             boundbox = BoundingBox(
                     (self.game_size[0] / 8, -self.game_size[1] / 8),
                     (self.game_size[0] / 4, self.game_size[1] / 4),
             )
-            return boundbox.center
+            return boundbox.right_middle
 
     def generate_aircraft_init_waypoint(
             self, color: str,
@@ -247,8 +246,9 @@ class Options:
 
 
 if __name__ == '__main__':
-    pass
-    # options = Options()
+    options = Options()
+    print(options.aircraft_min_turn_radius)
+    print(options.missile_min_turn_radius)
     # options.red_agents = []
     # # print(Options.red_agents)
     # # print(options.to_dict())

@@ -40,11 +40,16 @@ class ObsUtils:
     def gen_self_obs(cls, agent: Aircraft):
         """获取自己的观测"""
         obs = cls.empty_obs_line()
+
         obs[0] = OBJECT_TO_IDX[agent.type]
         obs[1] = 0
-        # obs[2] = rel_pt.r / agent.radar_radius
-        # obs[3] = np.deg2rad(rel_pt.theta)
-        # obs[4] = np.deg2rad(rel_pt.phi)
+
+        if agent.route_param is not None:
+            rel_pt = agent.waypoint.relative_polar_waypoint(other=agent.route_param.target)
+            obs[2] = rel_pt.r / agent.radar_radius
+            obs[3] = np.deg2rad(rel_pt.theta)
+            obs[4] = np.deg2rad(rel_pt.phi)
+
         obs[5] = int(agent.can_fire_missile())
         obs[6] = agent.speed / agent.radar_radius
         obs[7] = agent.turn_radius / agent.radar_radius

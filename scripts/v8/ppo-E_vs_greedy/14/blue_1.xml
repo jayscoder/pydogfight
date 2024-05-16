@@ -1,0 +1,28 @@
+<!--scripts/v8/policy/greedy.xml-->
+<Parallel>
+    <RandomInitWaypointNearGameCenter/>
+    <Parallel>
+        <Sequence>
+            <IsWin/>
+            <Reward reward="{{1 + 9 * math.exp(-time / 600)}}" scope="default"/>
+        </Sequence>
+    </Parallel>
+    <ReactiveSequence>
+        <CanFireMissile/>
+        <IsNearestEnemyInHitRange/>
+        <FireMissileAtNearestEnemy/>
+    </ReactiveSequence>
+    <ReactiveSelector>
+        <ReactiveSequence>
+            <Inverter>
+                <IsInSafeArea/>
+            </Inverter>
+            <GoToSafeArea/>
+        </ReactiveSequence>
+        <ReactiveSequence>
+            <IsMissileThreatDetected/>
+            <Manoeuvre39ToEvadeMissile/>
+        </ReactiveSequence>
+        <PurePursueNearestEnemy/>
+    </ReactiveSelector>
+</Parallel>

@@ -1,0 +1,5 @@
+base: '{{filedir}}/base.yaml'
+policy:
+    red: '{{filedir}}/policy/ppo-D.xml' # 红方行为树
+context: # 行为树环境变量，可以在行为树中通过{{}}来传递
+    models_dir: 'scripts/v9/ppo-D_vs_greedy/models'

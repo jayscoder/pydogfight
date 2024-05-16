@@ -1,0 +1,64 @@
+<Root name="V9Reward">
+    <Sequence>
+        <IsChanged value="{{agent.missile_hit_enemy_count}}" name="导弹打中了对方"/>
+        <!--导弹打中了对方-->
+        <Reward reward="1" domain="attack" name="奖励1"/>
+    </Sequence>
+
+    <Sequence>
+        <IsChanged value="{{agent.missile_evade_success_count}}" name="成功规避导弹"/>
+        <!--成功规避导弹，给出奖励-->
+        <Reward reward="{{1}}" domain="evade" name="奖励1"/>
+    </Sequence>
+
+    <Sequence>
+        <IsChanged value="{{agent.missile_miss_count}}" name="导弹打空了"/>
+        <!--导弹打空了-->
+        <Reward reward="-0.1" domain="attack" name="奖励-0.1"/>
+    </Sequence>
+
+<!--    <Sequence>-->
+<!--        <IsChanged value="{{agent.missile_hit_self_count}}" name="被导弹打中"/>-->
+<!--        &lt;!&ndash;被导弹打中，给出惩罚&ndash;&gt;-->
+<!--        <Reward reward="-1" scope="control" name="奖励-0.5"/>-->
+<!--    </Sequence>-->
+
+<!--    <Sequence>-->
+<!--        <IsChanged value="{{agent.aircraft_collided_count}}" name="与飞机相撞"/>-->
+<!--        &lt;!&ndash;与飞机相撞，给出惩罚&ndash;&gt;-->
+<!--        <Reward reward="-1" scope="control" name="-0.8"/>-->
+<!--    </Sequence>-->
+
+<!--    <Sequence>-->
+<!--        <IsChanged value="{{agent.missile_fire_fail_count}}" name="导弹发射失败"/>-->
+<!--        &lt;!&ndash;导弹发射失败，给出惩罚&ndash;&gt;-->
+<!--        <Reward reward="-0.03" scope="attack" name="惩罚-0.03"/>-->
+<!--    </Sequence>-->
+
+    <Sequence>
+        <!--胜利奖励，越短时间胜利奖励越高-->
+        <IsWin name="是否胜利"/>
+        <Reward reward="{{50 + 50 * math.exp(-time / 600)}}" domain="default" name="胜利奖励，越短时间胜利奖励越高"/>
+    </Sequence>
+
+    <Sequence>
+        <!--失败惩罚，存活时间越长惩罚越低-->
+        <IsLose name="是否失败"/>
+        <Reward reward="{{-10 - 10 * math.exp(-time / 600)}}" domain="default" name="失败惩罚"/>
+    </Sequence>
+
+    <!--    <Sequence>-->
+    <!--        &lt;!&ndash;时间惩罚&ndash;&gt;-->
+    <!--        <TimeElapsed duration="60" time="{{time}}"/>-->
+    <!--        <PrintNodeData>-->
+    <!--            <Reward reward="-0.001 * {{time}}" scope="completion"/>-->
+    <!--        </PrintNodeData>-->
+    <!--    </Sequence>-->
+
+    <!--    <Sequence>-->
+    <!--        &lt;!&ndash;时间奖励&ndash;&gt;-->
+    <!--        <TimeElapsed duration="5" time="{{time}}" name="经过5s"/>-->
+    <!--        <Reward reward="-0.001" scope="control,attack" name="奖励-0.001"/>-->
+    <!--    </Sequence>-->
+
+</Root>

@@ -1,0 +1,38 @@
+<!--scripts/v8/policy/ppo-B_ap_5_decay_400_reward_B.xml-->
+<Parallel>
+    <RandomInitWaypointNearGameCenter/>
+    <Parallel>
+        <OneShot>
+            <Sequence>
+                <IsWin/>
+                <Reward reward="{{50 + 50 * math.exp(-time / 600)}}" domain="default"/>
+            </Sequence>
+        </OneShot>
+        <OneShot>
+            <Sequence>
+                <IsLose/>
+                <Reward reward="{{-10 - 10 * math.exp(-time / 600)}}" domain="default"/>
+            </Sequence>
+        </OneShot>
+    </Parallel>
+    <ReactiveSequence>
+        <CanFireMissile/>
+        <IsNearestEnemyInHitRange/>
+        <FireMissileAtNearestEnemy/>
+    </ReactiveSequence>
+    <ReactiveSelector>
+        <ReactiveSequence>
+            <Inverter>
+                <IsInSafeArea/>
+            </Inverter>
+            <GoToSafeArea/>
+        </ReactiveSequence>
+        <Throttle duration="0" time="{{time}}">
+            <V8PPOSwitcher domain="control,default,attack,evade" path="{{init_models_dir}}/V8PPOSwitcher" tensorboard_log="{{output_run_id}}/{{name}}/{{agent_name}}" log_interval="1" verbose="0" train="{{train}}">
+                <PurePursueNearestEnemy/>
+                <Manoeuvre39ToEvadeMissile/>
+                <Manoeuvre39ToEvadeEnemy/>
+            </V8PPOSwitcher>
+        </Throttle>
+    </ReactiveSelector>
+</Parallel>

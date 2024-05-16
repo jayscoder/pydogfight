@@ -1,0 +1,40 @@
+<!--scripts/v8/policy/greedy.xml-->
+<Parallel>
+    <RandomInitWaypointNearGameCenter/>
+    <Parallel>
+        <Sequence>
+            <IsChanged value="{{agent.missile_evade_success_count}}"/>
+            <Reward reward="1" scope="evade"/>
+        </Sequence>
+        <Sequence>
+            <IsChanged value="{{agent.missile_miss_count}}"/>
+            <Reward reward="-0.1" scope="attack"/>
+        </Sequence>
+        <Sequence>
+            <IsWin/>
+            <Reward reward="{{1 + 9 * math.exp(-time / 600)}}" scope="default"/>
+        </Sequence>
+        <Sequence>
+            <IsLose/>
+            <Reward reward="{{-1 - 9 * math.exp(-time / 600)}}" scope="default"/>
+        </Sequence>
+    </Parallel>
+    <ReactiveSequence>
+        <CanFireMissile/>
+        <IsNearestEnemyInHitRange/>
+        <FireMissileAtNearestEnemy/>
+    </ReactiveSequence>
+    <ReactiveSelector>
+        <ReactiveSequence>
+            <Inverter>
+                <IsInSafeArea/>
+            </Inverter>
+            <GoToSafeArea/>
+        </ReactiveSequence>
+        <ReactiveSequence>
+            <IsMissileThreatDetected/>
+            <Manoeuvre39ToEvadeMissile/>
+        </ReactiveSequence>
+        <PurePursueNearestEnemy/>
+    </ReactiveSelector>
+</Parallel>

@@ -177,7 +177,7 @@ class Waypoint:
 
         return PolarWaypoint(r, theta, phi)
 
-    def calculate_positioning(self, other: Waypoint, angle_tolerance: float = 30) -> ObjPositioning:
+    def calculate_positioning(self, other: Waypoint, angle_tolerance: float = 15) -> ObjPositioning:
         return ObjPositioning(wpt1=self, wpt2=other, angle_tolerance=angle_tolerance)
 
 
@@ -282,12 +282,20 @@ class BoundingBox(object):
         return self.left_top[0] + self.size[0], self.left_top[1]
 
     @property
+    def right_middle(self) -> tuple[float, float]:
+        return self.left_top[0] + self.size[0], self.left_top[1] + self.size[1] / 2
+
+    @property
     def right_bottom(self) -> tuple[float, float]:
         return self.left_top[0] + self.size[0], self.left_top[1] + self.size[1]
 
     @property
     def left_bottom(self) -> tuple[float, float]:
         return self.left_top[0], self.left_top[1] + self.size[1]
+
+    @property
+    def left_middle(self) -> tuple[float, float]:
+        return self.left_top[0], self.left_top[1] + self.size[1] / 2
 
     @property
     def x_range(self) -> tuple[float, float]:
@@ -346,7 +354,7 @@ class ObjPositioning:
     def __init__(self,
                  wpt1: Waypoint,
                  wpt2: Waypoint,
-                 angle_tolerance: float = 30):
+                 angle_tolerance: float = 15):
         self.wpt1 = wpt1
         self.wpt2 = wpt2
 

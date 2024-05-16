@@ -1,0 +1,75 @@
+<Root name="V8Greedy">
+    <include path="v8/policy/init.xml"/>
+    <include path="v8/policy/reward_B.xml"/>
+
+    <ReactiveSequence>
+        <CanFireMissile/>
+        <IsNearestEnemyInHitRange/>
+        <FireMissileAtNearestEnemy/>
+    </ReactiveSequence>
+
+    <ReactiveSelector>
+        <include path="v8/policy/handle_abnormal.xml"/>
+        <!--        <PurePursueNearestEnemy/>-->
+        <!--        <PursueEnemyAndEvadeMissile attack_ratio="0.5" evade_ratio="0.5" test_move_angle_sep="10"/>-->
+
+        <!--        <ReactiveSequence>-->
+        <!--            <IsMissileThreatDetected/>-->
+        <!--            <Manoeuvre39ToEvadeMissile/>-->
+        <!--        </ReactiveSequence>-->
+
+        <PurePursueNearestEnemy/>
+
+        <!--        <V8PPOSwitcher-->
+        <!--                name="V8PPOSwitcher"-->
+        <!--                reward_scope="control,default,attack"-->
+        <!--                path="scripts/v8/ppo-B_vs_greedy/models/V8PPOSwitcher"-->
+        <!--                tensorboard_log="{{output_run_id}}/{{name}}/{{agent_name}}"-->
+        <!--                log_interval="1"-->
+        <!--                verbose="0"-->
+        <!--                train="{{train}}"-->
+        <!--        >-->
+        <!--            &lt;!&ndash;            <FPolePursueNearestEnemy/>&ndash;&gt;-->
+        <!--            &lt;!&ndash;            <LagPursueNearestEnemy/>&ndash;&gt;-->
+        <!--            &lt;!&ndash;            <LeadPursueNearestEnemy/>&ndash;&gt;-->
+
+        <!--        </V8PPOSwitcher>-->
+
+
+<!--        <ReactiveSelector>-->
+<!--            <ReactiveSequence>-->
+<!--                &lt;!&ndash;                <IsNearestEnemyCanFireMissile/>&ndash;&gt;-->
+<!--                <IsMissileThreatDetected/>-->
+<!--                &lt;!&ndash;                <FPolePursueNearestEnemy/>&ndash;&gt;-->
+<!--                &lt;!&ndash;                <Manoeuvre39ToEvadeMissile/>&ndash;&gt;-->
+<!--                <Manoeuvre39ToEvadeEnemy/>-->
+<!--            </ReactiveSequence>-->
+
+<!--            <ReactiveSequence>-->
+<!--                <Inverter>-->
+<!--                    <IsNearestEnemyFitPositioning positioning="head-to-head,head-to-tail"/>-->
+<!--                </Inverter>-->
+<!--                <ConditionBranch>-->
+<!--                    <IsNearEnemy distance="10000"/>-->
+<!--                    <LagPursueNearestEnemy/>-->
+<!--                    <LeadPursueNearestEnemy/>-->
+<!--                </ConditionBranch>-->
+<!--            </ReactiveSequence>-->
+
+<!--            <PurePursueNearestEnemy/>-->
+<!--        </ReactiveSelector>-->
+
+        <!--        <ReactiveSequence>-->
+        <!--            <IsMissileThreatDetected/>-->
+        <!--            <EvadeMissile/>-->
+        <!--        </ReactiveSequence>-->
+
+        <!--        <ReactiveSequence>-->
+        <!--            <IsInSafeArea/>-->
+        <!--            <IsEnemyDetected/>-->
+        <!--            &lt;!&ndash;            <AutoPursueNearestEnemy/>&ndash;&gt;-->
+        <!--            &lt;!&ndash;PursueNearestEnemy会更智能一些，会往优势更高的敌方飞&ndash;&gt;-->
+
+        <!--        </ReactiveSequence>-->
+    </ReactiveSelector>
+</Root>

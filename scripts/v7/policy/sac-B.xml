@@ -1,0 +1,19 @@
+<Root name="V4RL">
+    <V7Init/>
+    <include path="v7/policy/reward.xml"/>
+
+    <ReactiveSelector>
+        <include path="v7/policy/handle_abnormal.xml"/>
+
+        <V7SACFireAndGoToLocation1V1
+                name="B_V7SACFireAndGoToLocation1V1_f{{features_dim}}"
+                reward_scope="default,attack,control"
+                path="{{output}}/models/{{name}}"
+                tensorboard_log="{{output_run_id}}/{{name}}/{{agent_name}}"
+                log_interval="1"
+                verbose="0"
+                train="{{train}}"
+                features_dim="{{features_dim}}"
+        />
+    </ReactiveSelector>
+</Root>

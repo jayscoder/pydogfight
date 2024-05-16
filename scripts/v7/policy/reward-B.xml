@@ -1,0 +1,76 @@
+<Root name="V7Reward">
+<!--    <Sequence>-->
+<!--        <IsChanged value="{{agent.missile_miss_count}}" name="导弹打空了"/>-->
+<!--        &lt;!&ndash;导弹打空了&ndash;&gt;-->
+<!--        <Reward reward="-0.1" scope="attack" name="奖励-0.1"/>-->
+<!--    </Sequence>-->
+
+<!--    <Sequence>-->
+<!--        <IsChanged value="{{agent.missile_hit_enemy_count}}" name="导弹打中了对方"/>-->
+<!--        &lt;!&ndash;导弹打中了对方&ndash;&gt;-->
+<!--        <Reward reward="1" scope="attack" name="奖励1"/>-->
+<!--    </Sequence>-->
+
+<!--    <Sequence>-->
+<!--        <IsChanged value="{{agent.missile_evade_success_count}}" name="成功规避导弹"/>-->
+<!--        &lt;!&ndash;成功规避导弹，给出奖励&ndash;&gt;-->
+<!--        <Reward reward="1" scope="control" name="奖励0.2"/>-->
+<!--    </Sequence>-->
+
+<!--    <Sequence>-->
+<!--        <IsChanged value="{{agent.missile_hit_self_count}}" name="被导弹打中"/>-->
+<!--        &lt;!&ndash;被导弹打中，给出惩罚&ndash;&gt;-->
+<!--        <Reward reward="-1" scope="control" name="奖励-0.5"/>-->
+<!--    </Sequence>-->
+
+<!--    <Sequence>-->
+<!--        <IsChanged value="{{agent.aircraft_collided_count}}" name="与飞机相撞"/>-->
+<!--        &lt;!&ndash;与飞机相撞，给出惩罚&ndash;&gt;-->
+<!--        <Reward reward="-1" scope="control" name="-0.8"/>-->
+<!--    </Sequence>-->
+
+<!--    <Sequence>-->
+<!--        <IsChanged value="{{agent.missile_fire_fail_count}}" name="导弹发射失败"/>-->
+<!--        &lt;!&ndash;导弹发射失败，给出惩罚&ndash;&gt;-->
+<!--        <Reward reward="-0.05" scope="attack" name="惩罚-0.05"/>-->
+<!--    </Sequence>-->
+
+<!--    <Sequence>-->
+<!--        &lt;!&ndash;胜利奖励&ndash;&gt;-->
+<!--        <IsWin/>-->
+<!--        <Reward reward="1" scope="control" name="奖励1"/>-->
+<!--    </Sequence>-->
+
+<!--    <Sequence>-->
+<!--        &lt;!&ndash;时间惩罚&ndash;&gt;-->
+<!--        <TimeElapsed duration="1" time="{{time}}" name="经过1s"/>-->
+<!--        <Reward reward="-0.001" scope="control,attack" name="奖励-0.001"/>-->
+<!--    </Sequence>-->
+
+    <Sequence>
+        <!--胜利奖励，越短时间胜利奖励越高-->
+        <IsWin name="是否胜利"/>
+        <Reward reward="{{10 + 10 * math.exp(-time / 600)}}" scope="default" name="胜利奖励"/>
+    </Sequence>
+
+    <!--    <Sequence>-->
+    <!--        &lt;!&ndash;失败惩罚，存活时间越长惩罚越低&ndash;&gt;-->
+    <!--        <IsLose name="是否失败"/>-->
+    <!--        <Reward reward="{{-1 - 9 * math.exp(-time / 600)}}" scope="default" name="失败惩罚"/>-->
+    <!--    </Sequence>-->
+
+    <!--    <Sequence>-->
+    <!--        &lt;!&ndash;时间惩罚&ndash;&gt;-->
+    <!--        <TimeElapsed duration="60" time="{{time}}"/>-->
+    <!--        <PrintNodeData>-->
+    <!--            <Reward reward="-0.001 * {{time}}" scope="completion"/>-->
+    <!--        </PrintNodeData>-->
+    <!--    </Sequence>-->
+
+    <!--    <Sequence>-->
+    <!--        &lt;!&ndash;时间奖励&ndash;&gt;-->
+    <!--        <TimeElapsed duration="5" time="{{time}}" name="经过5s"/>-->
+    <!--        <Reward reward="-0.001" scope="control,attack" name="奖励-0.001"/>-->
+    <!--    </Sequence>-->
+
+</Root>

@@ -1,0 +1,63 @@
+<!--scripts/v8/policy/greedy.xml-->
+<Parallel>
+    <RandomInitWaypointNearGameCenter/>
+    <Parallel>
+        <Sequence>
+            <IsChanged value="{{agent.missile_hit_enemy_count}}"/>
+            <Reward reward="1" scope="attack"/>
+        </Sequence>
+        <Sequence>
+            <IsChanged value="{{agent.missile_evade_success_count}}"/>
+            <Reward reward="1" scope="control"/>
+        </Sequence>
+        <Sequence>
+            <IsChanged value="{{agent.missile_miss_count}}"/>
+            <Reward reward="-0.1" scope="attack"/>
+        </Sequence>
+        <Sequence>
+            <IsChanged value="{{agent.missile_hit_self_count}}"/>
+            <Reward reward="-1" scope="control"/>
+        </Sequence>
+        <Sequence>
+            <IsChanged value="{{agent.aircraft_collided_count}}"/>
+            <Reward reward="-1" scope="control"/>
+        </Sequence>
+        <Sequence>
+            <IsChanged value="{{agent.missile_fire_fail_count}}"/>
+            <Reward reward="-0.03" scope="attack"/>
+        </Sequence>
+        <Sequence>
+            <IsWin/>
+            <Reward reward="{{1 + 9 * math.exp(-time / 600)}}" scope="default"/>
+        </Sequence>
+        <Sequence>
+            <IsLose/>
+            <Reward reward="{{-1 - 9 * math.exp(-time / 600)}}" scope="default"/>
+        </Sequence>
+    </Parallel>
+    <ReactiveSequence>
+        <CanFireMissile/>
+        <IsNearestEnemyInHitRange/>
+        <FireMissileAtNearestEnemy/>
+    </ReactiveSequence>
+    <ReactiveSelector>
+        <ReactiveSelector>
+            <ReactiveSequence>
+                <Inverter>
+                    <IsInSafeArea/>
+                </Inverter>
+                <GoToSafeArea/>
+            </ReactiveSequence>
+            <ReactiveSequence>
+                <IsInSafeArea/>
+                <Inverter>
+                    <IsEnemyDetected/>
+                </Inverter>
+                <Inverter>
+                    <IsMissileThreatDetected/>
+                </Inverter>
+            </ReactiveSequence>
+        </ReactiveSelector>
+        <PursueEnemyAndEvadeMissile attack_ratio="0.5" evade_ratio="0.5" test_move_angle_sep="10"/>
+    </ReactiveSelector>
+</Parallel>

@@ -100,4 +100,19 @@ class GoToLocation(BTPolicyNode):
             'y': self.y,
         }
 
+
+class TurnHeading(BTPolicyNode):
+
+    def __init__(self, heading: float, **kwargs):
+        super().__init__(**kwargs)
+        self.heading = heading
+
+    def update(self) -> Status:
+        h = self.converter.float(self.heading)
+        new_wpt = self.agent.waypoint.move(
+                d=self.agent.radar_radius,
+                angle=h)
+        self.actions.put_nowait((Actions.go_to_location, new_wpt.x, new_wpt.y))
+        return Status.SUCCESS
+
 # TODO: 条件节点，导弹命中敌机，需要考虑一些匹配

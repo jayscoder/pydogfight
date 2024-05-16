@@ -1,0 +1,52 @@
+<!--scripts/v7/policy/sac-B.xml-->
+<Parallel>
+    <V7Init/>
+    <Parallel>
+        <Sequence>
+            <IsChanged value="{{agent.missile_miss_count}}"/>
+            <Reward reward="-0.1" scope="attack"/>
+        </Sequence>
+        <Sequence>
+            <IsChanged value="{{agent.missile_hit_enemy_count}}"/>
+            <Reward reward="1" scope="attack"/>
+        </Sequence>
+        <Sequence>
+            <IsChanged value="{{agent.missile_evade_success_count}}"/>
+            <Reward reward="1" scope="control"/>
+        </Sequence>
+        <Sequence>
+            <IsChanged value="{{agent.missile_hit_self_count}}"/>
+            <Reward reward="-1" scope="control"/>
+        </Sequence>
+        <Sequence>
+            <IsChanged value="{{agent.aircraft_collided_count}}"/>
+            <Reward reward="-1" scope="control"/>
+        </Sequence>
+        <Sequence>
+            <IsChanged value="{{agent.missile_fire_fail_count}}"/>
+            <Reward reward="-0.05" scope="attack"/>
+        </Sequence>
+        <Sequence>
+            <IsWin/>
+            <Reward reward="{{10 + 10 * math.exp(-time / 600)}}" scope="default"/>
+        </Sequence>
+    </Parallel>
+    <ReactiveSelector>
+        <ReactiveSelector>
+            <ReactiveSequence>
+                <Selector>
+                    <IsMissileDepleted/>
+                    <IsFuelDepleted/>
+                </Selector>
+                <GoHome/>
+            </ReactiveSequence>
+            <ReactiveSequence>
+                <Inverter>
+                    <IsInSafeArea/>
+                </Inverter>
+                <GoToSafeArea/>
+            </ReactiveSequence>
+        </ReactiveSelector>
+        <V7SACFireAndGoToLocation1V1 reward_scope="default,attack,control" path="{{output}}/models/{{name}}" tensorboard_log="{{output_run_id}}/{{name}}/{{agent_name}}" log_interval="1" verbose="0" train="{{train}}" features_dim="{{features_dim}}"/>
+    </ReactiveSelector>
+</Parallel>

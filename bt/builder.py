@@ -5,6 +5,7 @@ from bt.nodes import *
 from bt.nodes_rl_1v1 import *
 from bt.nodes_rl_multiple import *
 from bt.nodes_v7 import *
+from bt.nodes_v8 import *
 
 
 class CustomBTBuilder(BTPolicyBuilder):
@@ -33,3 +34,16 @@ class CustomBTBuilder(BTPolicyBuilder):
                 V7SACCondition1V1
         )
 
+        # V8
+        self.register_node(
+                V8Init,
+                V8SACFloatArrayValue,
+                V8SACFloatValue,
+                V8SACSwitcher,
+                V8SACFireAndGoToLocation1V1,
+                V8PPOSwitcher,
+                V8PPOFireAndGoToLocation1V1,
+                V8PPOGoToLocation1V1,
+                V8SACGoToLocation1V1,
+                V8PPOFloatArray
+        )

@@ -1,0 +1,95 @@
+<Root name="V8Greedy">
+    <include path="v8/policy/init.xml"/>
+    <include path="v8/policy/reward_A.xml"/>
+
+    <ReactiveSequence>
+        <CanFireMissile/>
+        <IsNearestEnemyInHitRange/>
+        <FireMissileAtNearestEnemy/>
+    </ReactiveSequence>
+
+    <ReactiveSelector>
+        <include path="v8/policy/handle_abnormal.xml"/>
+
+        <!--scripts/v8/sac-B_vs_greedy/8，-->
+        <!--中间结果、消融实验、在什么情况下好多少、中间结果里把基于规则的决策树的结构进行对比、定义一些新的指标、原本决策空间中的算法就是一个基本的面、比如熵-->
+
+        <!--        46：{{30 - episode // 100}} -->
+        <!--        47: 0-->
+        <!--        48: 10-->
+        <!--        49: 20-->
+        <!--        50: 30-->
+
+
+        <!--        {{30 - episode // 100}}-->
+
+
+        <!--敌机带规避-->
+        <!--51：0-->
+        <!--        52: {{30 - episode // 100}}-->
+        <!--        53: 10-->
+        <!--        54: {{10 - episode // 100}}-->
+
+
+        <!--        57: {{10 / (episode // 100 + 1)}}-->
+
+        <!--        59: 0 敌机无规避-->
+        <!--        60: {{10 / (episode // 100 + 1)}} 敌机无规避-->
+        <!--        61: 10 敌机无规避-->
+
+
+        <!--70: 10-->
+        <!--        71: 0-->
+        <!--        72: {{10 / (episode // 100 + 1)}}-->
+        <!--        73: {{10 - episode // 100}}-->
+        <V8PPOSwitcher
+                name="V8PPOSwitcher"
+                domain="control,default,attack,evade"
+                path="{{init_models_dir}}/V8PPOSwitcher"
+                tensorboard_log="{{output_run_id}}/{{name}}/{{agent_name}}"
+                log_interval="1"
+                verbose="0"
+                train="{{train}}"
+        >
+            <!--            <FPolePursueNearestEnemy/>-->
+            <!--            <LagPursueNearestEnemy/>-->
+            <!--            <LeadPursueNearestEnemy/>-->
+            <PurePursueNearestEnemy/>
+            <Manoeuvre39ToEvadeMissile/>
+            <Manoeuvre39ToEvadeEnemy/>
+        </V8PPOSwitcher>
+
+        <!--        <PursueEnemyAndEvadeMissile attack_ratio="0.5" evade_ratio="0.5" test_move_angle_sep="10"/>-->
+        <!--        <ReactiveSelector>-->
+        <!--            <ReactiveSequence>-->
+        <!--                <IsNearestEnemyCanFireMissile/>-->
+        <!--                <FPolePursueNearestEnemy/>-->
+        <!--            </ReactiveSequence>-->
+
+        <!--            <ReactiveSequence>-->
+        <!--                <Inverter>-->
+        <!--                    <IsNearestEnemyFitPositioning positioning="head-to-head,head-to-tail"/>-->
+        <!--                </Inverter>-->
+        <!--                <ConditionBranch>-->
+        <!--                    <LagPursueNearestEnemy/>-->
+        <!--                    <LeadPursueNearestEnemy/>-->
+        <!--                </ConditionBranch>-->
+        <!--            </ReactiveSequence>-->
+
+        <!--            <PurePursueNearestEnemy/>-->
+        <!--        </ReactiveSelector>-->
+
+        <!--        <ReactiveSequence>-->
+        <!--            <IsMissileThreatDetected/>-->
+        <!--            <EvadeMissile/>-->
+        <!--        </ReactiveSequence>-->
+
+        <!--        <ReactiveSequence>-->
+        <!--            <IsInSafeArea/>-->
+        <!--            <IsEnemyDetected/>-->
+        <!--            &lt;!&ndash;            <AutoPursueNearestEnemy/>&ndash;&gt;-->
+        <!--            &lt;!&ndash;PursueNearestEnemy会更智能一些，会往优势更高的敌方飞&ndash;&gt;-->
+
+        <!--        </ReactiveSequence>-->
+    </ReactiveSelector>
+</Root>

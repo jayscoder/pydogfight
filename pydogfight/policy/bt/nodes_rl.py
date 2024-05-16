@@ -1,24 +1,18 @@
 from __future__ import annotations
 
-import pybts
 from py_trees.behaviour import Behaviour
-from stable_baselines3.common.policies import ActorCriticPolicy
-from stable_baselines3.common.base_class import BaseAlgorithm
-from pydogfight.policy.bt.base_class import *
-from typing import Any, SupportsFloat, Union
-
-from gymnasium.core import ActType, ObsType
 from py_trees.common import Status
-from pybts.composites import Composite, Selector, Sequence
 from pybts.rl.nodes import Reward
 from stable_baselines3 import PPO, SAC, HerReplayBuffer, DQN, DDPG, TD3
 import py_trees
 import gymnasium as gym
 from pybts.rl import RLBaseNode
+from pybts.rl.common import is_off_policy_algo, is_on_policy_algo
 import typing
-import jinja2
+from pybts.rl.logger import TensorboardLogger
+from pybts.composites import *
 from pydogfight.core.actions import Actions
-from pydogfight.utils.logger import TensorboardLogger
+from pydogfight.policy.bt.base_class import *
 
 
 class RLNode(BTPolicyNode, RLBaseNode, ABC):
@@ -34,10 +28,10 @@ class RLNode(BTPolicyNode, RLBaseNode, ABC):
     def __init__(self,
                  path: str = '',
                  algo: str = 'PPO',
-                 reward_scope: str = '',
+                 domain: str = '',
                  save_path: str = '',  # 空代表不保存
                  save_interval: int | str = 0,
-                 deterministic: bool | str = False,
+                 deterministic: bool | str = True,
                  train: bool | str = False,
                  tensorboard_log: str = '',
                  **kwargs
@@ -45,7 +39,7 @@ class RLNode(BTPolicyNode, RLBaseNode, ABC):
         super().__init__(**kwargs)
         RLBaseNode.__init__(self)
         self.algo = algo
-        self.reward_scope = reward_scope  # 如果scope设置成default或其他不为空的值，则认为奖励要从context.rl_reward[scope]中拿
+        self.domain = domain  # 如果domain设置成default或其他不为空的值，则认为奖励要从context.rl_reward[domain]中拿
         self.path = path
         self.save_path = save_path
         self.save_interval = save_interval
@@ -59,7 +53,7 @@ class RLNode(BTPolicyNode, RLBaseNode, ABC):
             **RLBaseNode.to_data(self),
             'algo'         : str(self.algo),
             'path'         : self.path,
-            'reward_scope' : self.reward_scope,
+            'domain'       : self.domain,
             'save_interval': self.save_interval,
         }
 
@@ -72,7 +66,8 @@ class RLNode(BTPolicyNode, RLBaseNode, ABC):
         self.path = self.converter.render(
                 value=self.path,
         )
-        self.reward_scope = self.converter.render(self.reward_scope)
+        print(f'RLNode({self.name}).path=', self.path)
+        self.domain = self.converter.render(self.domain)
         self.save_interval = self.converter.int(self.save_interval)
         self.algo = self.converter.render(self.algo).upper()
         if self.tensorboard_log != '':
@@ -163,12 +158,12 @@ class RLNode(BTPolicyNode, RLBaseNode, ABC):
         return self.env.gen_info()
 
     def rl_gen_reward(self) -> float:
-        if self.reward_scope != '':
+        if self.domain != '':
             return RLBaseNode.rl_gen_reward(self)
         return self.env.gen_reward(color=self.agent.color, previous=self.rl_info)
 
-    def rl_reward_scope(self) -> str:
-        return self.reward_scope
+    def rl_domain(self) -> str:
+        return self.domain
 
     def rl_gen_done(self) -> bool:
         info = self.env.gen_info()
@@ -203,7 +198,6 @@ class RLNode(BTPolicyNode, RLBaseNode, ABC):
         return self.rl_take_action(
                 train=self.converter.bool(self.train),
                 deterministic=self.converter.bool(self.deterministic),
-                log_interval=1
         )
 
     def save_model(self, filepath: str = ''):
@@ -214,46 +208,36 @@ class RLNode(BTPolicyNode, RLBaseNode, ABC):
         self.rl_model.save(path=filepath)
 
 
-class RLSwitcher(RLNode, Composite):
+class RLComposite(RLNode, Composite):
+    def __init__(self, **kwargs):
+        Composite.__init__(self, **kwargs)
+        RLNode.__init__(self, **kwargs)
+
+    def rl_action_space(self) -> gym.spaces.Space:
+        if is_off_policy_algo(self.algo):
+            return gym.spaces.Box(low=0, high=len(self.children))
+        return gym.spaces.Discrete(len(self.children))
+
+    def gen_index(self) -> int:
+        if is_off_policy_algo(self.algo):
+            index = int(self.take_action()[0]) % len(self.children)
+        else:
+            index = self.take_action()
+        self.put_update_message(f'gen_index index={index} train={self.train}')
+        return index
+
+
+class RLSwitcher(RLComposite, Switcher):
     """
     选择其中一个子节点来执行
     """
 
-    def __init__(self, **kwargs):
-        Composite.__init__(self, **kwargs)
-        super().__init__(**kwargs)
-
-    def rl_action_space(self) -> gym.spaces.Space:
-        return gym.spaces.Discrete(len(self.children))
-
-    def switcher_tick(
-            self,
-            tick_again_status: list[Status],
-    ):
-        """Sequence/Selector的tick逻辑"""
-        self.debug_info['tick_count'] += 1
-        self.logger.debug("%s.tick()" % (self.__class__.__name__))
-
-        if self.status in tick_again_status:
-            # 重新执行上次执行的子节点
-            assert self.current_child is not None
-        else:
-            index = self.take_action()
-            self.current_child = self.children[index]
-        yield from self.current_child.tick()
-
-        # 剩余的子节点全部停止
-        for child in self.children:
-            if child == self.current_child:
-                continue
-            # 清除子节点的状态（停止正在执行的子节点）
-            child.stop(Status.INVALID)
-
-        self.status = self.current_child.status
-        yield self
-
     def tick(self) -> typing.Iterator[Behaviour]:
-        yield from self.switcher_tick(tick_again_status=[Status.RUNNING])
+        # if self.exp_fill and self.train and self.status in self.tick_again_status():
+        #     yield from self.switch_tick(index=self.gen_index(), tick_again_status=self.tick_again_status())
+        #     self.rl_action = self.current_index  # 保存动作
+        # else:
+        yield from Switcher.tick(self)
 
 
 class ReactiveRLSwitcher(RLSwitcher):
@@ -307,7 +291,7 @@ class RLCondition(RLNode, pybts.Condition):
             return Status.FAILURE
 
 
-class RLIntValue(RLNode, pybts.Condition):
+class RLIntValue(RLNode):
     """
     强化学习int值生成，将生成的值保存到context[key]里
     """
@@ -319,10 +303,11 @@ class RLIntValue(RLNode, pybts.Condition):
         self.low = low
 
     def setup(self, **kwargs: typing.Any) -> None:
-        super().setup(**kwargs)
         self.key = self.converter.render(self.key)
         self.high = self.converter.int(self.high)
         self.low = self.converter.int(self.low)
+
+        super().setup(**kwargs)
 
         assert self.high > self.low, "RLIntValue high must > low"
 
@@ -335,6 +320,8 @@ class RLIntValue(RLNode, pybts.Condition):
         }
 
     def rl_action_space(self) -> gym.spaces.Space:
+        self.high = self.converter.int(self.high)
+        self.low = self.converter.int(self.low)
         return gym.spaces.Discrete(self.high - self.low + 1)
 
     def update(self) -> Status:
@@ -343,7 +330,7 @@ class RLIntValue(RLNode, pybts.Condition):
         return Status.SUCCESS
 
 
-class RLFloatValue(RLNode, pybts.Condition):
+class RLFloatValue(RLNode):
     """
     强化学习float值生成，将生成的值保存到context[key]里
     """
@@ -355,10 +342,11 @@ class RLFloatValue(RLNode, pybts.Condition):
         self.low = low
 
     def setup(self, **kwargs: typing.Any) -> None:
-        super().setup(**kwargs)
         self.key = self.converter.render(self.key)
         self.high = self.converter.float(self.high)
         self.low = self.converter.float(self.low)
+
+        super().setup(**kwargs)
 
         assert self.high > self.low, "RLFloatValue high must > low"
 
@@ -376,6 +364,44 @@ class RLFloatValue(RLNode, pybts.Condition):
     def update(self) -> Status:
         action = self.take_action()[0]
         self.context[self.key] = float(action)
+        return Status.SUCCESS
+
+
+class RLFloatArrayValue(RLNode):
+    """
+    强化学习float值生成，将生成的值保存到context[key]里
+    """
+
+    def __init__(self, key: str, high: float | str, low: float | str = 0, length: int | str = 1, **kwargs):
+        super().__init__(**kwargs)
+        self.key = key
+        self.high = high
+        self.low = low
+        self.length = int(length)
+
+    def setup(self, **kwargs: typing.Any) -> None:
+        self.key = self.converter.render(self.key)
+        self.high = self.converter.float(self.high)
+        self.low = self.converter.float(self.low)
+        self.length = self.converter.int(self.length)
+        super().setup(**kwargs)
+        assert self.high > self.low, "RLFloatValue high must > low"
+
+    def to_data(self):
+        return {
+            **super().to_data(),
+            "key"   : self.key,
+            "high"  : self.high,
+            "low"   : self.low,
+            'length': self.length
+        }
+
+    def rl_action_space(self) -> gym.spaces.Space:
+        return gym.spaces.Box(low=self.low, high=self.high, shape=(self.length,))
+
+    def update(self) -> Status:
+        action = self.take_action()
+        self.context[self.key] = action.tolist()
         return Status.SUCCESS
 
 
@@ -425,15 +451,15 @@ class RLFireAndGoToLocation(RLNode):
         return gym.spaces.Box(
                 low=-1,
                 high=1,
-                shape=(3,)
+                shape=(2,)
         )
 
     def update(self) -> Status:
         action = self.take_action()
 
         new_wpt = self.agent.waypoint.move(
-                d=action[1] * self.agent.radar_radius,
-                angle=action[2] * 180)
+                d=self.agent.radar_radius,
+                angle=action[1] * 180)
 
         self.actions.put_nowait((Actions.go_to_location, new_wpt.x, new_wpt.y))
 
@@ -450,15 +476,15 @@ class RLGoToLocation(RLNode):
         return gym.spaces.Box(
                 low=-1,
                 high=1,
-                shape=(2,)
+                shape=(1,)
         )
 
     def update(self) -> Status:
         action = self.take_action()
 
         new_wpt = self.agent.waypoint.move(
-                d=action[0] * self.agent.radar_radius,
-                angle=action[1] * 180)
+                d=self.agent.radar_radius,
+                angle=action[0] * 180)
 
         self.actions.put_nowait((Actions.go_to_location, new_wpt.x, new_wpt.y))
         return Status.SUCCESS

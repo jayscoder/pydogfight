@@ -3,7 +3,8 @@
 py-trees
 numpy>=1.26.4
 stable-baselines3[extra]>=1.1.0
-tensorboard
+tensorboard==2.13
+wrapt==1.14
 # tensorflow
 future>=1.0.0
 jsonpickle>=2.0.0

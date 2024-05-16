@@ -50,9 +50,10 @@ class BTPolicyBuilder(pybts.rl.builder.RLBuilder):
                 RLFireAndGoToLocation,
                 FireMissileAtNearestEnemyWithHitPointCheck,
                 CanFireMissile,
-                IsNearestEnemyInHitRange
+                IsNearestEnemyInHitRange,
+                IsNearestEnemyCanFireMissile
         )
-        
+
         # Explore
         self.register_node(
                 Explore,
@@ -68,7 +69,12 @@ class BTPolicyBuilder(pybts.rl.builder.RLBuilder):
                 GoToNearestEnemy,
                 PurePursueNearestEnemy,
                 AutoPursueNearestEnemy,
-                LagPursueNearestEnemy
+                LagPursueNearestEnemy,
+                PursueEnemyAndEvadeMissile,
+                IsNearestEnemyFitPositioning,
+                Manoeuvre39ToEvadeMissile,
+                Manoeuvre39ToEvadeEnemy,
+                TurnHeading
         )
 
         # 强化学习节点
@@ -82,5 +88,6 @@ class BTPolicyBuilder(pybts.rl.builder.RLBuilder):
                 RLIntValue,
                 RLFloatValue,
                 RLGoToLocation,
-                RLFireAndGoToLocation
+                RLFireAndGoToLocation,
+                RLFloatArrayValue,
         )

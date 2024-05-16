@@ -1,0 +1,26 @@
+base: scripts/v9/base.yaml
+context:
+    batch_size: 32
+    features_dim: 128
+    learning_starts: 128
+    models_dir: scripts/v9/ppo-B_vs_greedy/models
+episodes: 3000
+options:
+    aircraft_fire_missile_interval: 15
+    aircraft_fuel_capacity: 180000
+    aircraft_missile_count: 1000
+    blue_agents:
+    - blue_1
+    collision_scale: 1
+    device: auto
+    indestructible: false
+    max_duration: 1800
+    red_agents:
+    - red_1
+    title: scripts/v9-ppo-B_vs_greedy
+output: scripts/v9/ppo-B_vs_greedy
+policy:
+    blue: scripts/v9/policy/greedy.xml
+    red: scripts/v9/policy/ppo-B.xml
+title: scripts/v9-ppo-B_vs_greedy
+track: -1

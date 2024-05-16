@@ -1,0 +1,81 @@
+<Root name="V8Greedy">
+    <!--    <RandomInitWaypointNearGameCenter/>-->
+    <include path="v8/policy/init.xml"/>
+    <include path="v8/policy/reward_A.xml"/>
+
+    <ReactiveSelector>
+        <include path="v8/policy/handle_abnormal.xml"/>
+
+        <V8PPOFireAndGoToLocation1V1
+                name="V8PPOFireAndGoToLocation1V1"
+                domain="control,default,attack,evade"
+                path="{{init_models_dir}}/V8PPOFireAndGoToLocation1V1"
+                tensorboard_log="{{output_run_id}}/{{name}}/{{agent_name}}"
+                log_interval="1"
+                verbose="0"
+                train="{{train}}"
+        />
+    </ReactiveSelector>
+
+    <!--    <ReactiveSequence>-->
+    <!--        <CanFireMissile/>-->
+    <!--        <IsNearestEnemyInHitRange/>-->
+    <!--        <FireMissileAtNearestEnemy/>-->
+    <!--    </ReactiveSequence>-->
+
+    <!--    <ReactiveSelector>-->
+    <!--        <include path="v8/policy/handle_abnormal.xml"/>-->
+
+    <!--        &lt;!&ndash;scripts/v8/sac-B_vs_greedy/8，&ndash;&gt;-->
+    <!--        &lt;!&ndash;中间结果、消融实验、在什么情况下好多少、中间结果里把基于规则的决策树的结构进行对比、定义一些新的指标、原本决策空间中的算法就是一个基本的面、比如熵&ndash;&gt;-->
+    <!--        <V8SACSwitcher-->
+    <!--                name="RLSwitcher"-->
+    <!--                reward_scope="control,default,attack"-->
+    <!--                path="{{models_dir}}/V8SACSwitcher"-->
+    <!--                tensorboard_log="{{output_run_id}}/{{name}}/{{agent_name}}"-->
+    <!--                log_interval="1"-->
+    <!--                verbose="0"-->
+    <!--                train="{{train}}"-->
+    <!--        >-->
+    <!--            <FPolePursueNearestEnemy/>-->
+    <!--            <LagPursueNearestEnemy/>-->
+    <!--            <LeadPursueNearestEnemy/>-->
+    <!--            <PurePursueNearestEnemy/>-->
+    <!--            <Manoeuvre39ToEvadeMissile/>-->
+    <!--            <Manoeuvre39ToEvadeEnemy/>-->
+    <!--        </V8SACSwitcher>-->
+
+    <!--        &lt;!&ndash;        <PursueEnemyAndEvadeMissile attack_ratio="0.5" evade_ratio="0.5" test_move_angle_sep="10"/>&ndash;&gt;-->
+    <!--        &lt;!&ndash;        <ReactiveSelector>&ndash;&gt;-->
+    <!--        &lt;!&ndash;            <ReactiveSequence>&ndash;&gt;-->
+    <!--        &lt;!&ndash;                <IsNearestEnemyCanFireMissile/>&ndash;&gt;-->
+    <!--        &lt;!&ndash;                <FPolePursueNearestEnemy/>&ndash;&gt;-->
+    <!--        &lt;!&ndash;            </ReactiveSequence>&ndash;&gt;-->
+
+    <!--        &lt;!&ndash;            <ReactiveSequence>&ndash;&gt;-->
+    <!--        &lt;!&ndash;                <Inverter>&ndash;&gt;-->
+    <!--        &lt;!&ndash;                    <IsNearestEnemyFitPositioning positioning="head-to-head,head-to-tail"/>&ndash;&gt;-->
+    <!--        &lt;!&ndash;                </Inverter>&ndash;&gt;-->
+    <!--        &lt;!&ndash;                <ConditionBranch>&ndash;&gt;-->
+    <!--        &lt;!&ndash;                    <LagPursueNearestEnemy/>&ndash;&gt;-->
+    <!--        &lt;!&ndash;                    <LeadPursueNearestEnemy/>&ndash;&gt;-->
+    <!--        &lt;!&ndash;                </ConditionBranch>&ndash;&gt;-->
+    <!--        &lt;!&ndash;            </ReactiveSequence>&ndash;&gt;-->
+
+    <!--        &lt;!&ndash;            <PurePursueNearestEnemy/>&ndash;&gt;-->
+    <!--        &lt;!&ndash;        </ReactiveSelector>&ndash;&gt;-->
+
+    <!--        &lt;!&ndash;        <ReactiveSequence>&ndash;&gt;-->
+    <!--        &lt;!&ndash;            <IsMissileThreatDetected/>&ndash;&gt;-->
+    <!--        &lt;!&ndash;            <EvadeMissile/>&ndash;&gt;-->
+    <!--        &lt;!&ndash;        </ReactiveSequence>&ndash;&gt;-->
+
+    <!--        &lt;!&ndash;        <ReactiveSequence>&ndash;&gt;-->
+    <!--        &lt;!&ndash;            <IsInSafeArea/>&ndash;&gt;-->
+    <!--        &lt;!&ndash;            <IsEnemyDetected/>&ndash;&gt;-->
+    <!--        &lt;!&ndash;            &lt;!&ndash;            <AutoPursueNearestEnemy/>&ndash;&gt;&ndash;&gt;-->
+    <!--        &lt;!&ndash;            &lt;!&ndash;PursueNearestEnemy会更智能一些，会往优势更高的敌方飞&ndash;&gt;&ndash;&gt;-->
+
+    <!--        &lt;!&ndash;        </ReactiveSequence>&ndash;&gt;-->
+    <!--    </ReactiveSelector>-->
+</Root>

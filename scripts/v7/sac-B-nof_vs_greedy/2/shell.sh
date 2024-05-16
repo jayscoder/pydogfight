@@ -1,0 +1,1 @@
+python main.py scripts/v7/sac-B-nof_vs_greedy.yaml --render

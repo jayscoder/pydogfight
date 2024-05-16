@@ -41,6 +41,12 @@
         <Reward reward="1" scope="control" name="奖励1"/>
     </Sequence>
 
+     <Sequence>
+        <!--时间惩罚-->
+        <TimeElapsed duration="1" time="{{time}}" name="经过1s"/>
+        <Reward reward="-0.001" scope="control,attack" name="奖励-0.001"/>
+    </Sequence>
+
     <!--    <Sequence>-->
     <!--        &lt;!&ndash;时间惩罚&ndash;&gt;-->
     <!--        <TimeElapsed duration="60" time="{{time}}"/>-->
@@ -49,10 +55,6 @@
     <!--        </PrintNodeData>-->
     <!--    </Sequence>-->
 
-    <Sequence>
-        <!--时间惩罚-->
-        <TimeElapsed duration="1" time="{{time}}" name="经过1s"/>
-        <Reward reward="-0.001" scope="control,attack" name="奖励-0.001"/>
-    </Sequence>
+
 
 </Root>

@@ -1,0 +1,3 @@
+1: reward=0.00 vs 97.58, reward_evade=0.00 vs 1.00, win=0 vs 1, recent_win=0 vs 1, draw=0, winner=blue, time=54/54
+2: reward=94.83 vs 1.80, reward_evade=4.00 vs 2.00, win=1 vs 1, recent_win=1 vs 1, draw=0, winner=red, time=133/188
+3: reward=94.83 vs 97.00, reward_evade=4.00 vs 1.00, win=1 vs 2, recent_win=1 vs 2, draw=0, winner=blue, time=63/251

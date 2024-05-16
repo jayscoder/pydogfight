@@ -79,7 +79,7 @@ TEMPLATE_CONFIG = {
 }
 
 
-def read_config(path: str, context: dict):
+def read_config(path: str, context: dict = None):
     """读取配置文件"""
     with open(path, 'r', encoding='utf-8') as f:
         config = list(yaml.load_all(f, Loader=yaml.FullLoader))[0]
@@ -92,7 +92,14 @@ def read_config(path: str, context: dict):
     if config['options'].get('title') is None and config.get('title') is not None:
         config['options']['title'] = config['title']
 
+    if 'context' not in config['context']:
+        config['context'] = { }
+    config['context'] = {
+        **config['context'],
+        **context
+    }
     return config
+
 
 def render_config(config: dict, context: dict):
     for k in config:
@@ -175,7 +182,11 @@ class BTManager:
         self.train = train
         self.pbar: tqdm | None = None
 
-        self.logger = TensorboardLogger(folder=self.output_run_id, verbose=verbose)
+        self.logger_dict: dict[str, TensorboardLogger] = { }
+        for color in ['red', 'blue']:
+            self.logger_dict[color] = TensorboardLogger(os.path.join(self.output_run_id, color), verbose=verbose)
+
+        self.start_time = time.time()
 
     def update_reward_to_game_info(self, reward_dict: dict):
         new_game_info = {
@@ -194,22 +205,22 @@ class BTManager:
                 dict_incr(new_game_info['agent'][agent.name], 'reward', v)
                 dict_incr(new_game_info['agent'][agent.name], f'reward_{k}', v)
 
-        for color in ['red', 'blue']:
-            enemy_color = calc_enemy_color(color)
-            if 'reward' in new_game_info[color] and 'reward' in new_game_info[enemy_color]:
-                is_win = new_game_info[color]['reward'] > new_game_info[enemy_color]['reward']
-                is_lose = new_game_info[color]['reward'] < new_game_info[enemy_color]['reward']
-                is_draw = new_game_info[color]['reward'] == new_game_info[enemy_color]['reward']
-
-                # 这几个是累积量
-                dict_incr(self.env.game_info[color], 'reward_win', int(is_win))
-                dict_incr(self.env.game_info[color], 'reward_lose', int(is_lose))
-                dict_incr(self.env.game_info[color], 'reward_draw', int(is_draw))
-
-                for k in ['win', 'lose', 'draw']:
-                    new_game_info[color][f'reward_{k}_rate'] = self.env.game_info[color][
-                                                                   f'reward_{k}'] / self.env.episode
-
+        # for color in ['red', 'blue']:
+        #     enemy_color = calc_enemy_color(color)
+        #     if 'reward' in new_game_info[color] and 'reward' in new_game_info[enemy_color]:
+        #         is_win = new_game_info[color]['reward'] > new_game_info[enemy_color]['reward']
+        #         is_lose = new_game_info[color]['reward'] < new_game_info[enemy_color]['reward']
+        #         is_draw = new_game_info[color]['reward'] == new_game_info[enemy_color]['reward']
+        #
+        #         # 这几个是累积量
+        #         dict_incr(self.env.game_info[color], 'reward_win', int(is_win))
+        #         dict_incr(self.env.game_info[color], 'reward_lose', int(is_lose))
+        #         dict_incr(self.env.game_info[color], 'reward_draw', int(is_draw))
+        #
+        #         for k in ['win', 'lose', 'draw']:
+        #             new_game_info[color][f'reward_{k}_rate'] = self.env.game_info[color][
+        #                                                            f'reward_{k}'] / self.env.episode
+        #
         merge_tow_dicts(new_game_info, self.env.game_info)
 
     def on_episode_end(self):
@@ -225,9 +236,7 @@ class BTManager:
                 })
 
             reward_dict[policy.agent.name] = deep_copy(policy.tree.context.get('reward', { }))
-
         self.update_reward_to_game_info(reward_dict=reward_dict)
-
         self.env.game_info['recent'] = self.result_recorder.record()
 
         # if self.track > 0:
@@ -247,12 +256,13 @@ class BTManager:
 
         self.pbar.set_postfix(
                 {
-                    'reward'    : f"{dict_get(self.env.game_info, 'red.reward', 0):.2f} vs {dict_get(self.env.game_info, 'blue.reward', 0):.2f}",
-                    'win'       : f"{self.env.game_info['red']['win']} vs {self.env.game_info['blue']['win']}",
-                    'recent_win': f"{dict_get(self.env.game_info, 'recent.red.win', 0)} vs {dict_get(self.env.game_info, 'recent.blue.win', 0)}",
-                    'draw'      : f"{self.env.game_info['red']['draw']}",
-                    'winner'    : self.env.battle_area.winner,
-                    'time'      : f'{self.env.time:.0f}/{self.env.battle_area.accum_time:.0f}',
+                    'reward': f"{dict_get(self.env.game_info, 'red.reward', 0):.2f} vs {dict_get(self.env.game_info, 'blue.reward', 0):.2f}",
+                    # 'reward_evade': f"{dict_get(self.env.game_info, 'red.reward_evade', 0):.2f} vs {dict_get(self.env.game_info, 'blue.reward_evade', 0):.2f}",
+                    'winner': self.env.battle_area.winner,
+                    'r_win' : f"{dict_get(self.env.game_info, 'recent.red.win', 0)}:{dict_get(self.env.game_info, 'recent.blue.win', 0)}:{dict_get(self.env.game_info, 'recent.red.draw', 0)}",
+                    'win'   : f"{self.env.game_info['red']['win']}:{self.env.game_info['blue']['win']}:{self.env.game_info['red']['draw']}",
+                    # 'draw'      : f"{self.env.game_info['red']['draw']}",
+                    'time'  : f'{self.env.time:.0f}/{self.env.battle_area.accum_time:.0f}',
                     # 'm_fire'    : f"{self.env.game_info['red']['missile_fired_count']} vs {self.env.game_info['blue']['missile_fired_count']}",
                     # 'm_miss'    : f"{self.env.game_info['red']['missile_miss_count']} vs {self.env.game_info['blue']['missile_miss_count']}",
                     # 'm_hit'     : f"{self.env.game_info['red']['missile_hit_enemy_count']} vs {self.env.game_info['blue']['missile_hit_enemy_count']}"
@@ -260,54 +270,59 @@ class BTManager:
                     # 'missile_fire_fail_count'    : self.env.game_info['missile_fire_fail_count']
                 })
 
-        self.logger.record(f'env_time', self.env.time)
+        for color in ['red', 'blue']:
+            self.logger_dict[color].record(f'env/time', self.env.time)
+            self.logger_dict[color].record(f'env/cost_time', time.time() - self.start_time)
 
         for agent in self.env.battle_area.agents:
             # 存活时间
-            self.logger.record(f'{agent.name}/survival_time', agent.survival_time)
+            self.logger_dict[agent.color].record_mean(f'agent/survival_time', agent.survival_time)
             # 平均存活时间
-            self.logger.record_mean_weighted(f'{agent.color}/survival_time', agent.survival_time)
+            self.logger_dict[agent.color].record_mean_weighted(f'agent/survival_time', agent.survival_time)
             # # 规避成功率
-            self.logger.record_mean_weighted(f'{agent.name}/missile_evade_success_rate',
-                                             agent.missile_evade_success_count,
-                                             agent.missile_evade_success_count + agent.missile_hit_self_count)
+            self.logger_dict[agent.color].record_mean_weighted(f'agent/missile_evade_success_rate',
+                                                               agent.missile_evade_success_count,
+                                                               agent.missile_evade_success_count + agent.missile_hit_self_count)
 
-            self.logger.record_mean_weighted(f'{agent.color}/missile_evade_success_rate',
-                                             agent.missile_evade_success_count,
-                                             agent.missile_evade_success_count + agent.missile_hit_self_count)
+            self.logger_dict[agent.color].record_mean_weighted(f'agent/missile_evade_success_rate',
+                                                               agent.missile_evade_success_count,
+                                                               agent.missile_evade_success_count + agent.missile_hit_self_count)
 
             # 命中率
-            self.logger.record_mean_weighted(f'{agent.name}/missile_hit_enemy_rate', agent.missile_hit_enemy_count,
-                                             agent.missile_fired_count)
-            self.logger.record_mean_weighted(f'{agent.color}/missile_hit_enemy_rate', agent.missile_hit_enemy_count,
-                                             agent.missile_fired_count)
+            self.logger_dict[agent.color].record_mean_weighted(f'agent/missile_hit_enemy_rate',
+                                                               agent.missile_hit_enemy_count,
+                                                               agent.missile_fired_count)
+            self.logger_dict[agent.color].record_mean_weighted(f'agent/missile_hit_enemy_rate',
+                                                               agent.missile_hit_enemy_count,
+                                                               agent.missile_fired_count)
 
         for color in ['red', 'blue']:
 
             for k in ['win', 'lose', 'draw', 'win_rate', 'draw_rate', 'lose_rate']:
-                self.logger.record(f'{color}/{k}', self.env.game_info[color][k])
+                self.logger_dict[color].record(f'env/{k}', self.env.game_info[color][k])
                 recent_v = dict_get(self.env.game_info, ['recent', color, k])
                 if recent_v is not None:
-                    self.logger.record(f'{color}/recent/{k}', recent_v)
+                    self.logger_dict[color].record(f'recent/{k}', recent_v)
 
             for k in self.env.game_info[color]:
                 if k.startswith('reward'):
-                    self.logger.record(f'{color}/{k}', self.env.game_info[color][k])
-                    recent_v = dict_get(self.env.game_info, ['recent', color, k])
-                    if recent_v is not None:
-                        self.logger.record(f'{color}/recent/{k}', recent_v)
+                    self.logger_dict[color].record(f'reward/{k}', self.env.game_info[color][k])
+                    # recent_v = dict_get(self.env.game_info, ['recent', color, k])
+                    # if recent_v is not None:
+                    #     self.logger_dict[color].record(f'recent/{k}', recent_v)
 
-            for k in AGENT_INFO_KEYS:
-                if k not in self.env.game_info[color]:
-                    continue
-                self.logger.record_mean_weighted(f'{color}/{k}', self.env.game_info[color][k])
-                # recent_v = dict_get(self.env.game_info, ['recent', color, k])
-                # if recent_v is not None:
-                #     self.logger.record_mean(f'{color}/recent/{k}', recent_v)
+            # for k in AGENT_INFO_KEYS:
+            #     if k not in self.env.game_info[color]:
+            #         continue
+            #     self.logger_dict[color].record_mean_weighted(f'agent/{k}', self.env.game_info[color][k])
+            # recent_v = dict_get(self.env.game_info, ['recent', color, k])
+            # if recent_v is not None:
+            #     self.logger.record_mean(f'{color}/recent/{k}', recent_v)
 
         print()
         self.pbar.update(1)
-        self.logger.dump(step=self.env.episode)
+        for k, v in self.logger_dict.items():
+            v.dump(self.env.episode)
         self.write(f'run.txt', f'{self.env.episode}: {self.pbar.postfix}\n', 'a')
 
     def on_episode_start(self):
@@ -323,6 +338,7 @@ class BTManager:
             tree_name_suffix: str = '',
             context: dict = None
     ):
+        self.builder.context = context
         tree = DogfightTree(
                 env=self.env,
                 agent_name=agent_name,
@@ -336,6 +352,8 @@ class BTManager:
                     'output'       : self.output,
                     'output_run_id': self.output_run_id,
                     'run_id'       : self.run_id,
+                    'episode'      : self.env.episode,
+                    'agent_name'   : agent_name,
                     **(context or { })
                 }
         ).setup()
@@ -413,7 +431,8 @@ class BTManager:
     def run(self, episodes: int):
         self.pbar = tqdm(total=episodes, desc=f'[{self.output_run_id}] train={self.train}')
         self.update_context({
-            'train': self.train
+            'train'  : self.train,
+            'episode': self.env.episode,
         })
 
         print('开始', self.config)
@@ -421,20 +440,25 @@ class BTManager:
 
         policy = MultiAgentPolicy(policies=self.policies)
 
-        start_time = time.time()
+        self.start_time = time.time()
 
         env.reset()
         env_time = 0
         for i in range(episodes):
             if not env.isopen:
                 break
+            self.update_context({
+                'episode': self.env.episode,
+            })
             while env.isopen:
+
                 if env.should_update():
                     policy.take_action()
                     policy.put_action()
                     env.update()
                     info = env.gen_info()
                     if info['terminated'] or info['truncated']:
+                        policy.take_action()
                         # 在terminated之后还要再触发一次行为树，不然没办法将最终奖励给到行为树里的节点
                         # 而且需要强制将所有的RLNode都触发一遍，避免因为条件节点关系部分漏掉
                         for p in self.policies:
@@ -451,7 +475,7 @@ class BTManager:
             env.reset()
             policy.reset()
 
-        cost_time = time.time() - start_time
+        cost_time = time.time() - self.start_time
         self.write(f'耗时={cost_time:.0f}.txt', '\n'.join(
                 [
                     f'耗时: {cost_time:.2f} 秒',
@@ -554,10 +578,10 @@ class ResultRecorder:
                     # 奖励和胜率不匹配
                     stats['abnormal'].append(color)
 
-        if len(stats['abnormal']) > 0:
-            print(
-                    f"[{self.env.episode}]最近{stats['episodes']}轮对战出现奖励和胜率倒挂异常: {stats['abnormal']}",
-                    stats)
+        # if len(stats['abnormal']) > 0:
+        #     print(
+        #             f"[{self.env.episode}]最近{stats['episodes']}轮对战出现奖励和胜率倒挂异常: {stats['abnormal']}",
+        #             stats)
 
         # agent的数据需要累积平均
         for item in self.game_infos:
@@ -598,7 +622,7 @@ class ModelSaver:
                 if not isinstance(node, RLNode):
                     continue
                 if self.should_save_model(node):
-                    node.save_model()
+                    self.save_model(node)
 
     def should_save_model(self, node: RLNode) -> bool:
         """如果新的更好，则返回true，否则返回false"""
@@ -625,16 +649,3 @@ class ModelSaver:
                 'agent'    : node.agent.to_dict(),
                 'game_info': self.env.game_info,
             }, file, indent=4, ensure_ascii=False)
-
-
-# class RecentValueCollector:
-#
-#     def __init__(self, recent: int):
-#         self.d = {}
-#
-#
-#     def collect(self, k, v: float | int):
-#         self.d[k] = v
-
-if __name__ == '__main__':
-    print(read_config('run.yaml')['policy'])

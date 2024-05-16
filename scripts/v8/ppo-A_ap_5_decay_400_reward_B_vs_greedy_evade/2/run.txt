@@ -1,0 +1,10 @@
+1: reward=0.00 vs 86.86, recent_win=0 vs 1, winner=blue, win=0 vs 1, draw=0, time=183/183
+2: reward=0.00 vs 89.88, recent_win=0 vs 2, winner=blue, win=0 vs 2, draw=0, time=136/319
+3: reward=0.00 vs 92.44, recent_win=0 vs 3, winner=blue, win=0 vs 3, draw=0, time=98/417
+4: reward=0.00 vs 89.73, recent_win=0 vs 4, winner=blue, win=0 vs 4, draw=0, time=138/555
+5: reward=0.00 vs 93.47, recent_win=0 vs 5, winner=blue, win=0 vs 5, draw=0, time=84/639
+6: reward=0.00 vs 90.17, recent_win=0 vs 6, winner=blue, win=0 vs 6, draw=0, time=131/770
+7: reward=0.00 vs 87.88, recent_win=0 vs 7, winner=blue, win=0 vs 7, draw=0, time=166/937
+8: reward=0.00 vs 0.00, recent_win=0 vs 7, winner=draw, win=0 vs 7, draw=1, time=207/1144
+9: reward=0.00 vs 88.23, recent_win=0 vs 8, winner=blue, win=0 vs 8, draw=1, time=161/1305
+10: reward=0.00 vs 89.37, recent_win=0 vs 9, winner=blue, win=0 vs 9, draw=1, time=143/1448

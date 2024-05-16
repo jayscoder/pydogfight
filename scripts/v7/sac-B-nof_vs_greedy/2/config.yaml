@@ -1,0 +1,26 @@
+base: scripts/v7/base.yaml
+context:
+    batch_size: 32
+    features_dim: 128
+    learning_starts: 64
+episodes: 3000
+options:
+    aircraft_fire_missile_interval: 15
+    aircraft_fuel_capacity: 180000
+    aircraft_missile_count: 3
+    blue_agents:
+    - blue_1
+    collision_scale: 1
+    device: auto
+    indestructible: false
+    max_duration: 1800
+    red_agents:
+    - red_1
+    render: true
+    title: scripts/v7-sac-B-nof_vs_greedy
+output: scripts/v7/sac-B-nof_vs_greedy
+policy:
+    blue: scripts/v7/policy/greedy.xml
+    red: scripts/v7/policy/sac-B-nof.xml
+title: scripts/v7-sac-B-nof_vs_greedy
+track: -1

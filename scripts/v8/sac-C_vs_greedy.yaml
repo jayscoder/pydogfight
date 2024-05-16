@@ -1,0 +1,8 @@
+base: '{{filedir}}/base.yaml'
+policy:
+    red: '{{filedir}}/policy/sac-C.xml' # 红方行为树
+context: # 行为树环境变量，可以在行为树中通过{{}}来传递
+#     models_dir: 'output/v6/ppo-greedy/models'
+    features_dim: 128
+    learning_starts: 128
+    batch_size: 64

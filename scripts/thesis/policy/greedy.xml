@@ -1,0 +1,21 @@
+<Root name="Greedy">
+    <include path="{{filedir}}/policy/init.xml"/>
+    <include path="{{filedir}}/policy/reward.xml"/>
+
+    <ReactiveSequence>
+        <CanFireMissile/>
+        <IsNearestEnemyInHitRange/>
+        <FireMissileAtNearestEnemy/>
+    </ReactiveSequence>
+
+    <ReactiveSelector>
+        <include path="{{filedir}}/policy/handle_abnormal.xml"/>
+        <ReactiveSelector>
+            <ReactiveSequence>
+                <IsMissileThreatDetected/>
+                <Manoeuvre39ToEvadeMissile/>
+            </ReactiveSequence>
+            <PurePursueNearestEnemy/>
+        </ReactiveSelector>
+    </ReactiveSelector>
+</Root>

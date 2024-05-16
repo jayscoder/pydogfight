@@ -50,25 +50,33 @@ class PursueNearestEnemy(BTPolicyNode):
                  attack_ratio: float | str = 0.5,
                  evade_ratio: float | str = 0.5,
                  test_move_angle_sep: int | str = 45,
+                 test_move_time: float | str = 15,
                  **kwargs):
         super().__init__(**kwargs)
-        self.attack_ratio = float(attack_ratio)
-        self.evade_ratio = float(evade_ratio)
+        self.attack_ratio = attack_ratio
+        self.evade_ratio = evade_ratio
         self.test_move_angle_sep = test_move_angle_sep
+        self.test_move_time = test_move_time
 
     def updater(self) -> typing.Iterator[Status]:
         enemy = self.env.battle_area.find_nearest_enemy(
                 agent_name=self.agent_name,
                 ignore_radar=False)
-
         if enemy is None:
             self.put_update_message('No nearest enemy')
             yield Status.FAILURE
             return
 
+        attack_ratio = self.converter.float(self.attack_ratio)
+        evade_ratio = self.converter.float(self.evade_ratio)
+        test_move_time = self.converter.float(self.test_move_time)
+        test_move_angle_sep = self.converter.int(self.test_move_angle_sep)
         # 如果没有要躲避的任务，则尝试飞到更容易命中敌机，且更不容易被敌机命中的位置上（两者命中时间之差最大）
         min_time = float('inf')
         go_to_location = None
+
+        if not self.agent.can_fire_missile():
+            attack_ratio = 0
 
         if enemy.distance(self.agent) > self.env.options.aircraft_radar_radius:
             # 超出雷达探测范围了，则朝着敌机的位置飞
@@ -77,29 +85,138 @@ class PursueNearestEnemy(BTPolicyNode):
         else:
             test_waypoints = self.agent.generate_test_moves(
                     in_safe_area=True,
-                    angle_sep=self.converter.int(self.test_move_angle_sep)
+                    angle_sep=test_move_angle_sep,
+                    test_time=test_move_time
             )
+
+            enemy_waypoint = enemy.waypoint.move(d=enemy.speed * test_move_time)
             for waypoint in test_waypoints:
                 hit_point = optimal_predict_intercept_point(
                         self_speed=self.env.options.missile_speed,
                         self_wpt=waypoint,
                         self_turn_radius=self.env.options.missile_min_turn_radius,
-                        target_wpt=enemy.waypoint,
+                        target_wpt=enemy_waypoint,
                         target_speed=enemy.speed,
                 )  # 我方的导弹命中敌机
 
-                under_hit_point = enemy.predict_missile_intercept_point(
+                under_hit_point = optimal_predict_intercept_point(
+                        self_wpt=enemy_waypoint,
+                        self_speed=self.env.options.missile_speed,
+                        self_turn_radius=self.env.options.missile_min_turn_radius,
                         target_wpt=waypoint,
-                        target_speed=enemy.speed)  # 敌机的导弹命中我方
+                        target_speed=self.agent.speed,
+                )  # 敌机的导弹命中我方
+
+                # 我方导弹尽可能要命中敌机
+                # 敌方导弹要尽可能不命中我
 
                 if hit_point.time == float('inf'):
-                    hit_point.time = 10000
+                    hit_point.time = self.env.options.missile_flight_duration()
                 if under_hit_point.time == float('inf'):
-                    under_hit_point.time = 10000
-                time_tmp = hit_point.time * self.attack_ratio - under_hit_point.time * self.evade_ratio  # 让我方命中敌机的时间尽可能小，敌方命中我方的时间尽可能大
+                    under_hit_point.time = self.env.options.missile_flight_duration()
+
+                time_tmp = hit_point.time * attack_ratio - under_hit_point.time * evade_ratio  # 让我方命中敌机的时间尽可能小，敌方命中我方的时间尽可能大
                 if time_tmp < min_time:
                     min_time = time_tmp
                     go_to_location = waypoint.location
+
+        if go_to_location is None:
+            yield Status.FAILURE
+            return
+
+        yield from go_to_location_updater(self, go_to_location)
+
+
+class PursueEnemyAndEvadeMissile(BTPolicyNode):
+    """
+    行为节点：追击敌机并规避导弹
+    此节点用于判断并执行对最近敌机的追击动作。它会评估并选择一个位置，该位置既能提高对敌机的命中率，又能降低被敌机命中的风险。
+
+    - SUCCESS: 追击成功，表示本节点控制的飞机成功调整了位置，优化了对最近敌机的攻击角度或位置。
+    - FAILURE: 追击失败，可能因为以下原因：
+        - 未能检测到最近的敌机，可能是因为敌机超出了雷达的探测范围。
+        - 未能计算出一个更有利的位置，或者在当前情况下调整位置不会带来明显的优势。
+        - 其他因素，如环境变量、飞机状态或策略设置，导致追击行动无法执行。
+
+    Parameters:
+    - name (str): 此行为节点的名称。
+    - attack_ratio (float): 进攻比例，用于决定在追击过程中进攻的倾向性，较高值意味着更偏向于进攻。
+    - evade_ratio (float): 逃避比例，用于决定在追击过程中防御的倾向性，较高值意味着更偏向于防御。
+    """
+
+    def __init__(self,
+                 attack_ratio: float | str = 0.5,
+                 evade_ratio: float | str = 0.5,
+                 test_move_angle_sep: int | str = 45,
+                 test_move_time: float | str = 15,
+                 **kwargs):
+        super().__init__(**kwargs)
+        self.attack_ratio = attack_ratio
+        self.evade_ratio = evade_ratio
+        self.test_move_angle_sep = test_move_angle_sep
+        self.test_move_time = test_move_time
+
+    def updater(self) -> typing.Iterator[Status]:
+        enemies = self.env.battle_area.detect_aircraft(
+                agent_name=self.agent_name,
+                ignore_radar=False, only_enemy=True)
+        missiles = self.env.battle_area.detect_missiles(agent_name=self.agent_name)
+        if len(missiles) > 0:
+            for missile in missiles:
+                enemies.append(missile)
+        if len(enemies) == 0:
+            self.put_update_message('No enemy')
+            yield Status.FAILURE
+            return
+
+        attack_ratio = self.converter.float(self.attack_ratio)
+        evade_ratio = self.converter.float(self.evade_ratio)
+        test_move_time = self.converter.float(self.test_move_time)
+        test_move_angle_sep = self.converter.int(self.test_move_angle_sep)
+        # 如果没有要躲避的任务，则尝试飞到更容易命中敌机，且更不容易被敌机命中的位置上（两者命中时间之差最大）
+        min_time = float('inf')
+        go_to_location = None
+
+        test_waypoints = self.agent.generate_test_moves(
+                in_safe_area=True,
+                angle_sep=test_move_angle_sep,
+                test_time=test_move_time
+        )
+        enemy_waypoints = [enemy.waypoint.move(d=enemy.speed * test_move_time) for enemy in enemies]
+        # if not self.agent.can_fire_missile():
+        #     attack_ratio = 0
+        for waypoint in test_waypoints:
+            time_tmp = 0
+            for enemy_waypoint in enemy_waypoints:
+                hit_point = optimal_predict_intercept_point(
+                        self_wpt=waypoint,
+                        self_speed=self.env.options.missile_speed,
+                        self_turn_radius=self.env.options.missile_min_turn_radius,
+                        target_wpt=enemy_waypoint,
+                        target_speed=self.env.options.aircraft_speed,
+                )  # 我方的导弹命中敌机
+
+                under_hit_point = optimal_predict_intercept_point(
+                        self_wpt=enemy_waypoint,
+                        self_speed=self.env.options.missile_speed,
+                        self_turn_radius=self.env.options.missile_min_turn_radius,
+                        target_wpt=waypoint,
+                        target_speed=self.env.options.aircraft_speed,
+                )  # 敌机的导弹命中我方
+
+                # 我方导弹尽可能要命中敌机
+                # 敌方导弹要尽可能不命中我
+
+                if hit_point.time == float('inf'):
+                    hit_point.time = self.env.options.missile_flight_duration()
+                if under_hit_point.time == float('inf'):
+                    under_hit_point.time = self.env.options.missile_flight_duration()
+
+                time_tmp += hit_point.time * attack_ratio - under_hit_point.time * evade_ratio  # 让我方命中敌机的时间尽可能小，敌方命中我方的时间尽可能大
+
+            if time_tmp < min_time:
+                min_time = time_tmp
+                go_to_location = waypoint.location
 
         if go_to_location is None:
             yield Status.FAILURE
@@ -345,10 +462,8 @@ class AutoPursueNearestEnemy(BTPolicyNode):
             return 'lead'
         elif distance <= distance_threshold and positioning.value not in ['head-to-head', 'head-to-tail']:
             return 'lag'
-        elif distance > agent.collision_radius * 5:
-            return 'pure'
         else:
-            return 'lag'
+            return 'pure'
 
     @classmethod
     def calculate_location(cls, pursue_mode: str, agent: Aircraft, enemy: Aircraft) -> tuple[float, float]:
@@ -377,3 +492,51 @@ class AutoPursueNearestEnemy(BTPolicyNode):
                 enemy=enemy,
                 agent=self.agent
         ))
+
+
+class IsNearestEnemyFitPositioning(BTPolicyNode):
+    """
+    自己和最近的敌机是否符合双方态势约束
+    positioning: 多个用逗号分隔
+        head-to-head
+        head-to-tail
+        tail-to-head
+        tail-to-tail
+        me-facing-target
+        target-facing-me
+        others
+    """
+
+    def __init__(self, positioning: str = '', angle_tolerance: str | int = 15, **kwargs):
+        super().__init__(**kwargs)
+        self.positioning = positioning
+        self.angle_tolerance = angle_tolerance
+
+    def update(self) -> Status:
+        enemy = self.env.battle_area.find_nearest_enemy(agent_name=self.agent_name)
+        if enemy is None:
+            return Status.FAILURE
+        check_positioning = self.converter.render(self.positioning).split(',')
+        positioning = self.agent.waypoint.calculate_positioning(
+                other=enemy.waypoint,
+                angle_tolerance=self.converter.float(
+                        self.angle_tolerance))
+        if positioning.value in check_positioning:
+            return Status.SUCCESS
+        else:
+            return Status.FAILURE
+
+
+class IsNearestEnemyCanFireMissile(BTPolicyNode):
+
+    def update(self) -> Status:
+        enemy: Aircraft = self.env.battle_area.find_nearest_enemy(agent_name=self.agent_name)
+        if enemy is None:
+            return Status.FAILURE
+        if enemy.can_fire_missile():
+            return Status.SUCCESS
+        else:
+            return Status.FAILURE
+
+
+

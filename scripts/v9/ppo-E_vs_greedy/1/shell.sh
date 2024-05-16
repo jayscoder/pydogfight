@@ -1,0 +1,1 @@
+python main.py scripts/v9/ppo-C_vs_greedy.yaml scripts/v9/ppo-D_vs_greedy.yaml scripts/v9/ppo-E_vs_greedy.yaml --train

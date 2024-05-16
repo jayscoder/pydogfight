@@ -1,0 +1,1 @@
+1: reward=95.39 vs 0.00, reward_evade=1.00 vs 0.00, win=1 vs 0, recent_win=1 vs 0, draw=0, winner=red, time=85/85

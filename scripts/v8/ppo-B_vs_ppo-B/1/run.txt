@@ -1,0 +1,10 @@
+1: reward=3.80 vs 91.66, reward_evade=4.00 vs 3.00, win=0 vs 1, recent_win=0 vs 1, draw=0, winner=blue, time=162/162
+2: reward=3.80 vs 90.93, reward_evade=4.00 vs 3.00, win=0 vs 2, recent_win=0 vs 2, draw=0, winner=blue, time=175/337
+3: reward=94.88 vs 0.90, reward_evade=2.00 vs 1.00, win=1 vs 2, recent_win=1 vs 2, draw=0, winner=red, time=105/442
+4: reward=1.80 vs 91.75, reward_evade=2.00 vs 3.00, win=1 vs 3, recent_win=1 vs 3, draw=0, winner=blue, time=165/608
+5: reward=1.80 vs 94.72, reward_evade=2.00 vs 3.00, win=1 vs 4, recent_win=1 vs 4, draw=0, winner=blue, time=120/728
+6: reward=3.80 vs 92.04, reward_evade=4.00 vs 3.00, win=1 vs 5, recent_win=1 vs 5, draw=0, winner=blue, time=158/886
+7: reward=93.86 vs 2.70, reward_evade=5.00 vs 3.00, win=2 vs 5, recent_win=2 vs 5, draw=0, winner=red, time=162/1048
+8: reward=3.90 vs 89.76, reward_evade=4.00 vs 2.00, win=2 vs 6, recent_win=2 vs 6, draw=0, winner=blue, time=176/1224
+9: reward=1.80 vs 94.83, reward_evade=2.00 vs 4.00, win=2 vs 7, recent_win=2 vs 7, draw=0, winner=blue, time=133/1358
+10: reward=2.70 vs 4.70, reward_evade=3.00 vs 4.00, win=2 vs 7, recent_win=2 vs 7, draw=1, winner=draw, time=143/1501
