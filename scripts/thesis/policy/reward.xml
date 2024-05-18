@@ -1,31 +1,31 @@
 <Root name="Reward">
-    <Sequence>
-        <IsChanged value="{{agent.missile_evade_success_count}}" name="成功规避导弹"/>
-        <!--成功规避导弹，给出奖励-->
-        <Reward reward="{{1 / agent.missile_evade_success_count}}" domain="evade" name="奖励1"/>
-    </Sequence>
+<!--    <Sequence>-->
+<!--        <IsChanged value="{{agent.missile_evade_success_count}}" name="成功规避导弹"/>-->
+<!--        &lt;!&ndash;成功规避导弹，给出奖励&ndash;&gt;-->
+<!--        <Reward reward="{{ 1 / agent.missile_evade_success_count }}" domain="evade" name="奖励1"/>-->
+<!--    </Sequence>-->
 
-    <Sequence>
-        <IsChanged value="{{agent.missile_miss_count}}" name="导弹打空了"/>
-        <!--导弹打空了-->
-        <Reward reward="{{-0.1 / agent.missile_miss_count}}" domain="attack" name="奖励-0.1"/>
-    </Sequence>
+<!--    <Sequence>-->
+<!--        <IsChanged value="{{agent.missile_miss_count}}" name="导弹打空了"/>-->
+<!--        &lt;!&ndash;导弹打空了&ndash;&gt;-->
+<!--        <Reward reward="{{ -0.1 / agent.missile_miss_count }}" domain="attack" name="奖励-0.1"/>-->
+<!--    </Sequence>-->
 
     <Sequence>
         <!--胜利奖励，越短时间胜利奖励越高-->
         <IsWin name="是否胜利"/>
-        <Reward reward="{{10 + 10 * math.exp(-time / 600)}}" domain="default" name="胜利奖励，越短时间胜利奖励越高"/>
+        <Reward reward="{{ 50 + 50 * math.exp(-time / 600) }}" domain="default" name="胜利奖励，越短时间胜利奖励越高"/>
     </Sequence>
 
     <Sequence>
         <!--平局惩罚，存活时间越长惩罚越低-->
         <IsDraw name="是否平局"/>
-        <Reward reward="{{-3 - 3 * math.exp(-time / 600)}}" domain="default" name="平局惩罚"/>
+        <Reward reward="{{ -10 - 10 * math.exp(-time / 600) }}" domain="default" name="平局惩罚"/>
     </Sequence>
 
     <Sequence>
         <!--失败惩罚，存活时间越长惩罚越低-->
         <IsLose name="是否失败"/>
-        <Reward reward="{{-10 - 10 * math.exp(-time / 600)}}" domain="default" name="失败惩罚"/>
+        <Reward reward="{{ -20 - 20 * math.exp(-time / 600) }}" domain="default" name="失败惩罚"/>
     </Sequence>
 </Root>

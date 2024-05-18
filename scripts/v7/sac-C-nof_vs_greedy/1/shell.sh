@@ -1,1 +1,0 @@
-python main.py scripts/v7/sac-C-nof_vs_greedy.yaml --train

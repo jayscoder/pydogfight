@@ -1,0 +1,1 @@
+python main.py scripts/thesis/ppo-H-ar5-d400_vs_greedy.yaml --train

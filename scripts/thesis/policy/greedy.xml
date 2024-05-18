@@ -11,10 +11,10 @@
     <ReactiveSelector>
         <include path="{{filedir}}/policy/handle_abnormal.xml"/>
         <ReactiveSelector>
-            <ReactiveSequence>
-                <IsMissileThreatDetected/>
-                <Manoeuvre39ToEvadeMissile/>
-            </ReactiveSequence>
+<!--            <ReactiveSequence>-->
+<!--                <IsMissileThreatDetected/>-->
+<!--                <Manoeuvre39ToEvadeMissile/>-->
+<!--            </ReactiveSequence>-->
             <PurePursueNearestEnemy/>
         </ReactiveSelector>
     </ReactiveSelector>

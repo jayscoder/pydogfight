@@ -1,9 +1,0 @@
-<Parallel>
-    <!--    <InitGreedyPolicy memory_gap="500"/>-->
-    <Sequence>
-        <GoToLocation x="10000" y="10000"/>
-        <GoToLocation x="10000" y="-10000"/>
-        <GoToLocation x="-10000" y="-10000"/>
-        <GoToLocation x="-10000" y="10000"/>
-    </Sequence>
-</Parallel>

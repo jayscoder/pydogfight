@@ -1,6 +1,0 @@
-<ReactiveSequence>
-    <Inverter>
-        <IsInSafeArea/>
-    </Inverter>
-    <GoToSafeArea/>
-</ReactiveSequence>

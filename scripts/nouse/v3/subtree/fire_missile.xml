@@ -1,6 +1,0 @@
-<ConditionBranch name="FireMissile">
-    <FireMissileAtNearestEnemy/>
-    <Reward reward="0" scope="control"/>
-    <!--发射失败，给出惩罚-->
-    <Reward reward="-1" scope="control"/>
-</ConditionBranch>

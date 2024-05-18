@@ -1,0 +1,229 @@
+AutoPursueNearestEnemy: "自动判断追逐模式\n    根据不同的追逐模式来选择\n    - FPolePursueNearestEnemy\n\
+    \    - LeadPursueNearestEnemy\n    - LagPursueNearestEnemy\n    - PurePursueNearestEnemy"
+AwayFromNearestEnemy: 远离最近的敌机
+CanFireMissile: CanFireMissile
+CheatGoToNearestEnemyWithMemory: "开挂：朝着敌机的记忆位置飞\n    只要改记忆位置在敌机的雷达范围内，就不更改这个位置"
+CondBranch: "条件分支节点\n    只能有2或3个子节点\n\n    也可以起到打断RUNNING节点的效果（由前面的条件节点来判断是否要进行打断）\n\
+    \n    2个子节点，当前面的节点执行成功时，执行第二个节点\n    等同于\n    <ReactiveSequence>\n        <Children[0]>\n\
+    \        <Children[1]>\n    </ReactiveSequence>\n\n    3个子节点，当前面的节点执行成功时，执行第二个节点，否则执行第三个节点\n\
+    \    等同于\n    <Parallel>\n        <ReactiveSequence>\n            <Children[0]/>\n\
+    \            <Children[1]/>\n        </ReactiveSequence>\n        <ReactiveSelector>\n\
+    \            <Children[0]/>\n            <Children[2]/>\n        </ReactiveSelector>\n\
+    \    <Parallel>"
+ConditionBranch: 条件分支节点的别名
+ConditionReward: "强化学习奖励装饰节点\n    根据子节点的状态来提供奖励\n\n    success: 子节点成功时给的奖励\n    failure:\
+    \ 子节点失败时给的奖励\n    running: 子节点运行时给的奖励\n    only_on_status_change: 只有在子节点的状态改变时才会提供奖励"
+Count: "Count the number of times it's child has been ticked.\n\n    This increments\
+    \ counters tracking the total number of times\n    it's child has been ticked\
+    \ as well as the number of times it\n    has landed in each respective state.\n\
+    \n    It will always re-zero counters on\n    :meth:`~py_trees.behaviour.Behaviour.setup`.\n\
+    \n    Attributes:\n        total_tick_count: number of ticks in total\n      \
+    \  running_count: number of ticks resulting in this state\n        success_count:\
+    \ number of ticks resulting in this state\n        failure_count: number of ticks\
+    \ resulting in this state\n        interrupt_count: number of times a higher priority\
+    \ has interrupted"
+EvadeMissile: "行为节点: 规避导弹\n    - SUCCESS: 规避成功\n    - FAILURE: 规避失败（可能是不存在来袭导弹、无法规避导弹）"
+Explore: "行为节点：探索未知区域\n    此节点负责控制代理（如机器人或游戏角色）探索它尚未访问的地方。节点的目标是扩大代理的知识范围，通过探索环境来发现新的区域或点。\n\
+    \n    - SUCCESS: 探索成功，表示代理成功移动到一个之前未探索的位置。\n    - FAILURE: 探索失败，可能因为以下原因：\n  \
+    \      - 代理当前有尚未完成的路线或任务，因此无法开始新的探索。\n        - 环境中没有更多的未探索区域，或者无法从当前位置移动到未探索的区域。"
+FPolePursueNearestEnemy: "F-Pole模式追逐最近的敌机\n    朝着让目标在你左右两侧30度的方向飞"
+Failure: 失败节点
+FailureIsRunning: Dont stop running.
+FailureIsSuccess: Be positive, always succeed.
+FireMissileAtNearestEnemy: "行为节点: 朝着最近的敌机发射导弹\n    - SUCCESS: 发射导弹成功\n    - FAILURE:\
+    \ 发射导弹失败（可能是没有发现最近敌机、剩余导弹为空、无法攻击到敌机）"
+FireMissileAtNearestEnemyWithHitPointCheck: "行为节点: 朝着最近的敌机发射导弹，会检查命中点\n    - SUCCESS:\
+    \ 发射导弹成功\n    - FAILURE: 发射导弹失败（可能是没有发现最近敌机、剩余导弹为空、无法攻击到敌机）"
+FollowRoute: 沿着一条预设的航线飞行
+GoHome: "行为节点：返回基地\n    此节点负责控制代理（如机器人或游戏角色）返回其起始基地或安全区域。此行为通常用于补给、避免危险或结束任务。\n\n\
+    \    - ALWAYS SUCCESS: 返回基地的操作被设计为总是成功，假定基地是可以到达的，并且代理具有返回基地的能力。"
+GoToCenter: "行为节点：飞行到战场中心\n    - ALWAYS SUCCESS"
+GoToLocation: GoToLocation
+GoToNearestEnemy: "飞到最近的敌机的位置\n    别名：PurePursueNearestEnemy"
+GoToSafeArea: 行为节点：飞行到最近的安全区域，避免过于靠近边界导致毁灭
+GridExplore: "网格式探索，将整个战场分成了W*H的网格，然后探索其中的第index个\n    index: 探索的索引\n    - random:\
+    \ 随机\n    - int: 具体的某个索引\n    - {{}} # 从context里获取"
+Inverter: "装饰节点：取反\n    - SUCCESS: 子节点返回失败\n    - FAILURE: 子节点返回成功"
+IsChanged: "value是否发生变化\n    value的值从context里找，所以需要在tree每次更新时将对应的context填充进去\n   \
+    \ 返回的Status：\n    - SUCCESS：发生变化\n    - FAILURE：没有发生变化\n\n    参数：\n    value:\
+    \ 监听的值\n    immediate: 是否在第一次被激活的时候就认为发生了变化\n    rule: 判断规则，默认的规则是 curr_value\
+    \ != last_value，可以自定义新的规则，例如 abs(curr_value - last_value) >= 10，需要确保rule返回的值是bool类型\n\
+    \        - rule里面也可以使用模版语法，比如 abs(curr_value - last_value) >= {{min_value}}，模版语法里的min_value需要提前在context里定义好，不然会报错\n\
+    \    用法示例：\n\n    <IsChanged value=\"{{agent.y}}\" immediate=\"false\" rule=\"\
+    abs(curr_value - last_value) >= 10\">\n\n    <Sequence>\n        <IsChanged value=\"\
+    {{agent.hit_enemy_count}}\" immediate=\"false\">\n        <Reward reward=\"1\"\
+    \ domain=\"attack\"/>\n    </Sequence>"
+IsDraw: IsDraw
+IsEnemyDetected: "行为节点：是否监测到敌机\n    - SUCCESS: 监测到敌机\n    - FAILURE: 没有监测到敌机"
+IsEqual: 检查两个值是否相等，值本身可以从context中拿到
+IsFireMissileOverFreqLimit: 发射导弹的时间间隔是否过短/发射过于频繁
+IsFuelBingo: "条件节点：检查是否达到了bingo油量（紧急燃油水平）。如果处于bingo油量以下，则需要返航\n    - SUCCESS: 剩余油量\
+    \ <= bingo油量\n    - FAILURE: 剩余油量 > bingo油量"
+IsFuelDepleted: "条件节点：检查燃油是否用完\n    - SUCCESS: 剩余油量 <= 0\n    - FAILURE: 否则"
+IsInGameRange: 条件节点：是否在战场中
+IsInSafeArea: "条件节点: 是否处于安全区域，如果不在安全区域，则要往战场中心飞\n    - SUCCESS: 处于安全区域\n    - FAILURE:\
+    \ 不处于"
+IsLose: IsLose
+IsMatchRule: "是否匹配预设的规则\n\n    rule: 用python和jinja2语法描述的规定，例如{{agent.x}} > 10，返回值必须得是bool\n\
+    \    - 花括号里定义的变量可以从context里找到"
+IsMissileDepleted: "条件节点: 导弹是否用完了，用完了就要返回基地补充导弹\n    - SUCCESS: 剩余导弹 == 0\n    - FAILURE:\
+    \ 剩余导弹 > 0"
+IsMissileFull: "条件节点: 剩余导弹是否是满的\n    - SUCCESS: 剩余导弹 == 0\n    - FAILURE: 剩余导弹 > 0"
+IsMissileThreatDetected: "条件节点:是否发现来袭导弹，如果发现了，可能需要进行规避\n    - SUCCESS: 发现来袭导弹\n  \
+    \  - FAILURE: 未发现"
+IsNearEnemy: "是否靠近敌机一定距离以内\n\n    distance: 距离，单位m"
+IsNearestEnemyCanFireMissile: IsNearestEnemyCanFireMissile
+IsNearestEnemyFitPositioning: "自己和最近的敌机是否符合双方态势约束\n    positioning: 多个用逗号分隔\n    \
+    \    head-to-head\n        head-to-tail\n        tail-to-head\n        tail-to-tail\n\
+    \        me-facing-target\n        target-facing-me\n        others"
+IsNearestEnemyInHitRange: 最近的敌机是否在自己的可命中范围内
+IsOnActiveRoute: "条件节点: 当前agent是否存在未完成的飞行路线\n    - SUCCESS: 存在未完成的飞行路线\n    - FAILURE:\
+    \ 不存在"
+IsOutOfGameRange: 条件节点：是否不在战场中
+IsReachLocation: 由于策略的更新时间较长，可能无法正确判断是否到达某个目标点
+IsStatusChanged: "子节点的状态变化后才会认为是成功\n\n    如果指定了from_status和to_status，则只有子节点的状态由from_status转变到to_status，才会认为是触发了状态变化\n\
+    \    from_status和to_status均可以由多个状态组成，用逗号分隔\n\n    immediate: 一开始是否会触发一次IsChanged\n\
+    \n\n    <IsStatusChanged from_status=\"FAILURE\" to_status=\"SUCCESS\">\n    \
+    \    <Sequence>\n            <IsDoorOpen/>\n            <Reward />\n        </Sequence>\n\
+    \    </IsStatusChanged>"
+IsWin: IsWin
+KeepFly: 行为节点保持当前航迹继续飞行
+LagPursueNearestEnemy: "https://www.combataircraft.com/en/Tactics/Air-To-Air/Lag-Pursuit/\n\
+    \    飞到敌机一段时间之前的位置，这个时间由双方距离动态确定，距离敌机越远，则越接近15s，距离敌机越近，则越接近0\n\n    lag_time:\
+    \ 滞后时间"
+LeadPursueNearestEnemy: "Lead pursue nearest enemy\n    如果未来会相交，则朝相交点飞行，如果不会相交，则朝着敌机15s后的预测位置飞"
+Manoeuvre39ToEvadeEnemy: Manoeuvre39ToEvadeEnemy
+Manoeuvre39ToEvadeMissile: Manoeuvre39ToEvadeMissile
+ManualControl: ManualControl
+OneShot: "A decorator that implements the oneshot pattern.\n\n    This decorator ensures\
+    \ that the underlying child is ticked through\n    to completion just once and\
+    \ while doing so, will return\n    with the same status as it's child. Thereafter\
+    \ it will return\n    with the final status of the underlying child.\n\n    Completion\
+    \ status is determined by the policy given on construction.\n\n    * With policy\
+    \ :data:`~py_trees.common.OneShotPolicy.ON_SUCCESSFUL_COMPLETION`, the oneshot\
+    \ will activate\n      only when the underlying child returns :data:`~py_trees.Status.SUCCESS`\
+    \ (i.e. it permits retries).\n    * With policy :data:`~py_trees.common.OneShotPolicy.ON_COMPLETION`,\
+    \ the oneshot will activate when the child\n      returns :data:`~py_trees.Status.SUCCESS`\
+    \ || :data:`~py_trees.Status.FAILURE`.\n\n    .. seealso:: :meth:`py_trees.idioms.oneshot`\n\
+    \n    <OneShot>\n        <Sequence>\n            <IsDoorOpen/>\n            <Reward\
+    \ />\n        </Sequence>\n    </OneShot>"
+Parallel: "组合节点：并行节点\n    同时执行所有子节点，并根据成功阈值来决定返回状态\n    - 如果有子节点返回 RUNNING 状态，节点本身返回\
+    \ RUNNING\n    - 子节点的执行不依赖于其它子节点的状态；每个子节点独立执行\n    - 如果达到或超过指定的成功阈值（success_threshold），则返回\
+    \ SUCCESS\n    - 如果未达到成功阈值，即使所有子节点都已完成执行，也返回 FAILURE\n    - RUNNING 状态的子节点在下一次tick时会继续执行，非RUNNING状态的子节点在下一次tick时会重置并重新开始\n\
+    \    - success_threshold 设置为 -1 表示所有子节点都必须成功才算总体成功"
+PostCondition: 后置条件
+PreCondition: 前置条件
+Print: Print
+PrintNodeData: PrintNodeData
+PurePursueNearestEnemy: "Pure模式追逐最近的敌机\n    飞到敌机所在的位置"
+PursueEnemyAndEvadeMissile: "行为节点：追击敌机并规避导弹\n    此节点用于判断并执行对最近敌机的追击动作。它会评估并选择一个位置，该位置既能提高对敌机的命中率，又能降低被敌机命中的风险。\n\
+    \n    - SUCCESS: 追击成功，表示本节点控制的飞机成功调整了位置，优化了对最近敌机的攻击角度或位置。\n    - FAILURE: 追击失败，可能因为以下原因：\n\
+    \        - 未能检测到最近的敌机，可能是因为敌机超出了雷达的探测范围。\n        - 未能计算出一个更有利的位置，或者在当前情况下调整位置不会带来明显的优势。\n\
+    \        - 其他因素，如环境变量、飞机状态或策略设置，导致追击行动无法执行。\n\n    Parameters:\n    - name (str):\
+    \ 此行为节点的名称。\n    - attack_ratio (float): 进攻比例，用于决定在追击过程中进攻的倾向性，较高值意味着更偏向于进攻。\n\
+    \    - evade_ratio (float): 逃避比例，用于决定在追击过程中防御的倾向性，较高值意味着更偏向于防御。"
+PursueNearestEnemy: "行为节点：追击最近的敌机\n    此节点用于判断并执行对最近敌机的追击动作。它会评估并选择一个位置，该位置既能提高对敌机的命中率，又能降低被敌机命中的风险。\n\
+    \n    - SUCCESS: 追击成功，表示本节点控制的飞机成功调整了位置，优化了对最近敌机的攻击角度或位置。\n    - FAILURE: 追击失败，可能因为以下原因：\n\
+    \        - 未能检测到最近的敌机，可能是因为敌机超出了雷达的探测范围。\n        - 未能计算出一个更有利的位置，或者在当前情况下调整位置不会带来明显的优势。\n\
+    \        - 其他因素，如环境变量、飞机状态或策略设置，导致追击行动无法执行。\n\n    Parameters:\n    - name (str):\
+    \ 此行为节点的名称。\n    - attack_ratio (float): 进攻比例，用于决定在追击过程中进攻的倾向性，较高值意味着更偏向于进攻。\n\
+    \    - evade_ratio (float): 逃避比例，用于决定在追击过程中防御的倾向性，较高值意味着更偏向于防御。"
+RLAction: RLAction
+RLActionPPA: "执行反向链式动作，子节点只能是PreCondition和PostCondition\n\n    - PostCondition 后置条件：\n\
+    \        奖励为success_ratio\n    - PreCondition 前置条件：\n        惩罚为success_ratio-1\n\
+    \n    【后置条件优先级大于前置条件】如果后置条件的success_ratio > 0，则不考虑前置条件\n\n    状态：\n    - if 后置条件存在:\n\
+    \        success_ratio == 1: SUCCESS\n    - elif 前置条件存在且success_ratio > 0:\n \
+    \       返回RUNNING\n    - else:\n        返回FAILURE"
+RLCondition: 条件节点：用RL来判断是否需要执行
+RLCondition1V1: RLCondition1V1
+RLConditionMultiple: RLConditionMultiple
+RLFireAndGoToLocation: RLFireAndGoToLocation
+RLFireAndGoToLocation1V1: RLFireAndGoToLocation1V1
+RLFireAndGoToLocationMultiple: RLFireAndGoToLocationMultiple
+RLFloatArrayValue: 强化学习float值生成，将生成的值保存到context[key]里
+RLFloatValue: 强化学习float值生成，将生成的值保存到context[key]里
+RLGoToLocation: RLGoToLocation
+RLGoToLocation1V1: RLGoToLocation1V1
+RLGoToLocationMultiple: RLGoToLocationMultiple
+RLIntValue: 强化学习int值生成，将生成的值保存到context[key]里
+RLSelector: "将某个子节点作为开头，重置children并执行（事后回还原）\n    self.children = self.children[index:]\
+    \ + self.children[:index]"
+RLSwitcher: 选择其中一个子节点来执行
+RandomFloatValue: "生成随机浮点数到context里\n\n    随机数范围: [low, high), 不包括high"
+RandomInitWaypointNearGameCenter: "随机初始化自己的位置在战场中心雷达半径附近，方便双方一开始就能相遇在双方的雷达半径内\n  \
+    \  Randomly initializes the agent's position near the center of the battlefield\
+    \ radar radius,\n    facilitating an early encounter within each other's radar\
+    \ range."
+RandomIntValue: "生成随机整数到context里\n\n    随机数范围: [low, high], including both end points."
+RandomSuccess: 以一定概率成功，其他情况是失败
+ReactiveSelector: "反应式选择节点\n    依次顺序执行子节点\n    - 当前执行节点返回 FAILURE/INVALID，继续执行后续节点\n\
+    \    - 当前执行节点返回 SUCCESS/RUNNING，停止执行后续节点，下次执行从第一个节点开始\n    返回最后一个执行节点的状态，如果没有孩子，则返回FAILURE"
+ReactiveSequence: "反应式顺序节点\n    依次顺序执行子节点\n    - 当前执行节点返回 SUCCESS，继续执行后续节点\n    -\
+    \ 当前执行节点返回 FAILURE/RUNNING/INVALID，停止执行后续节点，下次执行从第一个节点开始\n    返回最后一个执行节点的状态，如果没有孩子，则返回SUCCESS\n\
+    \n    可以起到打断后续RUNNING节点的效果\n    - 如果前面的节点返回SUCCESS，则后续的RUNNING节点会继续运行，否则就会打断掉"
+ReactiveSwitcher: "相应式选择其中一个子节点执行，每次都会重新选择index\n    返回当前执行节点的状态"
+Reward: "奖励节点，返回的状态一直是SUCCESS\n    当走到这个节点时，会将给定的奖励累计\n\n    只会对之后的节点生效，所以要放在前面\n\n\
+    \    reward: 给出的对应奖励\n    domain: 学习域\n\n    奖励会累积，所以PPO节点在消费奖励时要记录一下上次拿到的奖励值，然后将两次差值作为最终奖励"
+Running: Running Node
+RunningIsFailure: Got to be snappy! We want results...yesterday.
+RunningIsSuccess: Don't hang around...
+RunningUntilCondition: "A blocking conditional decorator.\n\n    Encapsulates a behaviour\
+    \ and wait for it's status to flip to the\n    desired state. This behaviour will\
+    \ tick with\n    :data:`~py_trees.Status.RUNNING` while waiting and\n    :data:`~py_trees.Status.SUCCESS`\
+    \ when the flip occurs."
+Selector: "组合节点：选择节点 ?\n    依次顺序执行子节点\n    - 当前执行节点返回 FAILURE/INVALID，继续执行后续节点\n \
+    \   - 当前执行节点返回 RUNNING，停止执行后续节点，下次执行还是从这个节点开始\n    - 当前执行节点返回 SUCCESS，停止执行后续节点，下次执行从第一个节点开始\n\
+    \    返回最后一个执行节点的状态，如果没有孩子，则返回FAILURE"
+SelectorWithMemory: "记忆选择节点\n    - 当前执行节点返回 FAILURE/INVALID，继续执行后续节点\n    - 当前执行节点返回\
+    \ SUCCESS/RUNNING，停止执行后续节点，下次执行还是从这个节点开始\n    返回最后一个执行节点的状态，如果没有孩子，则返回FAILURE"
+Sequence: "组合节点：顺序节点 ->\n    依次顺序执行子节点\n    - 当前执行节点返回 SUCCESS，继续执行后续节点\n    - 当前执行节点返回\
+    \ RUNNING，停止执行后续节点，下次执行还是从这个节点开始\n    - 当前执行节点返回 FAILURE/INVALID，停止执行后续节点，下次执行从第一个节点开始\n\
+    \    返回最后一个执行节点的状态，如果没有孩子，则返回SUCCESS"
+SequenceWithMemory: "记忆顺序节点\n    依次顺序执行子节点\n    - 当前执行节点返回 SUCCESS，继续执行后续节点\n    -\
+    \ 当前执行节点返回 FAILURE/RUNNING，停止执行后续节点，下次执行还是从这个节点开始\n    - 当前执行节点返回 INVALID，停止执行后续节点，下次执行从第一个节点开始\n\
+    \    返回最后一个执行节点的状态，如果没有孩子，则返回SUCCESS"
+SetFloatToContext: SetFloatToContext
+SetIntToContext: SetIntToContext
+SetValueToContext: SetValueToContext
+Success: 成功节点
+SuccessIsFailure: Be depressed, always fail.
+SuccessIsRunning: The tickling never ends...
+Switcher: "选择其中一个子节点执行\n    - 当前执行节点返回 RUNNING，下次执行还是从这个节点开始\n    返回当前执行节点的状态\n\n\
+    \    index:\n    - 具体的数字\n    - jinja2模版: 从context中获取\n    - random: 随机数"
+Template: Template
+TestNode: 定义的新的节点，需要在builder中注册才能在xml中使用
+ThesisInit: "论文环境初始化\n    随机初始化自己的位置在战场中心雷达半径附近，方便双方一开始就能相遇在双方的雷达半径内\n    Randomly\
+    \ initializes the agent's position near the center of the battlefield radar radius,\n\
+    \    facilitating an early encounter within each other's radar range."
+ThesisPPOCondition: ThesisPPOCondition
+ThesisPPOFireAndGoToLocation: ThesisPPOFireAndGoToLocation
+ThesisPPOFloatArray: ThesisPPOFloatArray
+ThesisPPOGoToLocation: ThesisPPOGoToLocation
+ThesisPPOIntValue: ThesisPPOIntValue
+ThesisPPOSwitcher: ThesisPPOSwitcher
+ThesisPPOSwitcherActionMask: ThesisPPOSwitcherActionMask
+ThesisPPOValue: ThesisPPOValue
+Throttle: "节流: 在一定时间间隔内只执行一次\n    每隔一段时间才会触发一次子节点，其他时间直接返回之前的状态\n    <Throttle duration=\"\
+    10\" time=\"{{step}}\">\n        <Reward domain=\"punish\" reward=\"-0.001\"/>\n\
+    \    </Throttle>"
+TimeElapsed: "时间是否过去了\n    每隔一段时间才会触发一次子节点，其他时间直接返回之前的状态"
+Timeout: "Executes a child/subtree with a timeout.\n\n    A decorator that applies\
+    \ a timeout pattern to an existing behaviour.\n    If the timeout is reached,\
+    \ the encapsulated behaviour's\n    :meth:`~py_trees.behaviour.Behaviour.stop`\
+    \ method is called with\n    status :data:`~py_trees.common.Status.FAILURE` otherwise\
+    \ it will\n    simply directly tick and return with the same status\n    as that\
+    \ of it's encapsulated behaviour."
+TurnHeading: TurnHeading
+V7Init: "V7初始化\n    随机初始化自己的位置在战场中心雷达半径附近，方便双方一开始就能相遇在双方的雷达半径内\n    Randomly initializes\
+    \ the agent's position near the center of the battlefield radar radius,\n    facilitating\
+    \ an early encounter within each other's radar range."
+V7SACCondition1V1: V7SACCondition1V1
+V7SACFireAndGoToLocation1V1: V7SACFireAndGoToLocation1V1
+V7SACGoToLocation1V1: V7SACGoToLocation1V1
+V8Init: "V8初始化\n    随机初始化自己的位置在战场中心雷达半径附近，方便双方一开始就能相遇在双方的雷达半径内\n    Randomly initializes\
+    \ the agent's position near the center of the battlefield radar radius,\n    facilitating\
+    \ an early encounter within each other's radar range."
+V8PPOFireAndGoToLocation1V1: V8PPOFireAndGoToLocation1V1
+V8PPOFloatArray: V8PPOFloatArray
+V8PPOGoToLocation1V1: V8PPOGoToLocation1V1
+V8PPOSwitcher: V8PPOSwitcher

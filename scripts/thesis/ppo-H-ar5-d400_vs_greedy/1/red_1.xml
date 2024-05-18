@@ -1,0 +1,58 @@
+<!--scripts/thesis/policy/ppo-H-ar5-d400.xml-->
+<Parallel>
+    <RandomInitWaypointNearGameCenter/>
+    <Parallel>
+        <Sequence>
+            <IsChanged value="{{agent.missile_evade_success_count}}"/>
+            <Reward reward="{{1 / agent.missile_evade_success_count}}" domain="evade"/>
+        </Sequence>
+        <Sequence>
+            <IsChanged value="{{agent.missile_miss_count}}"/>
+            <Reward reward="{{-0.1 / agent.missile_miss_count}}" domain="attack"/>
+        </Sequence>
+        <Sequence>
+            <IsWin/>
+            <Reward reward="{{50 + 50 * math.exp(-time / 600)}}" domain="default"/>
+        </Sequence>
+        <Sequence>
+            <IsDraw/>
+            <Reward reward="{{-10 - 10 * math.exp(-time / 600)}}" domain="default"/>
+        </Sequence>
+        <Sequence>
+            <IsLose/>
+            <Reward reward="{{-20 - 20 * math.exp(-time / 600)}}" domain="default"/>
+        </Sequence>
+    </Parallel>
+    <ReactiveSequence>
+        <CanFireMissile/>
+        <IsEnemyDetected/>
+        <ThesisPPOCondition domain="control,default,attack,evade" path="{{init_models_dir}}/{{name}}" tensorboard_log="{{output_run_id}}/{{name}}/{{agent_name}}" log_interval="1" verbose="0" train="{{train}}"/>
+        <FireMissileAtNearestEnemy/>
+    </ReactiveSequence>
+    <ReactiveSelector>
+        <ReactiveSequence>
+            <Inverter>
+                <IsInSafeArea/>
+            </Inverter>
+            <GoToSafeArea/>
+        </ReactiveSequence>
+        <Throttle duration="5 - episode // 400" time="{{time}}">
+            <ThesisPPOSwitcherActionMask domain="control,default,attack,evade" path="{{init_models_dir}}/{{name}}" tensorboard_log="{{output_run_id}}/{{name}}/{{agent_name}}" log_interval="1" verbose="0" train="{{train}}">
+                <Sequence>
+                    <IsEnemyDetected/>
+                    <PurePursueNearestEnemy/>
+                </Sequence>
+                <Sequence>
+                    <IsMissileThreatDetected/>
+                    <Manoeuvre39ToEvadeMissile/>
+                </Sequence>
+                <Sequence>
+                    <IsEnemyDetected/>
+                    <IsMissileThreatDetected/>
+                    <Manoeuvre39ToEvadeEnemy/>
+                </Sequence>
+                <KeepFly/>
+            </ThesisPPOSwitcherActionMask>
+        </Throttle>
+    </ReactiveSelector>
+</Parallel>

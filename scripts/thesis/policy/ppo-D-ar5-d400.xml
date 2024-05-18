@@ -13,11 +13,10 @@
 
         <Throttle duration="5 - episode // 400" time="{{time}}">
             <Parallel>
-                <V8PPOFloatArray
+                <ThesisPPOFloatArray
                         key="param" high="1" low="-1" length="2"
-                        name="V8PPOFloatArray"
                         domain="control,default,attack,evade"
-                        path="{{init_models_dir}}/V8PPOFloatArray"
+                        path="{{init_models_dir}}/{{name}}"
                         tensorboard_log="{{output_run_id}}/{{name}}/{{agent_name}}"
                         log_interval="1"
                         verbose="0"

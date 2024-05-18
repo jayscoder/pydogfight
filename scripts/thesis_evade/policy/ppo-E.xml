@@ -1,0 +1,37 @@
+<Root>
+    <include path="{{filedir}}/policy/init.xml"/>
+    <include path="{{filedir}}/policy/reward.xml"/>
+
+    <ReactiveSequence>
+        <CanFireMissile/>
+        <IsNearestEnemyInHitRange/>
+        <FireMissileAtNearestEnemy/>
+    </ReactiveSequence>
+
+    <ReactiveSelector>
+        <include path="{{filedir}}/policy/handle_abnormal.xml"/>
+        <ThesisPPOSwitcherActionMask
+                domain="control,default,attack,evade"
+                path="{{filedir}}/{{filename}}/models/{{name}}"
+                tensorboard_log="{{output_run_id}}/{{name}}/{{agent_name}}"
+                log_interval="1"
+                verbose="0"
+                train="{{train}}"
+        >
+            <Sequence>
+                <IsEnemyDetected/>
+                <PurePursueNearestEnemy/>
+            </Sequence>
+            <Sequence>
+                <IsMissileThreatDetected/>
+                <Manoeuvre39ToEvadeMissile/>
+            </Sequence>
+            <Sequence>
+                <IsEnemyDetected/>
+                <IsMissileThreatDetected/>
+                <Manoeuvre39ToEvadeEnemy/>
+            </Sequence>
+            <KeepFly/>
+        </ThesisPPOSwitcherActionMask>
+    </ReactiveSelector>
+</Root>

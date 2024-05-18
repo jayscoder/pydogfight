@@ -1,0 +1,42 @@
+<!--scripts/thesis_evade/policy/ppo-B-ar5-d400.xml-->
+<Parallel>
+    <RandomInitWaypointNearGameCenter/>
+    <Parallel>
+        <Sequence>
+            <IsChanged value="{{agent.missile_evade_success_count}}"/>
+            <Reward reward="{{ 1 }}" domain="evade"/>
+        </Sequence>
+        <Sequence>
+            <IsChanged value="{{agent.missile_miss_count}}"/>
+            <Reward reward="-{{ 0.1 }}" domain="attack"/>
+        </Sequence>
+        <Sequence>
+            <IsWin/>
+            <Reward reward="{{ 50 + 50 * math.exp(-time / 600) }}" domain="default"/>
+        </Sequence>
+        <Sequence>
+            <IsDraw/>
+            <Reward reward="-{{ 10 + 10 * math.exp(-time / 600) }}" domain="default"/>
+        </Sequence>
+        <Sequence>
+            <IsLose/>
+            <Reward reward="-{{ 20 + 20 * math.exp(-time / 600) }}" domain="default"/>
+        </Sequence>
+    </Parallel>
+    <ReactiveSequence>
+        <CanFireMissile/>
+        <IsNearestEnemyInHitRange/>
+        <FireMissileAtNearestEnemy/>
+    </ReactiveSequence>
+    <ReactiveSelector>
+        <ReactiveSequence>
+            <Inverter>
+                <IsInSafeArea/>
+            </Inverter>
+            <GoToSafeArea/>
+        </ReactiveSequence>
+        <Throttle duration="5 - episode // 400" time="{{time}}">
+            <ThesisPPOGoToLocation domain="control,default,attack,evade" path="{{init_models_dir}}/{{name}}" tensorboard_log="{{output_run_id}}/{{name}}/{{agent_name}}" log_interval="1" verbose="0" train="{{train}}"/>
+        </Throttle>
+    </ReactiveSelector>
+</Parallel>

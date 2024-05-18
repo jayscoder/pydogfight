@@ -59,7 +59,28 @@ class EvadeMissile(BTPolicyNode):
         yield from go_to_location_updater(self, go_to_location)
 
 
+class Manoeuvre39ToEvadeEnemy(BTPolicyNode):
+    @property
+    def turn_angle(self) -> int:
+        return self.converter.int(self.attrs.get('turn_angle', 90))
+
+    def updater(self) -> typing.Iterator[Status]:
+        enemy = self.env.battle_area.find_nearest_enemy(agent_name=self.agent_name)
+        if enemy is None:
+            yield Status.FAILURE
+            return
+
+        target = generate_39_manoeuvre(self.agent.waypoint, enemy_wpt=enemy.waypoint,
+                                       dis=self.agent.turn_radius * 3, turn_angle=self.turn_angle)
+
+        yield from go_to_location_updater(self, (target[0], target[1]))
+
+
 class Manoeuvre39ToEvadeMissile(BTPolicyNode):
+
+    @property
+    def turn_angle(self) -> int:
+        return self.converter.int(self.attrs.get('turn_angle', 90))
 
     def updater(self) -> typing.Iterator[Status]:
         from pydogfight.core.world_obj import Missile
@@ -68,30 +89,44 @@ class Manoeuvre39ToEvadeMissile(BTPolicyNode):
             yield Status.FAILURE
             return
 
-        target = generate_39_manoeuvre(self.agent.waypoint, enemy_wpt=missiles[0].waypoint,
-                                       dis=self.agent.turn_radius * 3)
+        enemy_waypoints = [missile.waypoint for missile in missiles]
 
+        target = generate_weighted_manoeuvre(self.agent.waypoint, enemy_wpts=enemy_waypoints,
+                                             dis=self.agent.turn_radius * 3, turn_angle=self.turn_angle)
         yield from go_to_location_updater(self, (target[0], target[1]))
 
 
-class Manoeuvre39ToEvadeEnemy(BTPolicyNode):
+def generate_weighted_manoeuvre(self_wpt: Waypoint, enemy_wpts: list[Waypoint], dis: float = 100, turn_angle: int = 90):
+    weighted_x, weighted_y = 0, 0
+    total_weight = 0
 
-    def updater(self) -> typing.Iterator[Status]:
-        from pydogfight.core.world_obj import Missile
-        enemy = self.env.battle_area.find_nearest_enemy(agent_name=self.agent_name)
-        if enemy is None:
-            yield Status.FAILURE
-            return
+    for waypoint in enemy_wpts:
+        # Calculate distance between the agent and the missile
+        distance = math.sqrt((waypoint.x - self_wpt.x) ** 2 + (waypoint.y - self_wpt.y) ** 2)
+        weight = 1 / (distance + 1e-6)  # Weight inversely proportional to distance, avoid division by zero
+        total_weight += weight
 
-        target = generate_39_manoeuvre(self.agent.waypoint, enemy_wpt=enemy.waypoint,
-                                       dis=self.agent.turn_radius * 3)
+        angle = math.atan2(self_wpt.y - waypoint.y, self_wpt.x - waypoint.x) * 180 / math.pi
 
-        yield from go_to_location_updater(self, (target[0], target[1]))
+        new_x = self_wpt.x + dis * math.cos(math.radians(angle + turn_angle))
+        new_y = self_wpt.y + dis * math.sin(math.radians(angle + turn_angle))
+
+        weighted_x += new_x * weight
+        weighted_y += new_y * weight
+
+    # Calculate the final weighted coordinates
+    if total_weight > 0:
+        weighted_x /= total_weight
+        weighted_y /= total_weight
+
+    new_psi = self_wpt.psi  # Keep the same heading as the original target
+
+    return weighted_x, weighted_y, new_psi
 
 
-def generate_39_manoeuvre(self_wpt: Waypoint, enemy_wpt: Waypoint, dis: float = 100):
+def generate_39_manoeuvre(self_wpt: Waypoint, enemy_wpt: Waypoint, dis: float = 100, turn_angle: int = 90):
     # Calculate distance and angle between the two points
-    distance = math.sqrt((enemy_wpt.x - self_wpt.x) ** 2 + (enemy_wpt.y - self_wpt.y) ** 2)
+    # distance = math.sqrt((enemy_wpt.x - self_wpt.x) ** 2 + (enemy_wpt.y - self_wpt.y) ** 2)
     angle = math.atan2(self_wpt.y - enemy_wpt.y, self_wpt.x - enemy_wpt.x) * 180 / math.pi
 
     # 39 Manoeuvre: Move perpendicular to the line connecting the missile and target
@@ -99,11 +134,8 @@ def generate_39_manoeuvre(self_wpt: Waypoint, enemy_wpt: Waypoint, dis: float = 
     manoeuvre_distance = dis  # Example distance
 
     # Calculate new target point coordinates
-    new_x = self_wpt.x + manoeuvre_distance * math.cos(math.radians(angle + 90))
-    new_y = self_wpt.y + manoeuvre_distance * math.sin(math.radians(angle + 90))
+    new_x = self_wpt.x + manoeuvre_distance * math.cos(math.radians(angle + turn_angle))
+    new_y = self_wpt.y + manoeuvre_distance * math.sin(math.radians(angle + turn_angle))
     new_psi = self_wpt.psi  # Keep the same heading as the original target
 
     return new_x, new_y, new_psi
-
-
-

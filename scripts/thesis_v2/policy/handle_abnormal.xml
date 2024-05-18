@@ -1,0 +1,16 @@
+<Parallel>
+    <ReactiveSequence>
+        <Inverter>
+            <IsInSafeArea/>
+        </Inverter>
+        <GoToSafeArea/>
+    </ReactiveSequence>
+
+    <ReactiveSequence>
+        <Selector>
+            <IsMissileDepleted/>
+            <IsFuelBingo/>
+        </Selector>
+        <GoHome/>
+    </ReactiveSequence>
+</Parallel>

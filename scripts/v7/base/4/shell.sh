@@ -1,1 +1,0 @@
-python main.py scripts/v7/base.yaml --render

@@ -1,1 +1,0 @@
-python main.py scripts/thesis/ppo-A_vs_greedy.yaml --train

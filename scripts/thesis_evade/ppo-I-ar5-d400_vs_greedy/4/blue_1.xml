@@ -1,0 +1,55 @@
+<!--scripts/thesis_evade/policy/greedy.xml-->
+<Parallel>
+    <RandomInitWaypointNearGameCenter/>
+    <Parallel>
+        <Sequence>
+            <IsChanged value="{{agent.missile_evade_success_count}}"/>
+            <Reward reward="{{ 1 }}" domain="evade"/>
+        </Sequence>
+        <Sequence>
+            <IsChanged value="{{agent.missile_miss_count}}"/>
+            <Reward reward="-{{ 0.5 }}" domain="attack"/>
+        </Sequence>
+        <Sequence>
+            <IsWin/>
+            <Reward reward="{{ 50 + 50 * math.exp(-time / 600) }}" domain="default"/>
+        </Sequence>
+        <Sequence>
+            <IsDraw/>
+            <Reward reward="-{{ 10 + 10 * math.exp(-time / 600) }}" domain="default"/>
+        </Sequence>
+        <Sequence>
+            <IsLose/>
+            <Reward reward="-{{ 20 + 20 * math.exp(-time / 600) }}" domain="default"/>
+        </Sequence>
+    </Parallel>
+    <ReactiveSequence>
+        <CanFireMissile/>
+        <IsNearestEnemyInHitRange/>
+        <FireMissileAtNearestEnemy/>
+    </ReactiveSequence>
+    <ReactiveSelector>
+        <Parallel>
+            <ReactiveSequence>
+                <Inverter>
+                    <IsInSafeArea/>
+                </Inverter>
+                <GoToSafeArea/>
+            </ReactiveSequence>
+            <ReactiveSequence>
+                <Selector>
+                    <IsMissileDepleted/>
+                    <IsFuelBingo/>
+                </Selector>
+                <GoHome/>
+            </ReactiveSequence>
+        </Parallel>
+        <ReactiveSelector>
+            <ReactiveSequence>
+                <IsMissileThreatDetected/>
+                <Manoeuvre39ToEvadeMissile/>
+            </ReactiveSequence>
+            <PurePursueNearestEnemy/>
+        </ReactiveSelector>
+    </ReactiveSelector>
+</Parallel>

@@ -1,0 +1,19 @@
+<Root name="V8Greedy">
+    <include path="{{filedir}}/policy/init.xml"/>
+    <include path="{{filedir}}/policy/reward.xml"/>
+
+    <ReactiveSelector>
+        <include path="{{filedir}}/policy/handle_abnormal.xml"/>
+
+        <Throttle duration="{{ 5 - episode // 200 }}" time="{{ time }}">
+            <ThesisPPOFireAndGoToLocation
+                    domain="control,default,attack,evade"
+                    path="{{filedir}}/{{filename}}/models/{{name}}"
+                    tensorboard_log="{{output_run_id}}/{{name}}/{{agent_name}}"
+                    log_interval="1"
+                    verbose="0"
+                    train="{{train}}"
+            />
+        </Throttle>
+    </ReactiveSelector>
+</Root>

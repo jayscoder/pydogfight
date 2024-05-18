@@ -1,0 +1,25 @@
+base: scripts/thesis_v2/base.yaml
+context:
+    filedir: scripts/thesis_v2
+    filename: ppo-A-ar
+    path: scripts/thesis_v2/ppo-A-ar.yaml
+episodes: 3000
+options:
+    aircraft_fire_missile_interval: 10
+    aircraft_fuel_capacity: 180000
+    aircraft_missile_count: 12
+    blue_agents:
+    - blue_1
+    collision_scale: 1
+    device: auto
+    indestructible: false
+    max_duration: 1800
+    red_agents:
+    - red_1
+    title: scripts/thesis_v2-ppo-A-ar
+output: scripts/thesis_v2/ppo-A-ar
+policy:
+    blue: scripts/thesis_v2/policy/greedy.xml
+    red: scripts/thesis_v2/policy/ppo-A-ar.xml
+title: scripts/thesis_v2-ppo-A-ar
+track: -1

@@ -1,0 +1,25 @@
+base: scripts/thesis_evade/base.yaml
+context:
+    filedir: scripts/thesis_evade
+    filename: ppo-E-ar5-d400_vs_greedy
+    path: scripts/thesis_evade/ppo-E-ar5-d400_vs_greedy.yaml
+episodes: 3000
+options:
+    aircraft_fire_missile_interval: 10
+    aircraft_fuel_capacity: 180000
+    aircraft_missile_count: 12
+    blue_agents:
+    - blue_1
+    collision_scale: 1
+    device: auto
+    indestructible: false
+    max_duration: 1800
+    red_agents:
+    - red_1
+    title: scripts/thesis_evade-ppo-E-ar5-d400_vs_greedy
+output: scripts/thesis_evade/ppo-E-ar5-d400_vs_greedy
+policy:
+    blue: scripts/thesis_evade/policy/greedy.xml
+    red: scripts/thesis_evade/policy/ppo-E-ar5-d400.xml
+title: scripts/thesis_evade-ppo-E-ar5-d400_vs_greedy
+track: -1

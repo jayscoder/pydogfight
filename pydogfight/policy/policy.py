@@ -65,9 +65,7 @@ class AgentPolicy(Policy, ABC):
         # 根据当前状态选择动作，obs的第一个是自己，确保策略更新满足时间间隔
         delta_time = round(self.env.time - self.last_time, 3)
         self.last_time = self.env.time
-        if not self.agent.destroyed:
-            # 当自己没有被摧毁的时候，才需要执行策略
-            self.execute(observation=self.env.gen_agent_obs(agent_name=self.agent_name), delta_time=delta_time)
+        self.execute(observation=self.env.gen_agent_obs(agent_name=self.agent_name), delta_time=delta_time)
 
     @abstractmethod
     def execute(self, observation, delta_time: float):

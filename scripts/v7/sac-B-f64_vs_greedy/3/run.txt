@@ -1,5 +1,0 @@
-1: reward=-3.50 vs 0.00, win=1 vs 0, recent_win=1 vs 0, draw=0, winner=red, time=124/124
-2: reward=-2.25 vs 0.00, win=2 vs 0, recent_win=2 vs 0, draw=0, winner=red, time=142/266
-3: reward=-5.00 vs 0.00, win=2 vs 0, recent_win=2 vs 0, draw=1, winner=draw, time=206/472
-4: reward=-1.25 vs 0.00, win=3 vs 0, recent_win=3 vs 0, draw=1, winner=red, time=186/658
-5: reward=-8.60 vs 0.00, win=3 vs 1, recent_win=3 vs 1, draw=1, winner=blue, time=309/967

@@ -15,7 +15,7 @@ from pybts.display import render_node
 import bt
 import yaml
 from pydogfight.utils import *
-from pydogfight.policy.bt.nodes_rl import RLNode
+from bt.nodes_rl import RLNode
 from pydogfight.utils.logger import TensorboardLogger
 import jinja2
 
@@ -451,7 +451,6 @@ class BTManager:
                 'episode': self.env.episode,
             })
             while env.isopen:
-
                 if env.should_update():
                     policy.take_action()
                     policy.put_action()

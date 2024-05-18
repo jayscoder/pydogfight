@@ -15,4 +15,4 @@ def main(path: str):
 
 
 if __name__ == '__main__':
-    main(path='scripts/thesis/ppo-A_vs_greedy.yaml')
+    main(path='scripts/thesis_v2/ppo-E.yaml')

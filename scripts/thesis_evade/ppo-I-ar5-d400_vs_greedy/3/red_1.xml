@@ -1,0 +1,68 @@
+<!--scripts/thesis_evade/policy/ppo-I-ar5-d400.xml-->
+<Parallel>
+    <RandomInitWaypointNearGameCenter/>
+    <Parallel>
+        <Sequence>
+            <IsChanged value="{{agent.missile_evade_success_count}}"/>
+            <Reward reward="{{ 1 }}" domain="evade"/>
+        </Sequence>
+        <Sequence>
+            <IsChanged value="{{agent.missile_miss_count}}"/>
+            <Reward reward="-{{ 0.5 }}" domain="attack"/>
+        </Sequence>
+        <Sequence>
+            <IsWin/>
+            <Reward reward="{{ 50 + 50 * math.exp(-time / 600) }}" domain="default"/>
+        </Sequence>
+        <Sequence>
+            <IsDraw/>
+            <Reward reward="-{{ 10 + 10 * math.exp(-time / 600) }}" domain="default"/>
+        </Sequence>
+        <Sequence>
+            <IsLose/>
+            <Reward reward="-{{ 20 + 20 * math.exp(-time / 600) }}" domain="default"/>
+        </Sequence>
+    </Parallel>
+    <ThesisPPOValue domain="control,default,attack,evade" path="{{filedir}}/{{filename}}/models/{{name}}" tensorboard_log="{{output_run_id}}/{{name}}/{{agent_name}}" log_interval="1" verbose="0" train="{{train}}"/>
+    <ReactiveSequence>
+        <CanFireMissile/>
+        <IsEnemyDetected/>
+        <ThesisPPOCondition domain="control,default,attack,evade" path="{{filedir}}/{{filename}}/models/{{name}}" tensorboard_log="{{output_run_id}}/{{name}}/{{agent_name}}" log_interval="1" verbose="0" train="{{train}}" n_steps="180"/>
+        <FireMissileAtNearestEnemy/>
+    </ReactiveSequence>
+    <ReactiveSelector>
+        <Parallel>
+            <ReactiveSequence>
+                <Inverter>
+                    <IsInSafeArea/>
+                </Inverter>
+                <GoToSafeArea/>
+            </ReactiveSequence>
+            <ReactiveSequence>
+                <Selector>
+                    <IsMissileDepleted/>
+                    <IsFuelBingo/>
+                </Selector>
+                <GoHome/>
+            </ReactiveSequence>
+        </Parallel>
+        <Throttle duration="5 - episode // 200" time="{{time}}">
+            <ThesisPPOSwitcherActionMask domain="control,default,attack,evade" path="{{filedir}}/{{filename}}/models/{{name}}" tensorboard_log="{{output_run_id}}/{{name}}/{{agent_name}}" log_interval="1" verbose="0" train="{{train}}">
+                <Sequence>
+                    <IsEnemyDetected/>
+                    <PurePursueNearestEnemy/>
+                </Sequence>
+                <Sequence>
+                    <IsMissileThreatDetected/>
+                    <Manoeuvre39ToEvadeMissile/>
+                </Sequence>
+                <Sequence>
+                    <IsEnemyDetected/>
+                    <IsMissileThreatDetected/>
+                    <Manoeuvre39ToEvadeEnemy/>
+                </Sequence>
+                <ThesisPPOGoToLocation domain="control,default,attack,evade" path="{{filedir}}/{{filename}}/models/{{name}}" tensorboard_log="{{output_run_id}}/{{name}}/{{agent_name}}" log_interval="1" verbose="0" train="{{train}}" n_steps="180"/>
+            </ThesisPPOSwitcherActionMask>
+        </Throttle>
+    </ReactiveSelector>
+</Parallel>

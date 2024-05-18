@@ -1,0 +1,5 @@
+base: '{{filedir}}/base.yaml'
+policy:
+    red: '{{filedir}}/policy/ppo-C-ar5-d400.xml' # 红方行为树
+context: # 行为树环境变量，可以在行为树中通过{{}}来传递
+    init_models_dir: '{{filedir}}/{{filename}}/models' # 初始化模型目录

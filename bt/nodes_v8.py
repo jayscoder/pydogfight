@@ -41,51 +41,7 @@ class V8Init(BTPolicyNode):
         return Status.SUCCESS
 
 
-class V8BaseSACNode:
-    def rl_model_args(self: RLNode) -> dict:
-        features_dim = self.converter.int(self.attrs.get('features_dim', 128))
-        learning_starts = self.converter.int(self.attrs.get('learning_starts', 128))
-        batch_size = self.converter.int(self.attrs.get('batch_size', 32))
-        attrs = {
-            'gamma'        : 0.995,
-            'policy_kwargs': {
-                'features_extractor_class' : V8FeatureExtractor1V1,
-                'features_extractor_kwargs': {
-                    'features_dim': features_dim,
-                }
-            }
-        }
-
-        attrs.update({
-            'learning_starts': learning_starts,
-            'batch_size'     : batch_size,
-            'train_freq'     : (1, "step"),
-            'gradient_steps' : 1
-        })
-
-        return attrs
-
-
 class V8BasePPONode:
-    def rl_model_args(self: RLNode) -> dict:
-        features_dim = self.converter.int(self.attrs.get('features_dim', 128))
-        batch_size = self.converter.int(self.attrs.get('batch_size', 64))
-        attrs = {
-            'gamma'        : 0.995,
-            'policy_kwargs': {
-                'features_extractor_class' : V8FeatureExtractor1V1,
-                'features_extractor_kwargs': {
-                    'features_dim': features_dim,
-                }
-            }
-        }
-        attrs.update({
-            'batch_size': batch_size,
-        })
-        return attrs
-
-
-class V8BaseDQNNode:
     def rl_model_args(self: RLNode) -> dict:
         features_dim = self.converter.int(self.attrs.get('features_dim', 128))
         batch_size = self.converter.int(self.attrs.get('batch_size', 64))
@@ -128,37 +84,6 @@ class V8FeatureExtractor1V1(BaseFeaturesExtractor):
         return processed_features
 
 
-class V8SACFloatArrayValue(RLFloatArrayValue):
-    def __init__(self, **kwargs):
-        super().__init__(algo='SAC', **kwargs)
-
-    def rl_model_args(self) -> dict:
-        return V8BaseSACNode.rl_model_args(self)
-
-
-class V8SACFloatValue(RLFloatValue):
-    def __init__(self, **kwargs):
-        super().__init__(algo='SAC', **kwargs)
-
-    def rl_model_args(self) -> dict:
-        return V8BaseSACNode.rl_model_args(self)
-
-
-class V8SACSwitcher(RLSwitcher, V8BaseSACNode):
-    def __init__(self, **kwargs):
-        V8BaseSACNode.__init__(self)
-        super().__init__(algo='SAC', **kwargs)
-
-    def rl_model_args(self) -> dict:
-        return V8BaseSACNode.rl_model_args(self)
-
-    def rl_action_space(self) -> gym.spaces.Space:
-        return gym.spaces.Box(low=0, high=len(self.children))
-
-    def gen_index(self) -> int:
-        index = int(self.take_action()[0]) % len(self.children)
-        return index
-
 
 class V8PPOSwitcher(RLSwitcher, V8BasePPONode):
     def __init__(self, **kwargs):
@@ -185,14 +110,6 @@ class V8PPOFloatArray(RLFloatArrayValue, V8BasePPONode):
         return V8BasePPONode.rl_model_args(self)
 
 
-class V8SACFireAndGoToLocation1V1(RLFireAndGoToLocation, V8BaseSACNode):
-    def __init__(self, **kwargs):
-        super().__init__(algo='SAC', **kwargs)
-
-    def rl_model_args(self) -> dict:
-        return V8BaseSACNode.rl_model_args(self)
-
-
 class V8PPOFireAndGoToLocation1V1(RLFireAndGoToLocation, V8BasePPONode):
     def __init__(self, **kwargs):
         super().__init__(algo='PPO', **kwargs)
@@ -211,20 +128,3 @@ class V8PPOGoToLocation1V1(RLGoToLocation, V8BasePPONode):
     def take_action(self):
         # print('policy', self.rl_model.policy)
         return super().take_action()
-
-
-class V8SACGoToLocation1V1(RLGoToLocation, V8BaseSACNode):
-    def __init__(self, **kwargs):
-        super().__init__(algo='SAC', **kwargs)
-
-    def rl_model_args(self) -> dict:
-        return V8BaseSACNode.rl_model_args(self)
-
-    def take_action(self):
-        # print('actor', self.rl_model.policy.actor)
-        # print('critic', self.rl_model.policy.critic)
-        return super().take_action()
-
-# if __name__ == '__main__':
-#     spac = gym.spaces.Box(low=0, high=2, shape=(1,))
-#     print(bool(spac.sample() > 10))

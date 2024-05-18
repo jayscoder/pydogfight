@@ -8,7 +8,6 @@ from pydogfight.policy.bt.nodes_explore import *
 from pydogfight.policy.bt.manual import ManualControl
 from pydogfight.policy.bt.nodes_evade import *
 from pydogfight.policy.bt.nodes_fire import *
-from pydogfight.policy.bt.nodes_rl import *
 
 import os
 
@@ -47,7 +46,6 @@ class BTPolicyBuilder(pybts.rl.builder.RLBuilder):
                 IsFuelDepleted,
                 IsMissileFull,
                 IsFireMissileOverFreqLimit,
-                RLFireAndGoToLocation,
                 FireMissileAtNearestEnemyWithHitPointCheck,
                 CanFireMissile,
                 IsNearestEnemyInHitRange,
@@ -75,19 +73,4 @@ class BTPolicyBuilder(pybts.rl.builder.RLBuilder):
                 Manoeuvre39ToEvadeMissile,
                 Manoeuvre39ToEvadeEnemy,
                 TurnHeading
-        )
-
-        # 强化学习节点
-        self.register_node(
-                RLSwitcher,
-                ReactiveRLSwitcher,
-                RLSelector,
-                RLCondition,
-                RLAction,
-                RLActionPPA,
-                RLIntValue,
-                RLFloatValue,
-                RLGoToLocation,
-                RLFireAndGoToLocation,
-                RLFloatArrayValue,
         )

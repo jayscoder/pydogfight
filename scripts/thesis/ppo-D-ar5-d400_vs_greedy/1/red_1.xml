@@ -12,15 +12,15 @@
         </Sequence>
         <Sequence>
             <IsWin/>
-            <Reward reward="{{10 + 10 * math.exp(-time / 600)}}" domain="default"/>
+            <Reward reward="{{50 + 50 * math.exp(-time / 600)}}" domain="default"/>
         </Sequence>
         <Sequence>
             <IsDraw/>
-            <Reward reward="{{-3 - 3 * math.exp(-time / 600)}}" domain="default"/>
+            <Reward reward="{{-10 - 10 * math.exp(-time / 600)}}" domain="default"/>
         </Sequence>
         <Sequence>
             <IsLose/>
-            <Reward reward="{{-10 - 10 * math.exp(-time / 600)}}" domain="default"/>
+            <Reward reward="{{-20 - 20 * math.exp(-time / 600)}}" domain="default"/>
         </Sequence>
     </Parallel>
     <ReactiveSequence>
@@ -37,7 +37,7 @@
         </ReactiveSequence>
         <Throttle duration="5 - episode // 400" time="{{time}}">
             <Parallel>
-                <V8PPOFloatArray key="param" high="1" low="-1" length="2" domain="control,default,attack,evade" path="{{init_models_dir}}/V8PPOFloatArray" tensorboard_log="{{output_run_id}}/{{name}}/{{agent_name}}" log_interval="1" verbose="0" train="{{train}}"/>
+                <ThesisPPOFloatArray key="param" high="1" low="-1" length="2" domain="control,default,attack,evade" path="{{init_models_dir}}/V8PPOFloatArray" tensorboard_log="{{output_run_id}}/{{name}}/{{agent_name}}" log_interval="1" verbose="0" train="{{train}}"/>
                 <Sequence>
                     <IsMatchRule rule="{{param[0] &gt; 0}}"/>
                     <FireMissileAtNearestEnemy/>

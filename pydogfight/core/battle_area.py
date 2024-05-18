@@ -185,6 +185,35 @@ class BattleArea:
         assert isinstance(obj, Aircraft)
         return obj
 
+    def get_agents(self, color: str) -> list[Aircraft]:
+        if color == 'red':
+            return [self.get_agent(agent_name) for agent_name in self.options.red_agents]
+        else:
+            return [self.get_agent(agent_name) for agent_name in self.options.blue_agents]
+
+    def can_view_obj(self, self_color: str, obj: WorldObj) -> bool:
+        # 自己这边是否能看到obj
+
+        if self_color == obj.color:
+            return True
+
+        if self.options.obs_ignore_radar:
+            return True
+
+        for agent in self.get_agents(self_color):
+            if agent.distance(obj) <= agent.radar_radius:
+                # 只要有一个能看到，自己这边就全看到了
+                return True
+
+        return False
+
+    def get_missiles(self, color: str) -> list[Missile]:
+        missiles = []
+        for obj in self.objs.values():
+            if isinstance(obj, Missile) and obj.color == color:
+                missiles.append(obj)
+        return missiles
+
     def render(self, screen):
         for obj in self.objs.values():
             obj.render(screen)

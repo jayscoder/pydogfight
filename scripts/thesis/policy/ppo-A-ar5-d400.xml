@@ -11,10 +11,9 @@
     <ReactiveSelector>
         <include path="{{filedir}}/policy/handle_abnormal.xml"/>
         <Throttle duration="5 - episode // 400" time="{{time}}">
-            <V8PPOSwitcher
-                    name="V8PPOSwitcher"
+            <ThesisPPOSwitcher
                     domain="control,default,attack,evade"
-                    path="{{init_models_dir}}/V8PPOSwitcher"
+                    path="{{init_models_dir}}/{{name}}"
                     tensorboard_log="{{output_run_id}}/{{name}}/{{agent_name}}"
                     log_interval="1"
                     verbose="0"
@@ -23,7 +22,9 @@
                 <PurePursueNearestEnemy/>
                 <Manoeuvre39ToEvadeMissile/>
                 <Manoeuvre39ToEvadeEnemy/>
-            </V8PPOSwitcher>
+                <!--                <AwayFromNearestEnemy/>-->
+                <KeepFly/>
+            </ThesisPPOSwitcher>
         </Throttle>
     </ReactiveSelector>
 </Root>

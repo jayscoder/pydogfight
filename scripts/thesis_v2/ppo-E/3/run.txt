@@ -1,0 +1,2 @@
+1: reward=96.23 vs -38.59, winner=red, r_win=1:0:0, win=1:0:0, time=60/60
+2: reward=96.76 vs -38.90, winner=red, r_win=2:0:0, win=2:0:0, time=66/127
