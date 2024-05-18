@@ -56,6 +56,7 @@ class ThesisRolloutBufferSamples(NamedTuple):
     advantages: th.Tensor
     returns: th.Tensor
     action_masks: th.Tensor
+    global_observations: th.Tensor  # 全局观测
 
 
 class ThesisRolloutBuffer(RolloutBuffer):
@@ -81,6 +82,7 @@ class ThesisRolloutBuffer(RolloutBuffer):
     :param n_envs: Number of parallel environments
     """
     action_masks: np.ndarray
+    global_observations: np.ndarray
 
     def __init__(
             self,
@@ -109,6 +111,7 @@ class ThesisRolloutBuffer(RolloutBuffer):
     def reset(self) -> None:
         super().reset()
         self.action_masks = np.zeros((self.buffer_size, self.n_envs, self.action_mask_dim), dtype=np.float32)
+        self.global_observations = np.zeros((self.buffer_size, self.n_envs, *self.obs_shape), dtype=np.float32)
 
     def add(
             self,
@@ -118,11 +121,14 @@ class ThesisRolloutBuffer(RolloutBuffer):
             episode_start: np.ndarray,
             value: th.Tensor,
             log_prob: th.Tensor,
-            action_mask: np.ndarray | None = None
+            action_mask: np.ndarray | None = None,
+            global_obs: np.ndarray | None = None
     ) -> None:
         if action_mask is not None:
             action_mask = action_mask.reshape((self.n_envs, self.action_mask_dim))
             self.action_masks[self.pos] = np.array(action_mask)
+        if global_obs is not None:
+            self.global_observations[self.pos] = np.array(global_obs)
         super().add(obs, action, reward, episode_start, value, log_prob)
 
     def get(self, batch_size: Optional[int] = None) -> Generator[ThesisRolloutBufferSamples, None, None]:
@@ -137,7 +143,8 @@ class ThesisRolloutBuffer(RolloutBuffer):
                 "log_probs",
                 "advantages",
                 "returns",
-                'action_masks'
+                'action_masks',
+                'global_observations'
             ]
             for tensor in _tensor_names:
                 self.__dict__[tensor] = self.swap_and_flatten(self.__dict__[tensor])
@@ -164,7 +171,8 @@ class ThesisRolloutBuffer(RolloutBuffer):
             self.log_probs[batch_inds].flatten(),
             self.advantages[batch_inds].flatten(),
             self.returns[batch_inds].flatten(),
-            self.action_masks[batch_inds]
+            self.action_masks[batch_inds],
+            self.global_observations[batch_inds]
         )
         return ThesisRolloutBufferSamples(*tuple(map(self.to_torch, data)))
 
