@@ -17,7 +17,7 @@ class OptimalPathParam:
 
     length = float('inf')  # 航迹长度
     turn_angle = 0
-    turn_length = 0 # 转弯长度
+    turn_length = 0  # 转弯长度
     turn_point = None  # 拐点
     turn_center = None  # 拐弯的圆心
     direct_length = 0
@@ -86,7 +86,6 @@ class OptimalPathParam:
         # for i in range(counts):
         #     traj.append(self.next_waypoint(step * (i + 1)).data)
         # return np.array(traj)
-
 
         turn_points_count = int(np.floor(self.turn_length / step))
         direct_points_count = int(np.floor(self.direct_length / step))
@@ -220,13 +219,13 @@ def test_bench():
     print("Total time: " + str(cost_time))
 
 
-def test_main():
+def test_turn_right():
     import matplotlib.pyplot as plt
     # User's waypoints: [x, y, heading (degrees)]
 
-    start = Waypoint.build(0, 0, 90)
-    target = (-10, 10)
-    param = calc_optimal_path(start, target, 1)
+    start = Waypoint.build(0, 0, -90)
+    target = (5, -5)
+    param = calc_optimal_path(start, target, 10)
     if param.length != float('inf'):
         path = param.build_route(step=1)
         print(param)
@@ -235,12 +234,12 @@ def test_main():
 
         if param.turn_center is not None:
             fig, ax = plt.subplots()
-            circle = plt.Circle(param.turn_center, param.turn_radius, fill=False)
+            circle = plt.Circle(param.turn_center, param.turn_radius, fill=False, linestyle='--')
             ax.add_patch(circle)
-            plt.plot(param.turn_center[0], param.turn_center[1], 'kx')
+            # plt.plot(param.turn_center[0], param.turn_center[1], 'kx')
 
         if param.turn_point is not None:
-            plt.plot(param.turn_point[0], param.turn_point[1], 'kx')
+            # plt.plot(param.turn_point[0], param.turn_point[1], 'kx')
             plt.quiver(param.turn_point[0], param.turn_point[1], np.cos(param.target.standard_rad),
                        np.sin(param.target.standard_rad),
                        scale=10, color='green',
@@ -259,11 +258,59 @@ def test_main():
 
         plt.grid(True)
         plt.axis("equal")
-        plt.title('Optimal Trajectory Generation')
+        # plt.title('Optimal Trajectory Generation')
+        plt.title(
+                f'({start.x}, {start.y}, {start.standard_angle}) -> ({target[0]}, {target[1]})  Turn Radius={param.turn_radius}')
         plt.xlabel('X')
         plt.ylabel('Y')
-        plt.show()
+        plt.savefig('右转.jpg')
 
+
+def test_turn_left():
+    import matplotlib.pyplot as plt
+    # User's waypoints: [x, y, heading (degrees)]
+
+    start = Waypoint.build(0, 0, 90)
+    target = (-5, 5)
+    param = calc_optimal_path(start, target, 1)
+    if param.length != float('inf'):
+        path = param.build_route(step=1)
+        print(param)
+        print('path shape', path.shape)
+        # Plot the results
+
+        if param.turn_center is not None:
+            fig, ax = plt.subplots()
+            circle = plt.Circle(param.turn_center, param.turn_radius, fill=False, linestyle='--')
+            ax.add_patch(circle)
+            # plt.plot(param.turn_center[0], param.turn_center[1], 'kx')
+
+        if param.turn_point is not None:
+            # plt.plot(param.turn_point[0], param.turn_point[1], 'kx')
+            plt.quiver(param.turn_point[0], param.turn_point[1], np.cos(param.target.standard_rad),
+                       np.sin(param.target.standard_rad),
+                       scale=10, color='green',
+                       label="Turn Direction")
+
+        plt.plot(start.x, start.y, 'kx')
+        plt.plot(target[0], target[1], 'kx')
+
+        plt.quiver(start.x, start.y, np.cos(start.standard_rad), np.sin(start.standard_rad), scale=10, color='green',
+                   label="Initial Direction")
+
+        plt.plot(path[:, 0], path[:, 1], 'b-')
+
+        print('target', target)
+        print('final path', path[-1, :])
+
+        plt.grid(True)
+        plt.axis("equal")
+        # plt.title('Optimal Trajectory Generation')
+        plt.title(
+                f'({start.x}, {start.y}, {start.standard_angle}) -> ({target[0]}, {target[1]})  Turn Radius={param.turn_radius}')
+        plt.xlabel('X')
+        plt.ylabel('Y')
+        plt.savefig('左转.jpg')
 
 if __name__ == '__main__':
-    test_main()
+    test_turn_right()

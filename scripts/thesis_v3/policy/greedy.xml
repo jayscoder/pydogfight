@@ -7,7 +7,7 @@
         <IsNearestEnemyInHitRange/>
         <FireMissileAtNearestEnemy/>
     </ReactiveSequence>
-    
+
     <ReactiveSelector>
         <include path="{{filedir}}/policy/handle_abnormal.xml"/>
         <ReactiveSelector>

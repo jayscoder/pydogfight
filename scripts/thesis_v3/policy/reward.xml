@@ -2,13 +2,13 @@
     <Sequence>
         <IsChanged value="{{agent.missile_evade_success_count}}" name="成功规避导弹"/>
         <!--成功规避导弹，给出奖励-->
-        <Reward reward="{{ 1 }}" domain="evade" name="奖励1"/>
+        <Reward reward="{{ 0.1 }}" domain="evade" name="奖励1"/>
     </Sequence>
 
     <Sequence>
         <IsChanged value="{{agent.missile_miss_count}}" name="导弹没打中"/>
         <!--导弹没打中-->
-        <Reward reward="-{{ 0.5 }}" domain="attack" name="奖励-0.5"/>
+        <Reward reward="-{{ 0.1 }}" domain="attack" name="奖励-0.1"/>
     </Sequence>
 
     <Sequence>

@@ -1,0 +1,89 @@
+<!--scripts/thesis_v3/policy/ppo-A-p.xml-->
+<Parallel>
+    <RandomInitWaypointNearGameCenter/>
+    <Parallel>
+        <Sequence>
+            <IsChanged value="{{agent.missile_evade_success_count}}"/>
+            <Reward reward="{{ 0.1 }}" domain="evade"/>
+        </Sequence>
+        <Sequence>
+            <IsChanged value="{{agent.missile_miss_count}}"/>
+            <Reward reward="-{{ 0.1 }}" domain="attack"/>
+        </Sequence>
+        <Sequence>
+            <IsWin/>
+            <Reward reward="{{ 50 + 50 * math.exp(-time / 600) }}" domain="default"/>
+        </Sequence>
+        <Sequence>
+            <IsDraw/>
+            <Reward reward="-{{ 10 + 10 * math.exp(-time / 600) }}" domain="default"/>
+        </Sequence>
+        <Sequence>
+            <IsLose/>
+            <Reward reward="-{{ 20 + 20 * math.exp(-time / 600) }}" domain="default"/>
+        </Sequence>
+    </Parallel>
+    <ReactiveSequence>
+        <CanFireMissile/>
+        <IsNearestEnemyInHitRange/>
+        <FireMissileAtNearestEnemy/>
+    </ReactiveSequence>
+    <ReactiveSelector>
+        <Selector>
+            <ReactiveSequence>
+                <Inverter>
+                    <IsMissileThreatDetected/>
+                </Inverter>
+                <Selector>
+                    <IsMissileDepleted/>
+                    <IsFuelBingo/>
+                </Selector>
+                <GoHome/>
+            </ReactiveSequence>
+            <ReactiveSequence>
+                <Inverter>
+                    <IsInSafeArea/>
+                </Inverter>
+                <GoToSafeArea/>
+            </ReactiveSequence>
+        </Selector>
+        <ThesisPPOSwitcher domain="control,default,attack,evade" path="{{filedir}}/{{filename}}/models/{{name}}" tensorboard_log="{{output_run_id}}/{{name}}/{{agent_name}}" log_interval="1" verbose="0" train="{{train}}" allow_action_mask="false">
+            <Selector>
+                <Sequence>
+                    <IsEnemyDetected/>
+                    <PurePursueNearestEnemy/>
+                </Sequence>
+                <Reward reward="-1"/>
+            </Selector>
+            <Selector>
+                <Sequence>
+                    <IsMissileThreatDetected/>
+                    <Manoeuvre39ToEvadeMissile turn_angle="90"/>
+                </Sequence>
+                <Reward reward="-1"/>
+            </Selector>
+            <Selector>
+                <Sequence>
+                    <IsMissileThreatDetected/>
+                    <Manoeuvre39ToEvadeMissile turn_angle="-90"/>
+                </Sequence>
+                <Reward reward="-1"/>
+            </Selector>
+            <Selector>
+                <Sequence>
+                    <IsEnemyDetected/>
+                    <Manoeuvre39ToEvadeEnemy turn_angle="90"/>
+                </Sequence>
+                <Reward reward="-1"/>
+            </Selector>
+            <Selector>
+                <Sequence>
+                    <IsEnemyDetected/>
+                    <Manoeuvre39ToEvadeEnemy turn_angle="-90"/>
+                </Sequence>
+                <Reward reward="-1"/>
+            </Selector>
+            <KeepFly/>
+        </ThesisPPOSwitcher>
+    </ReactiveSelector>
+</Parallel>

@@ -317,7 +317,7 @@ class BTManager:
             #     self.logger_dict[color].record_mean_weighted(f'agent/{k}', self.env.game_info[color][k])
             # recent_v = dict_get(self.env.game_info, ['recent', color, k])
             # if recent_v is not None:
-            #     self.logger.record_mean(f'{color}/recent/{k}', recent_v)
+            #     self.logger_dict[color].record_mean(f'recent/{k}', recent_v)
 
         print()
         self.pbar.update(1)
@@ -444,6 +444,12 @@ class BTManager:
 
         env.reset()
         env_time = 0
+        recorder: TrajRecorder | None = None
+
+        if not self.train:
+            pass
+            # recorder = TrajRecorder(env=self.env, output_dir=self.output)
+
         for i in range(episodes):
             if not env.isopen:
                 break
@@ -455,6 +461,8 @@ class BTManager:
                     policy.take_action()
                     policy.put_action()
                     env.update()
+                    if recorder is not None:
+                        recorder.record()
                     info = env.gen_info()
                     if info['terminated'] or info['truncated']:
                         policy.take_action()
@@ -470,6 +478,8 @@ class BTManager:
                 if env.should_render():
                     env.render()
 
+            if recorder is not None:
+                recorder.save()
             env_time += self.env.time
             env.reset()
             policy.reset()
@@ -514,6 +524,36 @@ class BTManager:
                                        ignore_attrs=['id', 'name', 'status', 'tag', 'type', 'blackboard',
                                                      'feedback_messages',
                                                      'children_count'])
+
+
+class TrajRecorder:
+    """
+    对战轨迹记录
+    """
+
+    def __init__(self, env: Dogfight2dEnv, output_dir: str):
+        self.output_dir = os.path.join(output_dir, 'record')
+        os.makedirs(self.output_dir, exist_ok=True)
+        self.env = env
+        self.data = { }
+
+    def record(self):
+        for agent in self.env.battle_area.agents:
+            if agent.name not in self.data:
+                self.data[agent.name] = []
+            self.data[agent.name].append({
+                'x'                          : float(agent.waypoint.x),
+                'y'                          : float(agent.waypoint.y),
+                'psi'                        : float(agent.waypoint.psi),
+                'missile_fired_count'        : int(agent.missile_fired_count),
+                'missile_miss_count'         : int(agent.missile_miss_count),
+                'missile_evade_success_count': int(agent.missile_evade_success_count)
+            })
+
+    def save(self):
+        with open(os.path.join(self.output_dir, f'{self.env.episode}.json'), 'w') as f:
+            json.dump(self.data, f, ensure_ascii=False)
+        self.data = { }
 
 
 class ResultRecorder:

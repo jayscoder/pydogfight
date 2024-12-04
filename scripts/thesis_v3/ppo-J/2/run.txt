@@ -1,0 +1,1 @@
+1: reward=81.84 vs -32.13, winner=red, r_win=1:0:0, win=1:0:0, time=252/252

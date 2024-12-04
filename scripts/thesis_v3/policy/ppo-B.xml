@@ -1,17 +1,17 @@
-<Root>
+<Root name="PPO-C">
     <include path="{{filedir}}/policy/init.xml"/>
     <include path="{{filedir}}/policy/reward.xml"/>
 
-    <ReactiveSequence>
-        <CanFireMissile/>
-        <IsNearestEnemyInHitRange/>
-        <FireMissileAtNearestEnemy/>
-    </ReactiveSequence>
+<!--    <ReactiveSequence>-->
+<!--        <CanFireMissile/>-->
+<!--        <IsNearestEnemyInHitRange/>-->
+<!--        <FireMissileAtNearestEnemy/>-->
+<!--    </ReactiveSequence>-->
 
     <ReactiveSelector>
         <include path="{{filedir}}/policy/handle_abnormal.xml"/>
 
-        <ThesisPPOGoToLocation
+        <ThesisPPOFireAndGoToLocation
                 domain="control,default,attack,evade"
                 path="{{filedir}}/{{filename}}/models/{{name}}"
                 tensorboard_log="{{output_run_id}}/{{name}}/{{agent_name}}"

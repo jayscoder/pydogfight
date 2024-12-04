@@ -298,6 +298,7 @@ class ThesisActorCriticPolicy(ActorCriticPolicy):
                 action_logits = action_dist.distribution.logits
                 # print('_get_action_dist_from_latent', action_logits.shape, action_mask.shape)
                 # action_mask = action_mask.reshape((1, -1))
+                action_mask = action_mask.reshape(action_logits.shape)
                 action_logits[action_mask == 0] = -1 * 1e8
                 # action_logits = action_logits + (th.tensor(action_mask).to(action_logits.device) - 1) * 1e8
                 action_dist.distribution.logits = action_logits

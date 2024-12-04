@@ -33,7 +33,7 @@ class RLNode(BTPolicyNode, RLBaseNode, ABC):
             domain: str = '',
             save_path: str = '',  # 空代表不保存
             save_interval: int | str = 0,
-            deterministic: bool | str = True,
+            deterministic: bool | str = False,
             train: bool | str = False,
             tensorboard_log: str = '',
             **kwargs

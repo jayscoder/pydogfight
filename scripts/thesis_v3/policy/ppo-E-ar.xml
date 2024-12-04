@@ -30,15 +30,22 @@
                     <Manoeuvre39ToEvadeMissile turn_angle="90"/>
                 </ThrottleSuccessIsRunning>
             </Sequence>
-
-            <!--                <Sequence>-->
-            <!--                    <IsMissileThreatDetected/>-->
-            <!--                    <Manoeuvre39ToEvadeMissile turn_angle="-90"/>-->
-            <!--                </Sequence>-->
+            <Sequence>
+                <IsMissileThreatDetected/>
+                <ThrottleSuccessIsRunning duration="{{ 5 - episode // 50 }}" time="{{ time }}">
+                    <Manoeuvre39ToEvadeMissile turn_angle="-90"/>
+                </ThrottleSuccessIsRunning>
+            </Sequence>
             <Sequence>
                 <IsEnemyDetected/>
                 <ThrottleSuccessIsRunning duration="{{ 5 - episode // 50 }}" time="{{ time }}">
                     <Manoeuvre39ToEvadeEnemy turn_angle="90"/>
+                </ThrottleSuccessIsRunning>
+            </Sequence>
+            <Sequence>
+                <IsEnemyDetected/>
+                <ThrottleSuccessIsRunning duration="{{ 5 - episode // 50 }}" time="{{ time }}">
+                    <Manoeuvre39ToEvadeEnemy turn_angle="-90"/>
                 </ThrottleSuccessIsRunning>
             </Sequence>
             <!--                <Sequence>-->

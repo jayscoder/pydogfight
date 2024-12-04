@@ -11,40 +11,36 @@
             train="{{train}}"
     />
 
-    <ReactiveSequence>
-        <CanFireMissile/>
-        <IsEnemyDetected/>
-        <ThesisPPOCondition
-                domain="control,default,attack,evade"
-                path="{{filedir}}/{{filename}}/models/{{name}}"
-                tensorboard_log="{{output_run_id}}/{{name}}/{{agent_name}}"
-                log_interval="1"
-                verbose="0"
-                train="{{train}}"
-                n_steps="180"
-        />
-        <FireMissileAtNearestEnemy/>
-    </ReactiveSequence>
-
-    <ThesisPPOIntValue
-            key="param" high="-3" low="3"
+    <ThesisPPOSwitcher
+            name="ThesisPPOSwitcherFire"
             domain="control,default,attack,evade"
             path="{{filedir}}/{{filename}}/models/{{name}}"
             tensorboard_log="{{output_run_id}}/{{name}}/{{agent_name}}"
             log_interval="1"
             verbose="0"
             train="{{train}}"
-    />
+            n_steps="180"
+            allow_action_mask="true"
+    >
+        <Sequence>
+            <CanFireMissile/>
+            <IsEnemyDetected/>
+            <FireMissileAtNearestEnemy/>
+        </Sequence>
+        <NoAction/>
+    </ThesisPPOSwitcher>
 
     <ReactiveSelector>
         <include path="{{filedir}}/policy/handle_abnormal.xml"/>
-        <ThesisPPOSwitcherActionMask
+        <ThesisPPOSwitcher
+                name="ThesisPPOSwitcherControl"
                 domain="control,default,attack,evade"
                 path="{{filedir}}/{{filename}}/models/{{name}}"
                 tensorboard_log="{{output_run_id}}/{{name}}/{{agent_name}}"
                 log_interval="1"
                 verbose="0"
                 train="{{train}}"
+                allow_action_mask="true"
         >
             <Sequence>
                 <IsEnemyDetected/>
@@ -52,21 +48,21 @@
             </Sequence>
             <Sequence>
                 <IsMissileThreatDetected/>
-                <Manoeuvre39ToEvadeMissile turn_angle="{{ 90 + param * 5 }}"/>
+                <Manoeuvre39ToEvadeMissile turn_angle="90"/>
             </Sequence>
             <Sequence>
                 <IsMissileThreatDetected/>
-                <Manoeuvre39ToEvadeMissile turn_angle="-{{ 90 + param * 5 }}"/>
+                <Manoeuvre39ToEvadeMissile turn_angle="-90"/>
             </Sequence>
             <Sequence>
                 <IsEnemyDetected/>
-                <Manoeuvre39ToEvadeEnemy turn_angle="{{ 90 + param * 5 }}"/>
+                <Manoeuvre39ToEvadeEnemy turn_angle="90"/>
             </Sequence>
             <Sequence>
                 <IsEnemyDetected/>
-                <Manoeuvre39ToEvadeEnemy turn_angle="-{{ 90 + param * 5 }}"/>
+                <Manoeuvre39ToEvadeEnemy turn_angle="-90"/>
             </Sequence>
             <KeepFly/>
-        </ThesisPPOSwitcherActionMask>
+        </ThesisPPOSwitcher>
     </ReactiveSelector>
 </Root>

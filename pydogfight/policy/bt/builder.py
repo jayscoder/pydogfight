@@ -72,5 +72,6 @@ class BTPolicyBuilder(pybts.rl.builder.RLBuilder):
                 IsNearestEnemyFitPositioning,
                 Manoeuvre39ToEvadeMissile,
                 Manoeuvre39ToEvadeEnemy,
-                TurnHeading
+                TurnHeading,
+                NoAction
         )

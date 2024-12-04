@@ -52,6 +52,14 @@ class KeepFly(BTPolicyNode):
         return Status.SUCCESS
 
 
+class NoAction(BTPolicyNode):
+    """
+    行为节点：无动作
+    """
+    def update(self) -> Status:
+        return Status.SUCCESS
+
+
 class FollowRoute(BTPolicyNode):
     """
     沿着一条预设的航线飞行

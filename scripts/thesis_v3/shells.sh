@@ -1,4 +1,5 @@
 python main.py scripts/thesis_v3/ppo-A.yaml --train
+python main.py scripts/thesis_v3/ppo-A-p.yaml --train
 python main.py scripts/thesis_v3/ppo-B.yaml --train
 python main.py scripts/thesis_v3/ppo-C.yaml --train
 python main.py scripts/thesis_v3/ppo-D.yaml --train

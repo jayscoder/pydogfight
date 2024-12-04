@@ -1,1 +1,0 @@
-python main.py scripts/thesis_v3/ppo-E-ar.yaml --train

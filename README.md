@@ -5,38 +5,101 @@
 ## 运行
 
 ```shell
-python main.py scripts/v2/ppo.yaml --render --output-dir=outputs/ppo_v2  
+#python main.py scripts/v2/ppo.yaml --render --output-dir=outputs/ppo_v2  
+python main.py scripts/thesis_v3/ppo-A.yaml --train --render
 ```
 
 ## 配置文件
 
-scripts/v2/ppo.yaml
+对战场景配置样例：
+scripts/thesis_v3/base.yaml
 
 ```shell
-output_dir: output/v2/ppo # 输出目录
-render: false # 是否渲染
-num_episodes: 1000 # 运行轮数
-track: 60 # 是否捕获行为树运行数据
+title: '{{filedir}}-{{filename}}' # 对战标题
+output: '{{filedir}}/{{filename}}' # 输出目录
+episodes: 3000 # 运行轮数
+track: -1 # 是否使用pybts捕获行为树运行数据，-1表示不使用，60表示每隔60次tick捕获一次（可以在pybts可视化界面里展示）
 policy:
-    red: scripts/v2/rl.xml # 红方行为树
-    blue: scripts/v2/greedy.xml # 蓝方行为树
+    blue: '{{filedir}}/policy/greedy.xml' # 蓝方行为树策略路径（blue代表给每个行为树配置相同的策略，blue_1代表仅给蓝1战机配置）
 options:
-    train: true # 是否开启训练
-    red_agents: ['red'] # 红方agents
-    blue_agents: ['blue'] # 蓝方agents
-#     indestructible: true # 是否开启无敌模式
-    collision_scale: 1.5 # 碰撞倍数，越大越容易发生碰撞
+#     render: false # 是否渲染
+    red_agents: ['red_1'] # 红方agents，每个要配置不一样的名字，可以配置多个
+    blue_agents: ['blue_1'] # 蓝方agents
+    indestructible: false # 是否开启无敌模式
+    collision_scale: 1 # 碰撞倍数，越大越容易发生碰撞
+    aircraft_missile_count: 12 # 导弹数量认为是无限多
+    aircraft_fuel_capacity: 180000 # 飞机油量认为无限多
+    aircraft_fire_missile_interval: 10 # 发射导弹时间间隔10s
+    max_duration: 1800 # 一局对战最多1800秒
+#     aircraft_radar_radius: 10000
+    device: auto
 context: # 行为树环境变量，可以在行为树中通过{{}}来传递
-    models_dir: 'models/v2/ppo' # 模型目录
-    rl_algo: PPO
----
-# 后面的配置会继承前面的
-num_episodes: 100
-options:
-    train: false
-    indestructible: false
-    collision_scale: 1.5
+#     models_dir: 'output/v6/ppo-greedy/models'
+    features_dim: 128
+    learning_starts: 128
+    batch_size: 32
 ```
+
+scripts/thesis_v3/ppo-A.yaml:
+```shell
+base: '{{filedir}}/base.yaml' # 继承的配置的路径 {{filedir}}表示当前配置文件的目录，用来方便配置相对路径。后面的配置项会覆盖base里的配置
+policy:
+    red: '{{filedir}}/policy/ppo-A.xml' # 红方行为树
+context: # 行为树环境变量，可以在行为树中通过{{}}来传递
+    init_models_dir: '{{filedir}}/{{filename}}/models' # 初始化模型目录
+```
+
+行为树策略：
+scripts/thesis_v3/policy/ppo-A.yaml
+
+```shell
+<Root> # 根节点
+    <include path="{{filedir}}/policy/init.xml"/> # include引用一个行为树，这里是初始化节点
+    <include path="{{filedir}}/policy/reward.xml"/> # 奖励树
+    
+    <ReactiveSequence>
+        <CanFireMissile/>
+        <IsNearestEnemyInHitRange/>
+        <FireMissileAtNearestEnemy/>
+    </ReactiveSequence>
+
+    <ReactiveSelector>
+        <include path="{{filedir}}/policy/handle_abnormal.xml"/>
+        <ThesisPPOSwitcher # PPO学习切换节点，定义在bt/nodes_thesis.py里
+                domain="control,default,attack,evade"
+                path="{{filedir}}/{{filename}}/models/{{name}}"
+                tensorboard_log="{{output_run_id}}/{{name}}/{{agent_name}}"
+                log_interval="1"
+                verbose="0"
+                train="{{train}}"
+                allow_action_mask="false"
+        >
+            <Sequence>
+                <IsEnemyDetected/>
+                <PurePursueNearestEnemy/>
+            </Sequence>
+            <Sequence>
+                <IsMissileThreatDetected/>
+                <Manoeuvre39ToEvadeMissile turn_angle="90"/>
+            </Sequence>
+            <Sequence>
+                <IsMissileThreatDetected/>
+                <Manoeuvre39ToEvadeMissile turn_angle="-90"/>
+            </Sequence>
+            <Sequence>
+                <IsEnemyDetected/>
+                <Manoeuvre39ToEvadeEnemy turn_angle="90"/>
+            </Sequence>
+            <Sequence>
+                <IsEnemyDetected/>
+                <Manoeuvre39ToEvadeEnemy turn_angle="-90"/>
+            </Sequence>
+            <KeepFly/>
+        </ThesisPPOSwitcher>
+    </ReactiveSelector>
+</Root>
+```
+
 
 ## 强化学习结合的行为树
 

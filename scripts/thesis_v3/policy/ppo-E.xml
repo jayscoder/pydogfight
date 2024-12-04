@@ -27,18 +27,18 @@
                 <IsMissileThreatDetected/>
                 <Manoeuvre39ToEvadeMissile turn_angle="90"/>
             </Sequence>
-<!--            <Sequence>-->
-<!--                <IsMissileThreatDetected/>-->
-<!--                <Manoeuvre39ToEvadeMissile turn_angle="-90"/>-->
-<!--            </Sequence>-->
+            <Sequence>
+                <IsMissileThreatDetected/>
+                <Manoeuvre39ToEvadeMissile turn_angle="-90"/>
+            </Sequence>
             <Sequence>
                 <IsEnemyDetected/>
                 <Manoeuvre39ToEvadeEnemy turn_angle="90"/>
             </Sequence>
-<!--            <Sequence>-->
-<!--                <IsEnemyDetected/>-->
-<!--                <Manoeuvre39ToEvadeEnemy turn_angle="-90"/>-->
-<!--            </Sequence>-->
+            <Sequence>
+                <IsEnemyDetected/>
+                <Manoeuvre39ToEvadeEnemy turn_angle="-90"/>
+            </Sequence>
             <KeepFly/>
         </ThesisPPOSwitcher>
     </ReactiveSelector>

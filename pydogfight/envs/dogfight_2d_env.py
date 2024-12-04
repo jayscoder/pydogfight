@@ -29,7 +29,7 @@ class Dogfight2dEnv(gym.Env):
         options.validate()
         self.render_mode = 'human' if options.render else ''
         self.options = options
-        self.battle_area = battle_area_class(options=options)
+        self.battle_area: BattleArea = battle_area_class(options=options)
 
         self.obs_utils_dict = { }
         for agent_name in options.agents():
