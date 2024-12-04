@@ -18,7 +18,7 @@ python main.py scripts/thesis_v3/ppo-G-ar.yaml --train
 python main.py scripts/thesis_v3/ppo-H-ar.yaml --train
 
 python main.py scripts/thesis_v3/ppo-I-ar.yaml --train
-python main.py scripts/thesis_v3/ppo-J-ar.yaml --train
+python main.py scripts/thesis_v3/ppo-J-ar.yaml --train --render
 
 tensorboard --logdir=scripts/thesis_v3
 cd /Users/wangtong/Documents/GitHub/pydogfight
